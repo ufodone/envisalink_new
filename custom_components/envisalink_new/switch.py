@@ -13,6 +13,9 @@ from .models import EnvisalinkDevice
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
     CONF_NUM_ZONES,
+    CONF_ZONENAME,
+    CONF_ZONES,
+    DEFAULT_NUM_ZONES,
     DOMAIN,
     LOGGER,
     SIGNAL_ZONE_BYPASS_UPDATE,
@@ -28,11 +31,17 @@ async def async_setup_entry(
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
+        zone_info = entry.data.get(CONF_ZONES)
         entities = []
-        for zone_num in range(1, entry.data[CONF_NUM_ZONES] + 1):
+        for zone_num in range(1, entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES) + 1):
+            zone_entry = None
+            if zone_info and zone_num in zone_info:
+                zone_entry = zone_info[zone_num]
+
             entity = EnvisalinkSwitch(
                 hass,
                 zone_num,
+                zone_entry,
                 controller,
             )
             entities.append(entity)
@@ -43,14 +52,20 @@ async def async_setup_entry(
 class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink switch."""
 
-    def __init__(self, hass, zone_number, controller):
+    def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the switch."""
         self._zone_number = zone_number
         name_suffix = f"zone_{self._zone_number}_bypass"
         self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
 
-        LOGGER.debug("Setting up zone: %s", name_suffix)
-        super().__init__(name_suffix, controller)
+        name = f"{controller.alarm_name}_{name_suffix}"
+        if zone_info:
+            # Override the name if there is info from the YAML configuration
+            if CONF_ZONENAME in zone_info:
+                name = f"{zone_info[CONF_ZONENAME]}_bypass"
+
+        LOGGER.debug("Setting up zone: %s", name)
+        super().__init__(name, controller)
 
     async def async_added_to_hass(self):
         """Register callbacks."""

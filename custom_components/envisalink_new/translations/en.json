@@ -6,12 +6,10 @@
           "alarm_name": "Alarm Name",
           "host": "Hostname",
           "port": "Port",
-          "username": "Username",
+          "user_name": "Username",
           "password": "Password",
           "evl_version": "Envisalink version",
-          "panel_type": "Panel type",
-          "num_zones": "Number of zones",
-          "num_partitions": "Number of partitions"
+          "panel_type": "Panel type"
         }
       }
     },
@@ -28,6 +26,8 @@
     "step": {
       "init": {
         "data": {
+          "num_zones": "Number of zones",
+          "num_partitions": "Number of partitions",
           "code": "Alarm code",
           "panic_type": "Panic type",
           "keepalive_interval": "Keep-alive interval",

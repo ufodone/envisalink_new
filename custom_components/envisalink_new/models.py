@@ -7,10 +7,10 @@ from .controller import EnvisalinkController
 class EnvisalinkDevice(Entity):
     """Representation of an Envisalink device."""
 
-    def __init__(self, name_suffix, controller):
+    def __init__(self, name, controller):
         """Initialize the device."""
         self._controller = controller
-        self._name = f"{controller.alarm_name}_{name_suffix}"
+        self._name = name
 
     @property
     def name(self):

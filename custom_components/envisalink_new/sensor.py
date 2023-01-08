@@ -13,6 +13,9 @@ from .const import (
     DOMAIN,
     LOGGER,
     CONF_NUM_PARTITIONS,
+    CONF_PARTITIONNAME,
+    CONF_PARTITIONS,
+    DEFAULT_NUM_PARTITIONS,
     SIGNAL_KEYPAD_UPDATE,
     SIGNAL_PARTITION_UPDATE,
 )
@@ -28,11 +31,17 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
+    partition_info = entry.data.get(CONF_PARTITIONS)
     entities = []
-    for part_num in range(1, entry.data[CONF_NUM_PARTITIONS] + 1):
+    for part_num in range(1, entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS) + 1):
+        part_entry = None
+        if partition_info and part_num in partition_info:
+            part_entry = partition_info[part_num]
+
         entity = EnvisalinkSensor(
             hass,
             part_num,
+            part_entry,
             controller,
         )
         entities.append(entity)
@@ -45,15 +54,21 @@ async def async_setup_entry(
 class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
     """Representation of an Envisalink keypad."""
 
-    def __init__(self, hass, partition_number, controller):
+    def __init__(self, hass, partition_number, partition_info, controller):
         """Initialize the sensor."""
         self._icon = "mdi:alarm"
         self._partition_number = partition_number
         name_suffix = f"partition_{partition_number}_keypad"
         self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
 
-        LOGGER.debug("Setting up sensor for partition: %s", name_suffix)
-        super().__init__(name_suffix, controller)
+        name = f"{controller.alarm_name}_{name_suffix}"
+        if partition_info:
+            # Override the name if there is info from the YAML configuration
+            if CONF_PARTITIONNAME in partition_info:
+                name = f"{partition_info[CONF_PARTITIONNAME]} Keypad"
+
+        LOGGER.debug("Setting up sensor for partition: %s", name)
+        super().__init__(name, controller)
 
     async def async_added_to_hass(self):
         """Register callbacks."""

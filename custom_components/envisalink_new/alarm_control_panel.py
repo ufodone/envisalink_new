@@ -30,6 +30,9 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from .const import (
     CONF_PANIC,
     CONF_NUM_PARTITIONS,
+    CONF_PARTITIONNAME,
+    CONF_PARTITIONS,
+    DEFAULT_NUM_PARTITIONS,
     DOMAIN,
     LOGGER,
     SIGNAL_KEYPAD_UPDATE,
@@ -58,12 +61,17 @@ async def async_setup_entry(
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.options.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC)
+    partition_info = entry.data.get(CONF_PARTITIONS)
 
     entities = []
-    for part_num in range(1, entry.data[CONF_NUM_PARTITIONS] + 1):
+    for part_num in range(1, entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS) + 1):
+        part_entry = None
+        if partition_info and part_num in partition_info:
+            part_entry = partition_info[part_num]
         entity = EnvisalinkAlarm(
             hass,
             part_num,
+            part_entry,
             code,
             panic_type,
             controller,
@@ -105,7 +113,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     )
 
     def __init__(
-        self, hass, partition_number, code, panic_type, controller
+        self, hass, partition_number, partition_info, code, panic_type, controller
     ):
         """Initialize the alarm panel."""
         self._partition_number = partition_number
@@ -114,8 +122,14 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         name_suffix = f"partition_{partition_number}"
         self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
 
-        LOGGER.debug("Setting up alarm: %s", name_suffix)
-        super().__init__(name_suffix, controller)
+        name = f"{controller.alarm_name}_{name_suffix}"
+        if partition_info:
+            # Override the name if there is info from the YAML configuration
+            if CONF_PARTITIONNAME in partition_info:
+                name = f"{partition_info[CONF_PARTITIONNAME]}"
+
+        LOGGER.debug("Setting up alarm: %s", name)
+        super().__init__(name, controller)
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""

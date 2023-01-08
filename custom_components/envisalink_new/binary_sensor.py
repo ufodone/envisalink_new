@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime
 import logging
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.const import ATTR_LAST_TRIP_TIME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -13,9 +13,14 @@ from homeassistant.util import dt as dt_util
 
 from .models import EnvisalinkDevice
 from .const import (
+    CONF_NUM_ZONES,
+    CONF_ZONENAME,
+    CONF_ZONES,
+    CONF_ZONETYPE,
+    DEFAULT_NUM_ZONES,
+    DEFAULT_ZONETYPE,
     DOMAIN,
     LOGGER,
-    CONF_NUM_ZONES,
     SIGNAL_ZONE_UPDATE,
 )
 
@@ -27,11 +32,17 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
+    zone_info = entry.data.get(CONF_ZONES)
     entities = []
-    for zone_num in range(1, entry.data[CONF_NUM_ZONES] + 1):
+    for zone_num in range(1, entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES) + 1):
+        zone_entry = None
+        if zone_info and zone_num in zone_info:
+            zone_entry = zone_info[zone_num]
+
         entity = EnvisalinkBinarySensor(
             hass,
             zone_num,
+            zone_entry,
             controller,
         )
         entities.append(entity)
@@ -42,15 +53,23 @@ async def async_setup_entry(
 class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
     """Representation of an Envisalink binary sensor."""
 
-    def __init__(self, hass, zone_number, controller):
+    def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the binary_sensor."""
-        self._zone_type = BinarySensorDeviceClass.OPENING # TODO
         self._zone_number = zone_number
         name_suffix = f"zone_{self._zone_number}"
         self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
 
-        LOGGER.debug("Setting up zone: %s", name_suffix)
-        super().__init__(name_suffix, controller)
+        name = f"{controller.alarm_name}_{name_suffix}"
+        self._zone_type = DEFAULT_ZONETYPE
+
+        if zone_info:
+            # Override the name and type if there is info from the YAML configuration
+            self._zone_type = zone_info.get(CONF_ZONETYPE, DEFAULT_ZONETYPE)
+            if CONF_ZONENAME in zone_info:
+                name = zone_info[CONF_ZONENAME]
+
+        LOGGER.debug("Setting up zone: %s", name)
+        super().__init__(name, controller)
 
     async def async_added_to_hass(self):
         """Register callbacks."""

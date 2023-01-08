@@ -13,7 +13,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.selector import selector
+from homeassistant.helpers import selector
 
 from homeassistant.const import (
     CONF_CODE,
@@ -31,12 +31,18 @@ from .const import (
     CONF_NUM_ZONES,
     CONF_PANEL_TYPE,
     CONF_PANIC,
+    CONF_PARTITIONS,
     CONF_PASS,
     CONF_USERNAME,
+    CONF_YAML_OPTIONS,
     CONF_ZONEDUMP_INTERVAL,
+    CONF_ZONES,
+    DEFAULT_ALARM_NAME,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_EVL_VERSION,
     DEFAULT_KEEPALIVE,
+    DEFAULT_NUM_PARTITIONS,
+    DEFAULT_NUM_ZONES,
     DEFAULT_PANIC,
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
@@ -54,7 +60,7 @@ from .pyenvisalink import EnvisalinkAlarmPanel
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_ALARM_NAME): cv.string,
+        vol.Required(CONF_ALARM_NAME, default=DEFAULT_ALARM_NAME): cv.string,
         vol.Required(CONF_HOST): cv.string,
         vol.Required(CONF_EVL_PORT, default=DEFAULT_PORT): cv.port,
         vol.Required(CONF_USERNAME): cv.string,
@@ -66,13 +72,6 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
         vol.Required(CONF_PANEL_TYPE): vol.All(
             cv.string, vol.In([PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL])
-        ),
-
-        vol.Required(CONF_NUM_ZONES, default=EVL_MAX_ZONES) : vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=EVL_MAX_ZONES)
-        ),
-        vol.Required(CONF_NUM_PARTITIONS, default=EVL_MAX_PARTITIONS) : vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=EVL_MAX_PARTITIONS)
         ),
     }
 )
@@ -127,6 +126,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
 
+    async def async_step_import(self, user_input: dict[str, Any]) -> FlowResult:
+        """Handle import."""
+        return await self.async_step_user(user_input)
+
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -149,6 +152,32 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         options_schema = vol.Schema(
             {
+                vol.Required(
+                    CONF_NUM_ZONES,
+                    default=self.config_entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES)
+                ): vol.All(
+                    selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            mode=selector.NumberSelectorMode.SLIDER,
+                            min=1,
+                            max=EVL_MAX_ZONES,
+                        )
+                    ),
+                    vol.Coerce(int),
+                ),
+                vol.Required(
+                    CONF_NUM_PARTITIONS,
+                    default=self.config_entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS)
+                ): vol.All(
+                    selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            mode=selector.NumberSelectorMode.SLIDER,
+                            min=1,
+                            max=EVL_MAX_PARTITIONS,
+                        )
+                    ),
+                    vol.Coerce(int),
+                ),
                 vol.Optional(
                     CONF_CODE,
                     description={"suggested_value": self.config_entry.options.get(CONF_CODE)}
