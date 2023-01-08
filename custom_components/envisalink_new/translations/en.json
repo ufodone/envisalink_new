@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "alarm_name": "Alarm Name",
+          "host": "Hostname",
+          "port": "Port",
+          "username": "Username",
+          "password": "Password",
+          "evl_version": "Envisalink version",
+          "panel_type": "Panel type",
+          "num_zones": "Number of zones",
+          "num_partitions": "Number of partitions"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect.",
+      "invalid_auth": "Invalid authentication credentials",
+      "unknown": "Unknown error"
+    },
+    "abort": {
+      "already_configured": "Already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "code": "Alarm code",
+          "panic_type": "Panic type",
+          "keepalive_interval": "Keep-alive interval",
+          "zonedump_interval": "Zone dump interval",
+          "timeout": "Connection timeout",
+          "create_zone_bypass_switches": "Create zone bypass switches"
+        }
+      }
+    }
+  }
+}
+
