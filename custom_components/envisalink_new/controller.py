@@ -58,6 +58,8 @@ class EnvisalinkController:
 #            name=DOMAIN,
 #        )
 
+        self._entry_id = entry.entry_id
+
         # Config
         self.alarm_name = entry.data.get(CONF_ALARM_NAME)
         self.host = entry.data.get(CONF_HOST)
@@ -103,8 +105,8 @@ class EnvisalinkController:
     def unique_id(self):
         id = self.controller.mac_address
         if not id:
-            # TODO MAC address not available from the EVL so use the config entry instead
-            raise ValueException("No unque ID available")
+            LOGGER.warn("MAC address not available from EVL.  Using config entry ID as unique ID.")
+            id = self._entry_id
         return id
 
     async def start(self) -> bool:
@@ -113,11 +115,6 @@ class EnvisalinkController:
 
         if not await self.sync_connect:
             return False
-
-# TODO
-#        hass.services.async_register(
-#            DOMAIN, SERVICE_CUSTOM_FUNCTION, handle_custom_function, schema=SERVICE_SCHEMA
-#        )
 
         return True
 
@@ -178,12 +175,5 @@ class EnvisalinkController:
         """Shutdown envisalink connection and thread on exit."""
         LOGGER.info("Shutting down Envisalink")
         await self.controller.stop()
-
-    async def handle_custom_function(self, call: ServiceCall) -> None:
-        """Handle custom/PGM service."""
-        custom_function = call.data.get(ATTR_CUSTOM_FUNCTION)
-        partition = call.data.get(ATTR_PARTITION)
-        self.controller.command_output(code, partition, custom_function)
-
 
 

@@ -65,14 +65,3 @@ SIGNAL_PARTITION_UPDATE = "dscalarm.partition_updated"
 SIGNAL_KEYPAD_UPDATE = "dscalarm.keypad_updated"
 SIGNAL_ZONE_BYPASS_UPDATE = "dscalarm.zone_bypass_updated"
 
-SERVICE_CUSTOM_FUNCTION = "invoke_custom_function"
-ATTR_CUSTOM_FUNCTION = "pgm"
-ATTR_PARTITION = "partition"
-
-SERVICE_SCHEMA = vol.Schema(
-    {
-        vol.Required(ATTR_CUSTOM_FUNCTION): cv.string,
-        vol.Required(ATTR_PARTITION): cv.string,
-    }
-)
-

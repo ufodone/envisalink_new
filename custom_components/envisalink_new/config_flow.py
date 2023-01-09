@@ -150,62 +150,64 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        options_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_NUM_ZONES,
-                    default=self.config_entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES)
-                ): vol.All(
-                    selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            mode=selector.NumberSelectorMode.SLIDER,
-                            min=1,
-                            max=EVL_MAX_ZONES,
-                        )
-                    ),
-                    vol.Coerce(int),
+        options_schema = {
+            vol.Required(
+                CONF_NUM_ZONES,
+                default=self.config_entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES)
+            ): vol.All(
+                selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.SLIDER,
+                        min=1,
+                        max=EVL_MAX_ZONES,
+                    )
                 ),
-                vol.Required(
-                    CONF_NUM_PARTITIONS,
-                    default=self.config_entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS)
-                ): vol.All(
-                    selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            mode=selector.NumberSelectorMode.SLIDER,
-                            min=1,
-                            max=EVL_MAX_PARTITIONS,
-                        )
-                    ),
-                    vol.Coerce(int),
+                vol.Coerce(int),
+            ),
+            vol.Required(
+                CONF_NUM_PARTITIONS,
+                default=self.config_entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS)
+            ): vol.All(
+                selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.SLIDER,
+                        min=1,
+                        max=EVL_MAX_PARTITIONS,
+                    )
                 ),
-                vol.Optional(
-                    CONF_CODE,
-                    description={"suggested_value": self.config_entry.options.get(CONF_CODE)}
-                ): cv.string,
-                vol.Optional(
-                    CONF_PANIC,
-                    default=self.config_entry.options.get(CONF_PANIC, DEFAULT_PANIC)
-                ): cv.string,
-                vol.Optional(
-                    CONF_EVL_KEEPALIVE,
-                    default=self.config_entry.options.get(CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE)
-                ): vol.All(
-                    vol.Coerce(int), vol.Range(min=15)
-                ),
-                vol.Optional(
-                    CONF_ZONEDUMP_INTERVAL,
-                    default=self.config_entry.options.get(CONF_ZONEDUMP_INTERVAL, DEFAULT_ZONEDUMP_INTERVAL)
-                ): vol.Coerce(int),
-                vol.Optional(
-                    CONF_TIMEOUT,
-                    default=self.config_entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-                ): vol.Coerce(int),
+                vol.Coerce(int),
+            ),
+            vol.Optional(
+                CONF_CODE,
+                description={"suggested_value": self.config_entry.options.get(CONF_CODE)}
+            ): cv.string,
+            vol.Optional(
+                CONF_PANIC,
+                default=self.config_entry.options.get(CONF_PANIC, DEFAULT_PANIC)
+            ): cv.string,
+            vol.Optional(
+                CONF_EVL_KEEPALIVE,
+                default=self.config_entry.options.get(CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE)
+            ): vol.All(
+                vol.Coerce(int), vol.Range(min=15)
+            ),
+            vol.Optional(
+                CONF_ZONEDUMP_INTERVAL,
+                default=self.config_entry.options.get(CONF_ZONEDUMP_INTERVAL, DEFAULT_ZONEDUMP_INTERVAL)
+            ): vol.Coerce(int),
+            vol.Optional(
+                CONF_TIMEOUT,
+                default=self.config_entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            ): vol.Coerce(int)
+        }
+
+        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_DSC:
+            # Zone bypass switches are only available on DSC panels
+            options_schema[
                 vol.Optional(
                     CONF_CREATE_ZONE_BYPASS_SWITCHES,
                     default=self.config_entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES, DEFAULT_CREATE_ZONE_BYPASS_SWITCHES)
-                ): cv.boolean,
-            }
-        )
+                )] = selector.BooleanSelector()
 
         return self.async_show_form(
             step_id="init",
