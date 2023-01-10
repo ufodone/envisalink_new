@@ -21,7 +21,7 @@ from .const import (
     DEFAULT_ZONETYPE,
     DOMAIN,
     LOGGER,
-    SIGNAL_ZONE_UPDATE,
+    STATE_UPDATE_TYPE_ZONE,
 )
 
 async def async_setup_entry(
@@ -69,15 +69,7 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
                 name = zone_info[CONF_ZONENAME]
 
         LOGGER.debug("Setting up zone: %s", name)
-        super().__init__(name, controller)
-
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, SIGNAL_ZONE_UPDATE, self.async_update_callback
-            )
-        )
+        super().__init__(name, controller, STATE_UPDATE_TYPE_ZONE, zone_number)
 
     @property
     def _info(self):
@@ -124,10 +116,4 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
     def device_class(self):
         """Return the class of this sensor, from DEVICE_CLASSES."""
         return self._zone_type
-
-    @callback
-    def async_update_callback(self, zone):
-        """Update the zone's state, if needed."""
-        if zone is None or int(zone) == self._zone_number:
-            self.async_write_ha_state()
 

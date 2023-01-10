@@ -338,11 +338,20 @@ class EnvisalinkClient(asyncio.Protocol):
 
     def handle_zone_timer_dump(self, code, data):
         """Handle the zone timer data."""
+        results = []
         zoneInfoArray = self.convertZoneDump(data)
         for zoneNumber, zoneInfo in enumerate(zoneInfoArray, start=1):
-            self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update({'open': zoneInfo['status'] == 'open', 'fault': zoneInfo['status'] == 'open'})
+            currentStatus = self._alarmPanel.alarm_state['zone'][zoneNumber]['status']
+            newOpen = zoneInfo['status'] == 'open'
+            newFault = zoneInfo['status'] == 'open'
+            if newOpen != currentStatus['open'] or newFault != currentStatus['fault']:
+                # State changed so add to result list
+                results.append(zoneNumber)
+
+            self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update({'open': newOpen, 'fault': newFault})
             self._alarmPanel.alarm_state['zone'][zoneNumber]['last_fault'] = zoneInfo['seconds']
             _LOGGER.debug("(zone %i) %s", zoneNumber, zoneInfo['status'])
+        return results
 
 
     async def queue_command(self, cmd, data, code = None):

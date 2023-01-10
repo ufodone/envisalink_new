@@ -251,7 +251,7 @@ class DSCClient(EnvisalinkClient):
             return
 
         if len(data) == 16:
-            updates = {}
+            updates = []
             for byte in range(8):
                 bypassBitfield = int('0x' + data[byte * 2] + data[(byte * 2) + 1], 0)
 
@@ -259,7 +259,7 @@ class DSCClient(EnvisalinkClient):
                     zoneNumber = (byte * 8) + bit + 1
                     bypassed = (bypassBitfield & (1 << bit) != 0)
                     if self._alarmPanel.alarm_state['zone'][zoneNumber]['bypassed'] != bypassed:
-                        updates[zoneNumber] = bypassed
+                        updates.append(zoneNumber)
                     self._alarmPanel.alarm_state['zone'][zoneNumber]['bypassed'] = bypassed
                     _LOGGER.debug(str.format("(zone {0}) bypass state has updated: {1}", zoneNumber, bypassed))
 

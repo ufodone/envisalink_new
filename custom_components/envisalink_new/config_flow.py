@@ -211,7 +211,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=options_schema,
+            data_schema=vol.Schema(options_schema),
         )
 
 class CannotConnect(HomeAssistantError):

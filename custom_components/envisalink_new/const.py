@@ -60,8 +60,6 @@ DEFAULT_ZONETYPE = BinarySensorDeviceClass.OPENING
 EVL_MAX_ZONES = 64
 EVL_MAX_PARTITIONS = 8
 
-SIGNAL_ZONE_UPDATE = "dscalarm.zones_updated"
-SIGNAL_PARTITION_UPDATE = "dscalarm.partition_updated"
-SIGNAL_KEYPAD_UPDATE = "dscalarm.keypad_updated"
-SIGNAL_ZONE_BYPASS_UPDATE = "dscalarm.zone_bypass_updated"
-
+STATE_UPDATE_TYPE_PARTITION = "partitions"
+STATE_UPDATE_TYPE_ZONE = "zones"
+STATE_UPDATE_TYPE_ZONE_BYPASS = "bypass"

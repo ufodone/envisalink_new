@@ -16,8 +16,7 @@ from .const import (
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
     DEFAULT_NUM_PARTITIONS,
-    SIGNAL_KEYPAD_UPDATE,
-    SIGNAL_PARTITION_UPDATE,
+    STATE_UPDATE_TYPE_PARTITION,
 )
 
 from .models import EnvisalinkDevice
@@ -68,20 +67,7 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
                 name = f"{partition_info[CONF_PARTITIONNAME]} Keypad"
 
         LOGGER.debug("Setting up sensor for partition: %s", name)
-        super().__init__(name, controller)
-
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, SIGNAL_KEYPAD_UPDATE, self.async_update_callback
-            )
-        )
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, SIGNAL_PARTITION_UPDATE, self.async_update_callback
-            )
-        )
+        super().__init__(name, controller, STATE_UPDATE_TYPE_PARTITION, partition_number)
 
     @property
     def _info(self):
@@ -102,8 +88,3 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
         """Return the state attributes."""
         return self._info["status"]
 
-    @callback
-    def async_update_callback(self, partition):
-        """Update the partition state in HA, if needed."""
-        if partition is None or int(partition) == self._partition_number:
-            self.async_write_ha_state()

@@ -18,7 +18,7 @@ from .const import (
     DEFAULT_NUM_ZONES,
     DOMAIN,
     LOGGER,
-    SIGNAL_ZONE_BYPASS_UPDATE,
+    STATE_UPDATE_TYPE_ZONE_BYPASS,
 )
 
 async def async_setup_entry(
@@ -65,15 +65,7 @@ class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
                 name = f"{zone_info[CONF_ZONENAME]}_bypass"
 
         LOGGER.debug("Setting up zone: %s", name)
-        super().__init__(name, controller)
-
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, SIGNAL_ZONE_BYPASS_UPDATE, self.async_update_callback
-            )
-        )
+        super().__init__(name, controller, STATE_UPDATE_TYPE_ZONE_BYPASS, zone_number)
 
     @property
     def _info(self):
@@ -92,9 +84,3 @@ class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
         """Send the bypass keypress sequence to toggle the zone bypass."""
         await self._controller.controller.toggle_zone_bypass(self._zone_number)
 
-    @callback
-    def async_update_callback(self, bypass_map):
-        """Update the zone bypass state in HA, if needed."""
-        if bypass_map is None or self._zone_number in bypass_map:
-            LOGGER.debug("Bypass state changed for zone %d", self._zone_number)
-            self.async_write_ha_state()

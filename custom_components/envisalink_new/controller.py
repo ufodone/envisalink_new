@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from typing import Any
+from collections.abc import Callable
 
 from .pyenvisalink import EnvisalinkAlarmPanel
 
@@ -15,7 +16,6 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity import Entity
-#from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_ALARM_NAME,
@@ -36,13 +36,11 @@ from .const import (
     DEFAULT_ZONEDUMP_INTERVAL,
     DOMAIN,
     LOGGER,
-    SIGNAL_KEYPAD_UPDATE,
-    SIGNAL_PARTITION_UPDATE,
-    SIGNAL_ZONE_BYPASS_UPDATE,
-    SIGNAL_ZONE_UPDATE,
+    STATE_UPDATE_TYPE_PARTITION,
+    STATE_UPDATE_TYPE_ZONE,
+    STATE_UPDATE_TYPE_ZONE_BYPASS,
 )
 
-#class EnvisalinkController(DataUpdateCoordinator[EnvisalinkAlarmPanel]):
 class EnvisalinkController:
 
     def __init__(
@@ -50,13 +48,6 @@ class EnvisalinkController:
         hass: HomeAssistant,
         entry: ConfigEntry,
     ) -> None:
-        LOGGER.error(f"# EnvisalinkController: entry={entry}")
-
-#        super().__init__(
-#            hass,
-#            LOGGER,
-#            name=DOMAIN,
-#        )
 
         self._entry_id = entry.entry_id
 
@@ -92,7 +83,13 @@ class EnvisalinkController:
             self.create_zone_bypass_switches,
         )
 
-        self.controller.callback_zone_timer_dump = self.async_zones_updated_callback
+        self._listeners = {
+            STATE_UPDATE_TYPE_PARTITION : { },
+            STATE_UPDATE_TYPE_ZONE : { },
+            STATE_UPDATE_TYPE_ZONE_BYPASS : { },
+        }
+
+        self.controller.callback_zone_timer_dump = self.async_zone_timer_dump_callback
         self.controller.callback_zone_state_change = self.async_zones_updated_callback
         self.controller.callback_partition_state_change = self.async_partition_updated_callback
         self.controller.callback_keypad_update = self.async_alarm_data_updated_callback
@@ -100,6 +97,42 @@ class EnvisalinkController:
         self.controller.callback_login_timeout = self.async_connection_fail_callback
         self.controller.callback_login_success = self.async_connection_success_callback
         self.controller.callback_zone_bypass_update = self.async_zone_bypass_update
+
+        LOGGER.debug("Created EnvisalinkController for %s (host=%s port=%r)",
+            self.alarm_name,
+            self.host,
+            self.port
+        )
+
+    def add_state_change_listener(self, state_type, state_key, update_callback) -> Callable[[], None]:
+        """Register an entity to have a state update triggered when it's underlying data is changed."""
+
+        def remove_listener() -> None:
+            for state_types in self._listeners.values():
+                for key_list in state_types.values():
+                    for idx, listener in enumerate(key_list):
+                        if listener[0] == remove_listener:
+                            key_list.pop(idx)
+                            break
+
+        state_info = self._listeners[state_type]
+        if state_key not in state_info:
+            state_info[state_key] = []
+        state_info[state_key].append((remove_listener, update_callback))
+        return remove_listener
+
+    def _process_state_change(self, update_type: str, update_keys : list = None):
+        state_info = self._listeners[update_type]
+        if update_keys is None:
+            # No specific zone/partition provided so update all the listeners
+            for key_list in state_info.values():
+                for listener in key_list:
+                    listener[1]()
+        else:
+            for key in update_keys:
+                if key in state_info:
+                    for listener in state_info[key]:
+                        listener[1]()
 
     @property
     def unique_id(self):
@@ -147,28 +180,34 @@ class EnvisalinkController:
             self.sync_connect.set_result(True)
 
     @callback
+    def async_zone_timer_dump_callback(self, data):
+        """Handle zone dump updates."""
+        LOGGER.debug("Envisalink sent a '%s' zone timer dump event. Updating zones: %r", self.alarm_name, data)
+        self._process_state_change(STATE_UPDATE_TYPE_ZONE, data)
+
+    @callback
     def async_zones_updated_callback(self, data):
-        """Handle zone timer updates."""
-        LOGGER.debug("Envisalink sent a zone update event. Updating zones")
-        async_dispatcher_send(self.hass, SIGNAL_ZONE_UPDATE, data)
+        """Handle zone state updates."""
+        LOGGER.debug("Envisalink sent a '%s' zone update event. Updating zones: %r", self.alarm_name, data)
+        self._process_state_change(STATE_UPDATE_TYPE_ZONE, [ data ])
 
     @callback
     def async_alarm_data_updated_callback(self, data):
         """Handle non-alarm based info updates."""
-        LOGGER.debug("Envisalink sent new alarm info. Updating alarms")
-        async_dispatcher_send(self.hass, SIGNAL_KEYPAD_UPDATE, data)
+        LOGGER.debug("Envisalink sent '%s' new alarm info. Updating alarms: %r", self.alarm_name, data)
+        self._process_state_change(STATE_UPDATE_TYPE_PARTITION)
 
     @callback
     def async_partition_updated_callback(self, data):
         """Handle partition changes thrown by evl (including alarms)."""
-        LOGGER.debug("The envisalink sent a partition update event")
-        async_dispatcher_send(self.hass, SIGNAL_PARTITION_UPDATE, data)
+        LOGGER.debug("The envisalink '%s' sent a partition update event: %r", self.alarm_name, data)
+        self._process_state_change(STATE_UPDATE_TYPE_PARTITION, [ data ])
 
     @callback
     def async_zone_bypass_update(self, data):
         """Handle zone bypass status updates."""
-        LOGGER.debug("Envisalink sent a zone bypass update event. Updating zones")
-        async_dispatcher_send(self.hass, SIGNAL_ZONE_BYPASS_UPDATE, data)
+        LOGGER.debug("Envisalink '%s' sent a zone bypass update event. Updating zones: %r", self.alarm_name, data)
+        self._process_state_change(STATE_UPDATE_TYPE_ZONE_BYPASS, data)
 
     @callback
     async def stop_envisalink(self, event):
