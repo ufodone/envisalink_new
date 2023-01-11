@@ -53,34 +53,30 @@ class EnvisalinkController:
 
         # Config
         self.alarm_name = entry.data.get(CONF_ALARM_NAME)
-        self.host = entry.data.get(CONF_HOST)
-        self.port = entry.data.get(CONF_EVL_PORT)
-        self.panel_type = entry.data.get(CONF_PANEL_TYPE)
-        self.version = entry.data.get(CONF_EVL_VERSION)
-        self.user = entry.data.get(CONF_USERNAME)
-        self.password = entry.data.get(CONF_PASS)
+        host = entry.data.get(CONF_HOST)
+        port = entry.data.get(CONF_EVL_PORT)
+        user = entry.data.get(CONF_USERNAME)
+        password = entry.data.get(CONF_PASS)
 
         # Options 
-        self.keep_alive = entry.options.get(CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE)
-        self.zone_dump = entry.options.get(CONF_ZONEDUMP_INTERVAL, DEFAULT_ZONEDUMP_INTERVAL)
-        self.create_zone_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES, DEFAULT_CREATE_ZONE_BYPASS_SWITCHES)
-        self.connection_timeout = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+        keep_alive = entry.options.get(CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE)
+        zone_dump = entry.options.get(CONF_ZONEDUMP_INTERVAL, DEFAULT_ZONEDUMP_INTERVAL)
+        create_zone_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES, DEFAULT_CREATE_ZONE_BYPASS_SWITCHES)
+        connection_timeout = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
         self.hass = hass
         self.sync_connect: asyncio.Future[bool] = asyncio.Future()
 
         self.controller = EnvisalinkAlarmPanel(
-            self.host,
-            self.port,
-            self.panel_type,
-            self.version,
-            self.user,
-            self.password,
-            self.zone_dump,
-            self.keep_alive,
+            host,
+            port,
+            user,
+            password,
+            zone_dump,
+            keep_alive,
             hass.loop,
-            self.connection_timeout,
-            self.create_zone_bypass_switches,
+            connection_timeout,
+            create_zone_bypass_switches,
         )
 
         self._listeners = {
@@ -100,8 +96,8 @@ class EnvisalinkController:
 
         LOGGER.debug("Created EnvisalinkController for %s (host=%s port=%r)",
             self.alarm_name,
-            self.host,
-            self.port
+            host,
+            port
         )
 
     def add_state_change_listener(self, state_type, state_key, update_callback) -> Callable[[], None]:

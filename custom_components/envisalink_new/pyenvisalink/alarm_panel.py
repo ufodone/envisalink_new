@@ -6,6 +6,9 @@ from .honeywell_client import HoneywellClient
 from .dsc_client import DSCClient
 from .alarm_state import AlarmState
 
+PANEL_TYPE_DSC = "DSC"
+PANEL_TYPE_HONEYWELL = "HONEYWELL"
+
 _LOGGER = logging.getLogger(__name__)
 COMMAND_ERR = "Cannot run this command while disconnected. Please run start() first."
 
@@ -17,8 +20,8 @@ class EnvisalinkAlarmPanel:
         CONNECTION_FAILED = "connection_failed"
         INVALID_PANEL_TYPE = "invalid_panel_type"
         
-    def __init__(self, host, port=4025, panelType='HONEYWELL',
-                 envisalinkVersion=3, userName='user', password='user',
+    def __init__(self, host, port=4025,
+                 userName='user', password='user',
                  zoneTimerInterval=20, keepAliveInterval=30, eventLoop=None,
                  connectionTimeout=10, zoneBypassEnabled=False,
                  commandTimeout=5.0):
@@ -27,18 +30,15 @@ class EnvisalinkAlarmPanel:
         self._host = host
         self._port = port
         self._connectionTimeout = connectionTimeout
-        self._panelType = panelType
-        self._evlVersion = envisalinkVersion
+        self._panelType = None
+        self._evlVersion = None
         self._username = userName
         self._password = password
         self._keepAliveInterval = keepAliveInterval
         self._zoneTimerInterval = zoneTimerInterval
         self._maxPartitions = 8
-        if envisalinkVersion < 4:
-            self._maxZones = 64
-        else:
-            self._maxZones = 128
-        self._alarmState = AlarmState.get_initial_alarm_state(self._maxZones, self._maxPartitions)
+        self._maxZones = 0
+        self._alarmState = None
         self._client = None
         self._eventLoop = eventLoop
         self._zoneBypassEnabled = zoneBypassEnabled
@@ -208,12 +208,22 @@ class EnvisalinkAlarmPanel:
             if result != self.ConnectionResult.SUCCESS:
                 return result
 
+        if self._panelType is None:
+            logging.error("Panel type could not be determined.")
+            return self.ConnectionResult.INVALID_PANEL_TYPE
+
+        if self._evlVersion < 4:
+            self._maxZones = 64
+        else:
+            self._maxZones = 128
+        self._alarmState = AlarmState.get_initial_alarm_state(self._maxZones, self._maxPartitions)
+
         """Connect to the envisalink, and listen for events to occur."""
         logging.info(str.format("Connecting to envisalink on host: {0}, port: {1}", self._host, self._port))
-        if self._panelType == 'HONEYWELL':
+        if self._panelType == PANEL_TYPE_HONEYWELL:
             self._client = HoneywellClient(self, self._eventLoop)
             self._client.start()
-        elif self._panelType == 'DSC':
+        elif self._panelType == PANEL_TYPE_DSC:
             self._client = DSCClient(self, self._eventLoop)
             self._client.start()
         else:
@@ -316,13 +326,50 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
+    async def discover_device_details(self) -> bool:
+        self._evlVersion = None
+        self._panelType = None
+
+        try:
+            async with aiohttp.ClientSession(auth=aiohttp.BasicAuth(self._username, self._password)) as client:
+                url = f'http://{self._host}/2'
+                resp = await client.get(url)
+                if resp.status != 200:
+                    _LOGGER.warn("Unable to discover Envisalink version and patel type: '%s'", resp.status)
+                    return False
+
+                # Try and scrape the HTML for the EVL version and panel type
+                html = await resp.text()
+                version_regex = '<TITLE>Envisalink ([0-9])<\/TITLE>'
+
+                m = re.search(version_regex, html)
+                if m is None or m.lastindex != 1:
+                    _LOGGER.warn("Unable to determine verrsion: raw HTML: %s", html)
+                else:
+                    self._evlVersion = int(m.group(1))
+
+                panel_regex = '>Security Subsystem - ([^<]*)'
+                m = re.search(panel_regex, html)
+                if m is None or m.lastindex != 1:
+                    _LOGGER.warn("Unable to determine panel type: raw HTML: %s", html)
+                else:
+                    self._panelType = m.group(1).upper()
+                    if self._panelType not in [ PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL ]:
+                        _LOGGER.warn("Unrecognized panel type: %s", self._panelType)
+        except Exception as ex:
+            _LOGGER.error("Unable to validate connection: %s", ex)
+            return self.ConnectionResult.CONNECTION_FAILED
+
+        _LOGGER.info(f"Discovered Envisalink %d: %s", self._evlVersion, self._panelType)
+        return True
+        
     async def validate_device_connection(self) -> ConnectionResult:
         self._macAddress = None
         self._firmwareVersion = None
 
         try:
             async with aiohttp.ClientSession(auth=aiohttp.BasicAuth(self._username, self._password)) as client:
-                url = f'http://{self._host}:8080/3'
+                url = f'http://{self._host}/3'
                 resp = await client.get(url)
                 if resp.status == 401:
                     _LOGGER.error("Unable to validate connection: invalid authorization.")
@@ -342,19 +389,21 @@ class EnvisalinkAlarmPanel:
                 mac_regex = 'MAC: ([0-9a-fA-F]*)'
 
                 m = re.search(fw_regex, html)
-                if m.lastindex != 1:
+                if m is None or m.lastindex != 1:
                     _LOGGER.warn(f"# Unable to extract Firmware version")
                 else:
                     self._firmwareVersion = m.group(1)
 
                 m = re.search(mac_regex, html)
-                if m.lastindex != 1:
+                if m is None or m.lastindex != 1:
                     _LOGGER.warn(f"# Unable to extract MAC address")
                 else:
                     self._macAddress = m.group(1)
         except Exception as ex:
             _LOGGER.error("Unable to validate connection: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED
+
+        await self.discover_device_details()
 
         _LOGGER.info(f"Firmware Version: '{self._firmwareVersion}' / MAC address: '{self._macAddress}'")
         return self.ConnectionResult.SUCCESS

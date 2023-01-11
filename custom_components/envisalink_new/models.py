@@ -39,8 +39,8 @@ class EnvisalinkDevice(Entity):
             identifiers={(DOMAIN, self._controller.unique_id)},
             name=self._controller.alarm_name,
             manufacturer='eyezon',
-            model=f'Envisalink {self._controller.version}: {self._controller.panel_type}',
+            model=f'Envisalink {self._controller.controller.envisalink_version}: {self._controller.controller.panel_type}',
             sw_version=self._controller.controller.firmware_version,
-            hw_version='unknown',
-            configuration_url=f"http://{self._controller.host}",
+            hw_version=self._controller.controller.envisalink_version,
+            configuration_url=f"http://{self._controller.controller.host}",
         )

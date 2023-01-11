@@ -181,6 +181,8 @@ def _async_import_options_from_data_if_missing(
         CONF_ZONEDUMP_INTERVAL,
         CONF_TIMEOUT,
         CONF_CREATE_ZONE_BYPASS_SWITCHES,
+        CONF_NUM_ZONES,
+        CONF_NUM_PARTITIONS,
     ):
         if importable_option not in entry.options and importable_option in yaml_options:
             options[importable_option] = yaml_options[importable_option]

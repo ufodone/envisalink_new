@@ -65,14 +65,6 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_EVL_PORT, default=DEFAULT_PORT): cv.port,
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASS): cv.string,
-
-        vol.Required(CONF_EVL_VERSION, default=DEFAULT_EVL_VERSION): vol.All(
-            vol.Coerce(int), vol.In([3, 4])
-        ),
-
-        vol.Required(CONF_PANEL_TYPE): vol.All(
-            cv.string, vol.In([PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL])
-        ),
     }
 )
 
@@ -90,7 +82,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     if result == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
         raise InvalidAuth()
 
-    # Return info that you want to store in the config entry.
+    data[CONF_PANEL_TYPE] = panel.panel_type
+    data[CONF_EVL_VERSION] = panel.envisalink_version
     return {"title": data[CONF_ALARM_NAME]}
 
 
