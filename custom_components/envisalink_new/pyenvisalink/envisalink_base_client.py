@@ -372,7 +372,6 @@ class EnvisalinkClient(asyncio.Protocol):
 
         while not self._shutdown:
             try:
-                _LOGGER.debug(f"Checking command queue: len={len(self._commandQueue)}")
                 now = time.time()
                 op = None
 
@@ -380,6 +379,7 @@ class EnvisalinkClient(asyncio.Protocol):
                 timeout = self._alarmPanel.command_timeout
 
                 while self._commandQueue:
+                    _LOGGER.debug(f"Checking command queue: len={len(self._commandQueue)}")
                     op = self._commandQueue[0]
                     timeout = op.expiryTime - now
 
@@ -415,11 +415,10 @@ class EnvisalinkClient(asyncio.Protocol):
                 # Wait until there is more work to do
                 try:
                     self._commandEvent.clear()
-                    _LOGGER.debug(f"Command processor sleeping for {timeout}s.")
                     await asyncio.wait_for(self._commandEvent.wait(), timeout=timeout)
                     _LOGGER.debug("Command processor woke up.")
                 except asyncio.exceptions.TimeoutError:
-                    _LOGGER.debug("Command processor woke up due to timeout.")
+                    pass
                 except Exception as ex:
                     _LOGGER.error(f"Command processor woke up due unexpected exception {ex}")
 
