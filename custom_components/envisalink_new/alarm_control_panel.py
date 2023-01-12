@@ -30,10 +30,10 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from .const import (
     CONF_PANIC,
-    CONF_NUM_PARTITIONS,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
-    DEFAULT_NUM_PARTITIONS,
+    CONF_PARTITION_SET,
+    DEFAULT_PARTITION_SET,
     DOMAIN,
     LOGGER,
     STATE_UPDATE_TYPE_PARTITION,
@@ -41,7 +41,7 @@ from .const import (
 
 from .models import EnvisalinkDevice
 from .controller import EnvisalinkController
-from .config_flow import find_yaml_partition_info
+from .config_flow import find_yaml_partition_info, parse_range_string
 
 
 SERVICE_ALARM_KEYPRESS = "alarm_keypress"
@@ -70,21 +70,24 @@ async def async_setup_entry(
     code = entry.options.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC)
     partition_info = entry.data.get(CONF_PARTITIONS)
+    partition_spec = entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+    partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
 
-    entities = []
-    for part_num in range(1, entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS) + 1):
-        part_entry = find_yaml_partition_info(part_num, partition_info)
-        entity = EnvisalinkAlarm(
-            hass,
-            part_num,
-            part_entry,
-            code,
-            panic_type,
-            controller,
-        )
-        entities.append(entity)
+    if partition_set is not None:
+        entities = []
+        for part_num in partition_set:
+            part_entry = find_yaml_partition_info(part_num, partition_info)
+            entity = EnvisalinkAlarm(
+                hass,
+                part_num,
+                part_entry,
+                code,
+                panic_type,
+                controller,
+            )
+            entities.append(entity)
 
-    async_add_entities(entities)
+        async_add_entities(entities)
 
 
     platform = entity_platform.async_get_current_platform()

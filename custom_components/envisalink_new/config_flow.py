@@ -27,27 +27,27 @@ from .const import (
     CONF_EVL_KEEPALIVE,
     CONF_EVL_PORT,
     CONF_EVL_VERSION,
-    CONF_NUM_PARTITIONS,
-    CONF_NUM_ZONES,
     CONF_PANEL_TYPE,
     CONF_PANIC,
     CONF_PARTITIONS,
+    CONF_PARTITION_SET,
     CONF_PASS,
     CONF_USERNAME,
     CONF_YAML_OPTIONS,
     CONF_ZONEDUMP_INTERVAL,
     CONF_ZONES,
+    CONF_ZONE_SET,
     DEFAULT_ALARM_NAME,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_EVL_VERSION,
     DEFAULT_KEEPALIVE,
-    DEFAULT_NUM_PARTITIONS,
-    DEFAULT_NUM_ZONES,
+    DEFAULT_PARTITION_SET,
     DEFAULT_PANIC,
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
     DEFAULT_ZONEDUMP_INTERVAL,
     DEFAULT_ZONETYPE,
+    DEFAULT_ZONE_SET,
     DOMAIN,
     EVL_MAX_PARTITIONS,
     EVL_MAX_ZONES,
@@ -144,32 +144,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         options_schema = {
-            vol.Required(
-                CONF_NUM_ZONES,
-                default=self.config_entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES)
-            ): vol.All(
-                selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.SLIDER,
-                        min=1,
-                        max=EVL_MAX_ZONES,
-                    )
-                ),
-                vol.Coerce(int),
-            ),
-            vol.Required(
-                CONF_NUM_PARTITIONS,
-                default=self.config_entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS)
-            ): vol.All(
-                selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.SLIDER,
-                        min=1,
-                        max=EVL_MAX_PARTITIONS,
-                    )
-                ),
-                vol.Coerce(int),
-            ),
+            vol.Optional(
+                CONF_ZONE_SET,
+                default=self.config_entry.options.get(CONF_ZONE_SET, DEFAULT_ZONE_SET)
+            ): cv.string,
+            vol.Optional(
+                CONF_PARTITION_SET,
+                default=self.config_entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+            ): cv.string,
             vol.Optional(
                 CONF_CODE,
                 description={"suggested_value": self.config_entry.options.get(CONF_CODE)}
@@ -215,14 +197,84 @@ class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
 
 def find_yaml_zone_info(zone_num: int, zone_info: map) -> map:
+    if zone_info is None:
+        return None
+
     for key, entry in zone_info.items():
         if int(key) == zone_num:
             return entry
     return None
 
 def find_yaml_partition_info(part_num: int, part_info: map) -> map:
+    if part_info is None:
+        return None
+
     for key, entry in part_info.items():
         if int(key) == part_num:
             return entry
     return None
+
+
+def parse_range_string(sequence: str, min_val: int, max_val: int) -> set:
+    # Empty strings are not valid
+    if sequence is None or len(sequence) == 0:
+        return None
+
+    # Make sure there are only valid characters
+    valid_chars = '1234567890,- '
+    v = sequence.strip(valid_chars)
+    if len(v) != 0:
+        return None
+
+    # Strip whitespace
+    sequence = sequence.strip(' ')
+
+    r = []
+    for seg in sequence.split(","):
+        nums = seg.split("-")
+        for v in nums:
+            if len(v) == 0:
+                return None
+            v = int(v)
+            if v < min_val or v > max_val:
+                return None
+        if len(nums) == 1:
+            r.append(int(nums[0]))
+        elif len(nums) == 2:
+            for i in range(int(nums[0]), int(nums[1]) + 1):
+                r.append(i)
+        else:
+            return None
+
+    if len(r) == 0:
+        return None
+
+    return sorted(set(r))
+
+def generate_range_string(seq: set) -> str:
+    if len(seq) == 0:
+        return None
+    l = list(seq)
+    if len(seq) == 1:
+        return str(l[0])
+
+    result = ""
+    l.sort()
+    end = start = l[0]
+    for i in l[1:]:
+        if i == (end + 1):
+            end = i
+        else:
+            if start == end:
+                result += f"{start},"
+            else:
+                result += f"{start}-{end},"
+            start = end = i
+
+    if start == end:
+        result += f"{start}"
+    else:
+        result += f"{start}-{end}"
+    start = end = i
+    return result
 

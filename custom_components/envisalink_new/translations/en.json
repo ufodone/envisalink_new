@@ -26,8 +26,8 @@
     "step": {
       "init": {
         "data": {
-          "num_zones": "Number of zones",
-          "num_partitions": "Number of partitions",
+          "zone_set": "Zone list",
+          "partition_set": "Partition list",
           "code": "Alarm code",
           "panic_type": "Panic type",
           "keepalive_interval": "Keep-alive interval",

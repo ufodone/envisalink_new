@@ -12,15 +12,15 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from .const import (
     DOMAIN,
     LOGGER,
-    CONF_NUM_PARTITIONS,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
-    DEFAULT_NUM_PARTITIONS,
+    CONF_PARTITION_SET,
+    DEFAULT_PARTITION_SET,
     STATE_UPDATE_TYPE_PARTITION,
 )
 
 from .models import EnvisalinkDevice
-from .config_flow import find_yaml_partition_info
+from .config_flow import find_yaml_partition_info, parse_range_string
 
 
 async def async_setup_entry(
@@ -31,20 +31,23 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
+    partition_spec = entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+    partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
     partition_info = entry.data.get(CONF_PARTITIONS)
-    entities = []
-    for part_num in range(1, entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS) + 1):
-        part_entry = find_yaml_partition_info(part_num, partition_info)
+    if partition_set is not None:
+        entities = []
+        for part_num in partition_set:
+            part_entry = find_yaml_partition_info(part_num, partition_info)
 
-        entity = EnvisalinkSensor(
-            hass,
-            part_num,
-            part_entry,
-            controller,
-        )
-        entities.append(entity)
+            entity = EnvisalinkSensor(
+                hass,
+                part_num,
+                part_entry,
+                controller,
+            )
+            entities.append(entity)
 
-    async_add_entities(entities)
+        async_add_entities(entities)
 
 
 

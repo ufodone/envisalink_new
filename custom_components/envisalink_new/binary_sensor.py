@@ -11,14 +11,13 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .config_flow import find_yaml_zone_info
+from .config_flow import find_yaml_zone_info, parse_range_string
 from .models import EnvisalinkDevice
 from .const import (
-    CONF_NUM_ZONES,
     CONF_ZONENAME,
     CONF_ZONES,
     CONF_ZONETYPE,
-    DEFAULT_NUM_ZONES,
+    CONF_ZONE_SET,
     DEFAULT_ZONETYPE,
     DOMAIN,
     LOGGER,
@@ -33,20 +32,24 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
+    zone_spec = entry.options.get(CONF_ZONE_SET)
+    zone_set = parse_range_string(zone_spec, min_val=1, max_val=controller.controller.max_zones)
+
     zone_info = entry.data.get(CONF_ZONES)
     entities = []
-    for zone_num in range(1, entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES) + 1):
-        zone_entry = find_yaml_zone_info(zone_num, zone_info)
+    if zone_set is not None:
+        for zone_num in zone_set:
+            zone_entry = find_yaml_zone_info(zone_num, zone_info)
 
-        entity = EnvisalinkBinarySensor(
-            hass,
-            zone_num,
-            zone_entry,
-            controller,
-        )
-        entities.append(entity)
+            entity = EnvisalinkBinarySensor(
+                hass,
+                zone_num,
+                zone_entry,
+                controller,
+            )
+            entities.append(entity)
 
-    async_add_entities(entities)
+        async_add_entities(entities)
 
 
 class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):

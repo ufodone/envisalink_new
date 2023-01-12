@@ -113,6 +113,14 @@ class EnvisalinkAlarmPanel:
         return self._macAddress
 
     @property
+    def max_zones(self):
+        return self._maxZones
+
+    @property
+    def max_partitions(self):
+        return self._maxPartitions
+
+    @property
     def callback_login(self):
         return self._defaultCallback
         
