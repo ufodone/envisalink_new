@@ -213,3 +213,16 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+def find_yaml_zone_info(zone_num: int, zone_info: map) -> map:
+    for key, entry in zone_info.items():
+        if int(key) == zone_num:
+            return entry
+    return None
+
+def find_yaml_partition_info(part_num: int, part_info: map) -> map:
+    for key, entry in part_info.items():
+        if int(key) == part_num:
+            return entry
+    return None
+

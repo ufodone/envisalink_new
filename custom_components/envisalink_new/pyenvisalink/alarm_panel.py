@@ -212,6 +212,10 @@ class EnvisalinkAlarmPanel:
             logging.error("Panel type could not be determined.")
             return self.ConnectionResult.INVALID_PANEL_TYPE
 
+        if self._evlVersion is None:
+            logging.error("EVL version could not be determined; defaulting to 3")
+            self._evlVersion = 3
+
         if self._evlVersion < 4:
             self._maxZones = 64
         else:
@@ -227,7 +231,7 @@ class EnvisalinkAlarmPanel:
             self._client = DSCClient(self, self._eventLoop)
             self._client.start()
         else:
-            _LOGGER.error("Unexpected panel type: %s", self._panelType)    
+            _LOGGER.error("Unexpected panel type: '%s'", self._panelType)
             return self.ConnectionResult.INVALID_PANEL_TYPE
 
         return self.ConnectionResult.SUCCESS
@@ -344,11 +348,11 @@ class EnvisalinkAlarmPanel:
 
                 m = re.search(version_regex, html)
                 if m is None or m.lastindex != 1:
-                    _LOGGER.warn("Unable to determine verrsion: raw HTML: %s", html)
+                    _LOGGER.warn("Unable to determine version: raw HTML: %s", html)
                 else:
                     self._evlVersion = int(m.group(1))
 
-                panel_regex = '>Security Subsystem - ([^<]*)'
+                panel_regex = '>Security Subsystem - ([^<]*)<'
                 m = re.search(panel_regex, html)
                 if m is None or m.lastindex != 1:
                     _LOGGER.warn("Unable to determine panel type: raw HTML: %s", html)
@@ -360,7 +364,7 @@ class EnvisalinkAlarmPanel:
             _LOGGER.error("Unable to validate connection: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED
 
-        _LOGGER.info(f"Discovered Envisalink %d: %s", self._evlVersion, self._panelType)
+        _LOGGER.info(f"Discovered Envisalink %s: %s", self._evlVersion, self._panelType)
         return True
         
     async def validate_device_connection(self) -> ConnectionResult:

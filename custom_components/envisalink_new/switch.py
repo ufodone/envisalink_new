@@ -9,6 +9,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
+from .config_flow import find_yaml_zone_info
 from .models import EnvisalinkDevice
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -34,9 +35,7 @@ async def async_setup_entry(
         zone_info = entry.data.get(CONF_ZONES)
         entities = []
         for zone_num in range(1, entry.options.get(CONF_NUM_ZONES, DEFAULT_NUM_ZONES) + 1):
-            zone_entry = None
-            if zone_info and zone_num in zone_info:
-                zone_entry = zone_info[zone_num]
+            zone_entry = find_yaml_zone_info(zone_num, zone_info)
 
             entity = EnvisalinkSwitch(
                 hass,

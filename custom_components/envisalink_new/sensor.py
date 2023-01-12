@@ -20,6 +20,7 @@ from .const import (
 )
 
 from .models import EnvisalinkDevice
+from .config_flow import find_yaml_partition_info
 
 
 async def async_setup_entry(
@@ -33,9 +34,7 @@ async def async_setup_entry(
     partition_info = entry.data.get(CONF_PARTITIONS)
     entities = []
     for part_num in range(1, entry.options.get(CONF_NUM_PARTITIONS, DEFAULT_NUM_PARTITIONS) + 1):
-        part_entry = None
-        if partition_info and part_num in partition_info:
-            part_entry = partition_info[part_num]
+        part_entry = find_yaml_partition_info(part_num, partition_info)
 
         entity = EnvisalinkSensor(
             hass,

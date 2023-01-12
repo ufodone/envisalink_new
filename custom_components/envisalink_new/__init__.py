@@ -126,17 +126,24 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
         if key in yaml:
             config_data[key] = yaml[key]
 
-    num_zones = 0
+    max_zones = 0
     zones = yaml.get(CONF_ZONES)
     if zones:
-        num_zones = len(zones)
+        for zone_num in zones.keys():
+            zone_num = int(zone_num)
+            if zone_num > max_zones:
+                max_zones = zone_num
         # Same off the zone names and types so we can update the corresponding entities later
         config_data[CONF_ZONES] = zones
 
-    num_partitions = 0
+    max_partitions = 0
     partitions = yaml.get(CONF_PARTITIONS)
     if partitions:
-        num_partitions = len(partitions)
+        for part_num in partitions.keys():
+            part_num = int(part_num)
+            if part_num > max_partitions:
+                max_partitions = part_num
+
         # Same off the parittion names so we can update the corresponding entities later
         config_data[CONF_PARTITIONS] = partitions
 
@@ -146,8 +153,8 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
     # store them temporarily in the config entry so they can later be transfered into options
     # since it is apparently not possible to create options as part of the import flow.
     options = {}
-    options[CONF_NUM_ZONES] = num_zones
-    options[CONF_NUM_PARTITIONS] = num_partitions
+    options[CONF_NUM_ZONES] = max_zones
+    options[CONF_NUM_PARTITIONS] = max_partitions
     for key in (
         CONF_CODE,
         CONF_PANIC,
@@ -184,9 +191,11 @@ def _async_import_options_from_data_if_missing(
         CONF_NUM_ZONES,
         CONF_NUM_PARTITIONS,
     ):
-        if importable_option not in entry.options and importable_option in yaml_options:
-            options[importable_option] = yaml_options[importable_option]
-            modified = True
+        if importable_option in yaml_options:
+            item = yaml_options[importable_option]
+            if (importable_option not in entry.options) or (item != entry.options[importable_option]):
+                options[importable_option] = item
+                modified = True
 
     if modified:
         # Remove the temporary options storage now that they are being transfered to the correct place
