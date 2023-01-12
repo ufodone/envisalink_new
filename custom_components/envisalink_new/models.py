@@ -14,12 +14,17 @@ class EnvisalinkDevice(Entity):
         self._state_update_type = state_update_type
         self._state_update_key = state_update_key
 
+    async def async_added_to_hass(self) -> None:
         def state_updated():
             LOGGER.debug("state_updated for '%s'", self._name)
             self.async_write_ha_state()
 
         self.async_on_remove(
-            self._controller.add_state_change_listener(state_update_type, state_update_key, state_updated)
+            self._controller.add_state_change_listener(
+                self._state_update_type,
+                self._state_update_key,
+                state_updated
+            )
         )
 
     @property
