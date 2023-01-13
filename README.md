@@ -21,7 +21,11 @@ Temporary HACS version of envisalink integration while undergoing a refactor.
 
 Configuration of the integration has been upgraded to use HA's config flow (via the UI).  To add an envisalink device, go to `Settings -> Devices & Services`, click `Add Integration` at the bottom left of the screen and search for `envisalink_new`.  This will then prompt you for basic information about the EVL device.  Newly added is an `Alarm Name` which is used to prefix the entities created for your EVL.
 
-Because it is possible to discover the number of zones and partitions of the alarm system automatically, it will default to a single zone and single partition.  To adjust the setup to match your system, click the `Configure` button on the newly created device and make any necessary adjustments.  Other options are also available to tweak.
+Because it is possible to discover the number of zones and partitions of the alarm system automatically, it will default to creating no zones and single partition (1).  To adjust the setup to match your system, click the `Configure` button on the newly created device and define the available zones and partitions.  The zone and partition list accepts a comma separted list of numerical zones/partitions as well as ranges.  For example:
+```
+1-2,4-8,16-18,20-29
+```
+
 
 Unlike the old configuration.yaml approach, the integration will create its own names for the entities it creates based on the `Alarm Name` setting you provided.  These can all be changed using the normal HA method (e.g. find the entity in the UI, click it, go to Settings and make any necessary changes).
 
