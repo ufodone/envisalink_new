@@ -78,7 +78,7 @@ async def async_setup_entry(
 
     arm_night_mode = None
     if controller.controller.panel_type == PANEL_TYPE_HONEYWELL:
-        arm_night_mode = self.honeywell_arm_night_mode = entry.options.get(
+        arm_night_mode = entry.options.get(
             CONF_HONEYWELL_ARM_NIGHT_MODE, DEFAULT_HONEYWELL_ARM_NIGHT_MODE)
 
 
