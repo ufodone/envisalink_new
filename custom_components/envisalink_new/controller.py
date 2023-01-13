@@ -56,7 +56,7 @@ class EnvisalinkController:
         host = entry.data.get(CONF_HOST)
         port = entry.data.get(CONF_EVL_PORT)
         user = entry.data.get(CONF_USERNAME)
-        password = entry.data.get(CONF_PASS)
+        password = str(entry.data.get(CONF_PASS))
 
         # Options 
         keep_alive = entry.options.get(CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE)
