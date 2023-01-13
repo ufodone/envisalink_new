@@ -29,13 +29,16 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from .const import (
+    CONF_HONEYWELL_ARM_NIGHT_MODE,
     CONF_PANIC,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
     CONF_PARTITION_SET,
+    DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
     DEFAULT_PARTITION_SET,
     DOMAIN,
     LOGGER,
+    PANEL_TYPE_HONEYWELL,
     STATE_UPDATE_TYPE_PARTITION,
 )
 
@@ -73,6 +76,12 @@ async def async_setup_entry(
     partition_spec = entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
 
+    arm_night_mode = None
+    if controller.controller.panel_type == PANEL_TYPE_HONEYWELL:
+        arm_night_mode = self.honeywell_arm_night_mode = entry.options.get(
+            CONF_HONEYWELL_ARM_NIGHT_MODE, DEFAULT_HONEYWELL_ARM_NIGHT_MODE)
+
+
     if partition_set is not None:
         entities = []
         for part_num in partition_set:
@@ -83,6 +92,7 @@ async def async_setup_entry(
                 part_entry,
                 code,
                 panic_type,
+                arm_night_mode,
                 controller,
             )
             entities.append(entity)
@@ -122,12 +132,13 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     )
 
     def __init__(
-        self, hass, partition_number, partition_info, code, panic_type, controller
+        self, hass, partition_number, partition_info, code, panic_type, arm_night_mode, controller
     ):
         """Initialize the alarm panel."""
         self._partition_number = partition_number
         self._code = code
         self._panic_type = panic_type
+        self._arm_night_mode = arm_night_mode
         name_suffix = f"partition_{partition_number}"
         self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
 
@@ -210,7 +221,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     async def async_alarm_arm_night(self, code: str | None = None) -> None:
         """Send arm night command."""
         await self._controller.controller.arm_night_partition(
-            str(code) if code else str(self._code), self._partition_number
+            str(code) if code else str(self._code), self._partition_number, self._arm_night_mode
         )
 
     async def alarm_keypress(self, keypress=None):

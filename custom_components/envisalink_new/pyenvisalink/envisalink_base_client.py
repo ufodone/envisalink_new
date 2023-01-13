@@ -207,7 +207,7 @@ class EnvisalinkClient(asyncio.Protocol):
         """Public method to arm/max a partition."""
         raise NotImplementedError()
 
-    async def arm_night_partition(self, code, partitionNumber):
+    async def arm_night_partition(self, code, partitionNumber, mode=None):
         """Public method to arm/max a partition."""
         raise NotImplementedError()
 
@@ -394,7 +394,11 @@ class EnvisalinkClient(asyncio.Protocol):
                         # Send command to the EVL
                         op.state = self.Operation.State.SENT
                         self._cachedCode = op.code
-                        await self.send_command(op.cmd, op.data)
+                        try:
+                            await self.send_command(op.cmd, op.data)
+                        except Exception as ex:
+                            _LOGGER.error(f"Unexpected exception trying to sent command: {ex}")
+                            op.state = self.Operation.State.FAILED
                     elif op.state == self.Operation.State.SUCCEEDED:
                         # Remove completed command from head of the queue
                         self._commandQueue.pop(0)

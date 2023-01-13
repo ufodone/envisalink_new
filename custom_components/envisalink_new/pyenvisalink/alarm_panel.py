@@ -24,11 +24,13 @@ class EnvisalinkAlarmPanel:
                  userName='user', password='user',
                  zoneTimerInterval=20, keepAliveInterval=30, eventLoop=None,
                  connectionTimeout=10, zoneBypassEnabled=False,
-                 commandTimeout=5.0):
+                 commandTimeout=5.0,
+                 httpPort=80):
         self._macAddress = None
         self._firmwareVersion = None
         self._host = host
         self._port = port
+        self._httpPort = httpPort
         self._connectionTimeout = connectionTimeout
         self._panelType = None
         self._evlVersion = None
@@ -301,10 +303,10 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def arm_night_partition(self, code, partitionNumber):
+    async def arm_night_partition(self, code, partitionNumber, mode=None):
         """Public method to arm/night a partition."""
         if self._client:
-            await self._client.arm_night_partition(code, partitionNumber)
+            await self._client.arm_night_partition(code, partitionNumber, mode)
         else:
             _LOGGER.error(COMMAND_ERR)
 
@@ -344,7 +346,7 @@ class EnvisalinkAlarmPanel:
 
         try:
             async with aiohttp.ClientSession(auth=aiohttp.BasicAuth(self._username, self._password)) as client:
-                url = f'http://{self._host}/2'
+                url = f'http://{self._host}:{self._httpPort}/2'
                 resp = await client.get(url)
                 if resp.status != 200:
                     _LOGGER.warn("Unable to discover Envisalink version and patel type: '%s'", resp.status)
@@ -381,7 +383,7 @@ class EnvisalinkAlarmPanel:
 
         try:
             async with aiohttp.ClientSession(auth=aiohttp.BasicAuth(self._username, self._password)) as client:
-                url = f'http://{self._host}/3'
+                url = f'http://{self._host}:{self._httpPort}/3'
                 resp = await client.get(url)
                 if resp.status == 401:
                     _LOGGER.error("Unable to validate connection: invalid authorization.")

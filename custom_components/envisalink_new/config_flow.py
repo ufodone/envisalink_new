@@ -27,6 +27,7 @@ from .const import (
     CONF_EVL_KEEPALIVE,
     CONF_EVL_PORT,
     CONF_EVL_VERSION,
+    CONF_HONEYWELL_ARM_NIGHT_MODE,
     CONF_PANEL_TYPE,
     CONF_PANIC,
     CONF_PARTITIONS,
@@ -40,9 +41,10 @@ from .const import (
     DEFAULT_ALARM_NAME,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_EVL_VERSION,
+    DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
     DEFAULT_KEEPALIVE,
-    DEFAULT_PARTITION_SET,
     DEFAULT_PANIC,
+    DEFAULT_PARTITION_SET,
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
     DEFAULT_ZONEDUMP_INTERVAL,
@@ -51,6 +53,10 @@ from .const import (
     DOMAIN,
     EVL_MAX_PARTITIONS,
     EVL_MAX_ZONES,
+    HONEYWELL_ARM_MODE_INSTANT_LABEL,
+    HONEYWELL_ARM_MODE_INSTANT_VALUE,
+    HONEYWELL_ARM_MODE_NIGHT_LABEL,
+    HONEYWELL_ARM_MODE_NIGHT_VALUE,
     LOGGER,
     PANEL_TYPE_DSC,
     PANEL_TYPE_HONEYWELL,
@@ -176,6 +182,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ): vol.Coerce(int)
         }
 
+        # Add DSC-only options
         if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_DSC:
             # Zone bypass switches are only available on DSC panels
             options_schema[
@@ -183,6 +190,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_CREATE_ZONE_BYPASS_SWITCHES,
                     default=self.config_entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES, DEFAULT_CREATE_ZONE_BYPASS_SWITCHES)
                 )] = selector.BooleanSelector()
+
+        # Add Honeywell-only options
+        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
+            # Allow selection of which keypress to use for Arm Night mode
+            ARM_MODES = [
+                selector.SelectOptionDict(value=HONEYWELL_ARM_MODE_NIGHT_VALUE, label=HONEYWELL_ARM_MODE_NIGHT_LABEL),
+                selector.SelectOptionDict(value=HONEYWELL_ARM_MODE_INSTANT_VALUE, label=HONEYWELL_ARM_MODE_INSTANT_LABEL),
+            ]
+            options_schema[
+                vol.Optional(
+                    CONF_HONEYWELL_ARM_NIGHT_MODE,
+                    default=self.config_entry.options.get(CONF_HONEYWELL_ARM_NIGHT_MODE, DEFAULT_HONEYWELL_ARM_NIGHT_MODE)
+                )] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=ARM_MODES)
+                )
+
 
         return self.async_show_form(
             step_id="init",

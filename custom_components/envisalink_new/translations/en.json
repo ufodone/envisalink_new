@@ -33,7 +33,8 @@
           "keepalive_interval": "Keep-alive interval",
           "zonedump_interval": "Zone dump interval",
           "timeout": "Connection timeout",
-          "create_zone_bypass_switches": "Create zone bypass switches"
+          "create_zone_bypass_switches": "Create zone bypass switches",
+          "honeywell_arm_night_mode": "Arm Night Mode"
         }
       }
     }

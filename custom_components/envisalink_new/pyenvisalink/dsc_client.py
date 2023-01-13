@@ -68,7 +68,7 @@ class DSCClient(EnvisalinkClient):
         self._cachedCode = code
         await self.queue_command(evl_Commands['ArmMax'], str(partitionNumber))
 
-    async def arm_night_partition(self, code, partitionNumber):
+    async def arm_night_partition(self, code, partitionNumber, mode=None):
         """Public method to arm/max a partition."""
         await self.arm_max_partition(code, partitionNumber)
 
