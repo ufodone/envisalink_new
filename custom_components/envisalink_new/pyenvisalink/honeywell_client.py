@@ -103,13 +103,20 @@ class HoneywellClient(EnvisalinkClient):
 
             # keep first sentinel char to tell difference between tpi and
             # Envisalink command responses.  Drop the trailing $ sentinel.
-            inputList = rawInput[start_idx:end_idx].split(",")
-            code = inputList[0]
-            cmd['code'] = code
-            cmd['data'] = inputList[1]
+            inputList = rawInput[start_idx:end_idx]
+            cmd_sep_idx = inputList.find(',')
+            if cmd_sep_idx == -1:
+                code = inputList
+                cmd['code'] = code
+                cmd['data'] = ''
+            else:
+                code = inputList[0:cmd_sep_idx]
+                cmd['code'] = code
+                cmd['data'] = inputList[cmd_sep_idx+1:]
+
             rawInput = rawInput[end_idx+1:]
 
-            _LOGGER.debug(str.format("Code:{0} Data:{1}", cmd['code'], cmd['data']))
+            _LOGGER.debug(str.format("Code:{0} Data:'{1}'", cmd['code'], cmd['data']))
 
         try:
             cmd['handler'] = "handle_%s" % evl_ResponseTypes[code]['handler']
@@ -126,7 +133,7 @@ class HoneywellClient(EnvisalinkClient):
         self.create_internal_task(self.queue_login_response(), name="queue_login_response")
 
     async def queue_login_response(self):
-        await self.send_data(self._alarmPanel.password) 
+        await self.send_data(self._alarmPanel.password)
         
     def handle_command_response(self, code, data):
         """Handle the envisalink's initial response to our commands."""
