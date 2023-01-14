@@ -112,6 +112,7 @@ class EnvisalinkClient(asyncio.Protocol):
             if self._reader and self._writer:
                 # Connected to EVL; start reading data from the connection
                 try:
+                    unprocessed_data = None
                     while not self._shutdown and self._reader:
                         _LOGGER.debug("Waiting for data from EVL")
                         data = await self._reader.read(n=256)
@@ -119,7 +120,15 @@ class EnvisalinkClient(asyncio.Protocol):
                             _LOGGER.error('The server closed the connection.')
                             await self.disconnect()
                             break
-                        self.process_data(data)
+
+                        data = data.decode('ascii')
+                        _LOGGER.debug('----------------------------------------')
+                        _LOGGER.debug(str.format('RX < {0}', data))
+
+                        if unprocessed_data:
+                            data = unprocessed_data + data
+
+                        unprocessed_data = self.process_data(data)
                 except Exception as ex:
                     _LOGGER.error("Caught unexpected exception: %r", ex)
                     await self.disconnect()
@@ -231,41 +240,36 @@ class EnvisalinkClient(asyncio.Protocol):
         """When the envisalink contacts us- parse out which command and data."""
         raise NotImplementedError()
         
-    def process_data(self, data):
-        """asyncio callback for any data recieved from the envisalink."""
-        if data != '':
+    def process_data(self, data) -> str:
+        while data is not None and len(data) > 0:
+            cmd, data = self.parseHandler(data)
+
+            if not cmd:
+                break
+
             try:
-                fullData = data.decode('ascii').strip()
-                cmd = {}
-                result = ''
-                _LOGGER.debug('----------------------------------------')
-                _LOGGER.debug(str.format('RX < {0}', fullData))
-                lines = str.split(fullData, '\r\n')
-            except:
-                _LOGGER.error('Received invalid message. Skipping.')
-                return
+                _LOGGER.debug(str.format('calling handler: {0} for code: {1} with data: {2}', cmd['handler'], cmd['code'], cmd['data']))
+                handlerFunc = getattr(self, cmd['handler'])
+                result = handlerFunc(cmd['code'], cmd['data'])
 
-            for line in lines:
-                cmd = self.parseHandler(line)
-            
-                try:
-                    _LOGGER.debug(str.format('calling handler: {0} for code: {1} with data: {2}', cmd['handler'], cmd['code'], cmd['data']))
-                    handlerFunc = getattr(self, cmd['handler'])
-                    result = handlerFunc(cmd['code'], cmd['data'])
-    
-                except (AttributeError, TypeError, KeyError) as err:
-                    _LOGGER.debug("No handler configured for evl command.")
-                    _LOGGER.debug(str.format("KeyError: {0}", err))
-            
-                try:
-                    _LOGGER.debug(str.format('Invoking callback: {0}', cmd['callback']))
-                    callbackFunc = getattr(self._alarmPanel, cmd['callback'])
-                    callbackFunc(result)
-    
-                except (AttributeError, TypeError, KeyError) as err:
-                    _LOGGER.debug("No callback configured for evl command.")
+            except (AttributeError, TypeError, KeyError) as err:
+                _LOGGER.debug("No handler configured for evl command.")
+                _LOGGER.debug(str.format("KeyError: {0}", err))
 
-                _LOGGER.debug('----------------------------------------')
+            try:
+                _LOGGER.debug(str.format('Invoking callback: {0}', cmd['callback']))
+                callbackFunc = getattr(self._alarmPanel, cmd['callback'])
+                callbackFunc(result)
+
+            except (AttributeError, TypeError, KeyError) as err:
+                _LOGGER.debug("No callback configured for evl command.")
+
+            _LOGGER.debug('----------------------------------------')
+
+        # Return any unprocessed data (uncomplete command)
+        if not data or len(data) == 0:
+            return None
+        return data
 
     def convertZoneDump(self, theString):
         """Interpret the zone dump result, and convert to readable times."""
