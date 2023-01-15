@@ -37,7 +37,9 @@ class HoneywellClient(EnvisalinkClient):
     async def keypresses_to_partition(self, partitionNumber, keypresses):
         """Send keypresses to a particular partition."""
         for char in keypresses:
-            await self.queue_command(evl_Commands['PartitionKeypress'], str.format("{0},{1}", partitionNumber, char))
+            result = await self.queue_command(evl_Commands['PartitionKeypress'], str.format("{0},{1}", partitionNumber, char))
+            if not result:
+                break
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""
@@ -83,11 +85,15 @@ class HoneywellClient(EnvisalinkClient):
         else:
             rawInput = re.sub("[\r\n]", "", rawInput)
 
+            # Nothing left to process after stripping the line breaks
+            if not rawInput:
+                return (None, None)
+
             # Look for a sentinel
             m = re.match("[%\^]", rawInput)
             if m is None:
                 # No sentinels so ignore the data
-                _LOGGER.error("Unrecognized data recieved from the envisalink. Ignoring: '%s'", rawInput)
+                _LOGGER.error("Unrecognized data received from the envisalink. Ignoring: '%s'", rawInput)
                 return (None, None)
 
             start_idx = m.start(0)

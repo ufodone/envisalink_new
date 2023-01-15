@@ -140,7 +140,8 @@ class EnvisalinkClient(asyncio.Protocol):
 
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
-                reconnect_time = 30
+                # TODO: implement exponential backoff 
+                reconnect_time = 10
                 _LOGGER.error("Reconnection attempt in %ds", reconnect_time)
                 await asyncio.sleep(reconnect_time)
 
@@ -171,13 +172,23 @@ class EnvisalinkClient(asyncio.Protocol):
     async def disconnect(self):
         """Internal method for forcing connection closure if hung."""
         _LOGGER.debug('Cleaning up from disconnection with server.')
+
         self._loggedin = False
+
+        # Fail all outstanding commands
+        for op in self._commandQueue:
+            op.state = self.Operation.State.FAILED
+
+        # Tear down the connection
         if self._writer:
-            self._writer.close()
-            await self._writer.wait_closed()
-            self._writer = None
-        if self._reader:
-            self._reader = None
+            try:
+                self._writer.close()
+                await self._writer.wait_closed()
+            except Exception as ex:
+                _LOGGER.error("Exception while closing connection: %s", ex)
+
+        self._writer = None
+        self._reader = None
             
     async def send_data(self, data):
         """Raw data send- just make sure it's encoded properly and logged."""
@@ -368,6 +379,7 @@ class EnvisalinkClient(asyncio.Protocol):
         self._commandQueue.append(op)
         self._commandEvent.set()
         await op.responseEvent.wait()
+        return op.state == op.State.SUCCEEDED
 
     async def process_command_queue(self):
         """Manage processing of commands to be issued to the EVL.  Commands are serialized to the EVL to avoid 
@@ -393,9 +405,12 @@ class EnvisalinkClient(asyncio.Protocol):
                     if op.state == self.Operation.State.SENT:
                         # Still waiting on a response from the EVL so break out of loop and wait for the response
                         if now >= op.expiryTime:
-                            # Timeout waiting for response from the EVL so fail the command
+                            # Timeout waiting for response from the EVL so fail the command,
+                            # This is likely due to the EVL becoming unresponsive so tear down the
+                            # connection to start a recovery.
                             _LOGGER.error(f"Command '{op.cmd}' failed due to timeout waiting for response from EVL")
                             op.state = self.Operation.State.FAILED
+                            await self.disconnect()
                         break
                     elif op.state == self.Operation.State.QUEUED:
                         # Send command to the EVL
@@ -404,7 +419,7 @@ class EnvisalinkClient(asyncio.Protocol):
                         try:
                             await self.send_command(op.cmd, op.data)
                         except Exception as ex:
-                            _LOGGER.error(f"Unexpected exception trying to sent command: {ex}")
+                            _LOGGER.error(f"Unexpected exception trying to send command: {ex}")
                             op.state = self.Operation.State.FAILED
                     elif op.state == self.Operation.State.SUCCEEDED:
                         # Remove completed command from head of the queue
