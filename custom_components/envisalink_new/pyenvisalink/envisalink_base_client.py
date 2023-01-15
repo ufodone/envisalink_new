@@ -115,20 +115,25 @@ class EnvisalinkClient(asyncio.Protocol):
                     unprocessed_data = None
                     while not self._shutdown and self._reader:
                         _LOGGER.debug("Waiting for data from EVL")
-                        data = await self._reader.read(n=256)
+                        try:
+                            data = await asyncio.wait_for(self._reader.read(n=256), 5)
+                        except asyncio.exceptions.TimeoutError:
+                            continue
+
                         if not data or len(data) == 0 or self._reader.at_eof():
                             _LOGGER.error('The server closed the connection.')
                             await self.disconnect()
                             break
 
                         data = data.decode('ascii')
-                        _LOGGER.debug('----------------------------------------')
+                        _LOGGER.debug('{---------------------------------------')
                         _LOGGER.debug(str.format('RX < {0}', data))
 
                         if unprocessed_data:
                             data = unprocessed_data + data
 
                         unprocessed_data = self.process_data(data)
+                        _LOGGER.debug('}---------------------------------------')
                 except Exception as ex:
                     _LOGGER.error("Caught unexpected exception: %r", ex)
                     await self.disconnect()
@@ -263,8 +268,6 @@ class EnvisalinkClient(asyncio.Protocol):
 
             except (AttributeError, TypeError, KeyError) as err:
                 _LOGGER.debug("No callback configured for evl command.")
-
-            _LOGGER.debug('----------------------------------------')
 
         # Return any unprocessed data (uncomplete command)
         if not data or len(data) == 0:

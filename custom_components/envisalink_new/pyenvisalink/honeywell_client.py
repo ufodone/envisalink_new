@@ -70,15 +70,19 @@ class HoneywellClient(EnvisalinkClient):
         """When the envisalink contacts us- parse out which command and data."""
         cmd = {}
 
-        rawInput = re.sub("[\r\n]", "", rawInput)
-
         if not self._loggedin:
-            # assume it is login info
-            code = rawInput
+            # assume it is login info but look for a sentinel first in case there is other info here
+            m = re.match(r'[^\r\n%\^]+', rawInput)
+            if m is None:
+                # Don't have the full login response yet
+                return (None, None)
+            code = m.group(0)
+            rawInput = rawInput[m.end(0):]
             cmd['code'] = code
             cmd['data'] = ''
-            rawInput = None
         else:
+            rawInput = re.sub("[\r\n]", "", rawInput)
+
             # Look for a sentinel
             m = re.match("[%\^]", rawInput)
             if m is None:
