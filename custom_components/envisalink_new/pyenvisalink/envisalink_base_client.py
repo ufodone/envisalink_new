@@ -141,7 +141,7 @@ class EnvisalinkClient(asyncio.Protocol):
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
                 # TODO: implement exponential backoff 
-                reconnect_time = 10
+                reconnect_time = 30
                 _LOGGER.error("Reconnection attempt in %ds", reconnect_time)
                 await asyncio.sleep(reconnect_time)
 
