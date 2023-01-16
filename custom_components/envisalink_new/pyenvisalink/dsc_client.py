@@ -106,7 +106,7 @@ class DSCClient(EnvisalinkClient):
         code = rawInput[dataoffset:dataoffset+3]
         cmd['code'] = code
         cmd['data'] = rawInput[dataoffset+3:][:-2]
-        
+
         try:
             #Interpret the login command further to see what our handler is.
             if evl_ResponseTypes[code]['handler'] == 'login':
@@ -186,7 +186,7 @@ class DSCClient(EnvisalinkClient):
             zoneNumber = int(data[-3:])
             self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update(evl_ResponseTypes[code]['status'])
             _LOGGER.debug(str.format("(zone {0}) state has updated: {1}", zoneNumber, json.dumps(evl_ResponseTypes[code]['status'])))
-            return zoneNumber
+            return [ zoneNumber ]
         else:
             _LOGGER.error("Invalid data has been passed in the zone update.")
 
@@ -199,7 +199,7 @@ class DSCClient(EnvisalinkClient):
                 partitionNumber = int(data[0])
                 self._alarmPanel.alarm_state['partition'][partitionNumber]['status'].update(evl_ArmModes[data[1]]['status'])
                 _LOGGER.debug(str.format("(partition {0}) state has updated: {1}", partitionNumber, json.dumps(evl_ArmModes[data[1]]['status'])))
-                return partitionNumber
+                return [ partitionNumber ]
             else:
                 _LOGGER.error("Invalid data has been passed when arming the alarm.") 
         else:
@@ -221,7 +221,7 @@ class DSCClient(EnvisalinkClient):
                     """Partition was disarmed which means the bypassed zones have likley been reset so force a zone bypass refresh"""
                     self.create_internal_task(self.dump_zone_bypass_status(), name="dump_zone_bypass_status")
 
-                return partitionNumber
+                return [ partitionNumber ]
             else:
                 _LOGGER.error("Invalid data has been passed in the parition update.")
 

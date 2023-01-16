@@ -185,7 +185,7 @@ class EnvisalinkController:
     def async_zones_updated_callback(self, data):
         """Handle zone state updates."""
         LOGGER.debug("Envisalink sent a '%s' zone update event. Updating zones: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_ZONE, [ data ])
+        self._process_state_change(STATE_UPDATE_TYPE_ZONE, data)
 
     @callback
     def async_alarm_data_updated_callback(self, data):
@@ -197,7 +197,7 @@ class EnvisalinkController:
     def async_partition_updated_callback(self, data):
         """Handle partition changes thrown by evl (including alarms)."""
         LOGGER.debug("The envisalink '%s' sent a partition update event: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_PARTITION, [ data ])
+        self._process_state_change(STATE_UPDATE_TYPE_PARTITION, data)
 
     @callback
     def async_zone_bypass_update(self, data):
