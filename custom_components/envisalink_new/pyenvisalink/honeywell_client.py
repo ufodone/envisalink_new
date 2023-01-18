@@ -2,6 +2,7 @@ import logging
 import json
 import re
 import asyncio
+import time
 from .envisalink_base_client import EnvisalinkClient
 from .honeywell_envisalinkdefs import *
 
@@ -176,6 +177,7 @@ class HoneywellClient(EnvisalinkClient):
         partitionNumber = int(dataList[0])
         flags = IconLED_Flags()
         flags.asShort = int(dataList[1], 16)
+        user_zone_field = int(dataList[2])
         beep = evl_Virtual_Keypad_How_To_Beep.get(dataList[3], 'unknown')
         alpha = dataList[4]
         _LOGGER.debug("Updating our local alarm state...")
@@ -188,6 +190,15 @@ class HoneywellClient(EnvisalinkClient):
                                                                    'beep': beep,
                                                                    })
         _LOGGER.debug(json.dumps(self._alarmPanel.alarm_state['partition'][partitionNumber]['status']))
+
+        # Try and guess when the next update will come based on the state
+        if (bool(flags.armed_stay) or bool(flags.armed_away)) and user_zone_field != 0:
+            # Exit delay in progress so updates come every second
+            self._nextExpectedReceiveTime = time.time() + 1
+        else:
+            # When in the Ready state we typically see an update every 10 seconds
+            # TODO: does the same happen once it's armed?
+            self._nextExpectedReceiveTime = time.time() + 10
 
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
