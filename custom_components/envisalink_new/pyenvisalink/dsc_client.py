@@ -55,18 +55,15 @@ class DSCClient(EnvisalinkClient):
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""
-        self._cachedCode = code
-        await self.queue_command(evl_Commands['ArmStay'], str(partitionNumber))
+        await self.queue_command(evl_Commands['ArmStay'], str(partitionNumber), code)
 
     async def arm_away_partition(self, code, partitionNumber):
         """Public method to arm/away a partition."""
-        self._cachedCode = code
-        await self.queue_command(evl_Commands['ArmAway'], str(partitionNumber))
+        await self.queue_command(evl_Commands['ArmAway'], str(partitionNumber), code)
 
     async def arm_max_partition(self, code, partitionNumber):
         """Public method to arm/max a partition."""
-        self._cachedCode = code
-        await self.queue_command(evl_Commands['ArmMax'], str(partitionNumber))
+        await self.queue_command(evl_Commands['ArmMax'], str(partitionNumber), code)
 
     async def arm_night_partition(self, code, partitionNumber, mode=None):
         """Public method to arm/max a partition."""

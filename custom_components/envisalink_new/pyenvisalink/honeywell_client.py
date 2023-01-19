@@ -192,13 +192,15 @@ class HoneywellClient(EnvisalinkClient):
         _LOGGER.debug(json.dumps(self._alarmPanel.alarm_state['partition'][partitionNumber]['status']))
 
         # Try and guess when the next update will come based on the state
+        now = time.time()
         if (bool(flags.armed_stay) or bool(flags.armed_away)) and user_zone_field != 0:
             # Exit delay in progress so updates come every second
-            self._nextExpectedReceiveTime = time.time() + 1
+            self.set_next_expected_receive_window((now + 0.9, now + 1.1))
         else:
-            # When in the Ready state we typically see an update every 10 seconds
+            # When in the Ready state we typically see an update every 10 seconds but sometimes it
+            # shows up at around the 9.5s mark.
             # TODO: does the same happen once it's armed?
-            self._nextExpectedReceiveTime = time.time() + 10
+            self.set_next_expected_receive_window((now + 9.5, now + 10))
 
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
