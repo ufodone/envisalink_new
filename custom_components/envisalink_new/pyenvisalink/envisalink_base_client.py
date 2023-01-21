@@ -31,9 +31,6 @@ class EnvisalinkClient(asyncio.Protocol):
             self.expiryTime = 0
             self.responseEvent = asyncio.Event()
 
-            self._lastReceiveTime = 0
-            self._nextExpectedReceiveWindow = None
-
 
     def __init__(self, panel, loop):
         self._loggedin = False
@@ -71,10 +68,18 @@ class EnvisalinkClient(asyncio.Protocol):
         self._shutdown = False
         self._commandTask = self.create_internal_task(self.process_command_queue(), name="command_processor")
         self._readLoopTask = self.create_internal_task(self.read_loop(), name="read_loop")
-        self._keepAliveTask = self.create_internal_task(self.keep_alive(), name="keep_alive")
+
+        if self._alarmPanel.keepalive_interval > 0:
+            self.create_internal_task(
+                self.periodic_command(self.keep_alive, self._alarmPanel.keepalive_interval),
+                name="keep_alive"
+            )
 
         if self._alarmPanel.zone_timer_interval > 0:
-            self.create_internal_task(self.periodic_zone_timer_dump(), name="zone_timer_dump")
+            self.create_internal_task(
+                self.periodic_command(self.dump_zone_timers, self._alarmPanel.zone_timer_interval),
+                name="zone_timer_dump"
+            )
 
         if self._ownLoop:
             _LOGGER.info("Starting up our own event loop.")
@@ -119,7 +124,7 @@ class EnvisalinkClient(asyncio.Protocol):
                     while not self._shutdown and self._reader:
                         _LOGGER.debug("Waiting for data from EVL")
                         try:
-                            data = await asyncio.wait_for(self._reader.read(n=256), 5)
+                            data = await asyncio.wait_for(self._reader.read(n=1024), 5)
                         except asyncio.exceptions.TimeoutError:
                             continue
 
@@ -127,9 +132,6 @@ class EnvisalinkClient(asyncio.Protocol):
                             _LOGGER.error('The server closed the connection.')
                             await self.disconnect()
                             break
-
-                        self._lastReceiveTime = time.time()
-                        self._nextExpectedReceiveWindow = None
 
                         data = data.decode('ascii')
                         _LOGGER.debug('{---------------------------------------')
@@ -153,14 +155,16 @@ class EnvisalinkClient(asyncio.Protocol):
 
         await self.disconnect()
 
+    async def periodic_command(self, action, interval):
+        """Used to periodically send a keepalive command to reset the envisalink's watchdog timer."""
+        while not self._shutdown:
+            next_send = time.time() + interval
 
-    async def keep_alive(self):
-        """Used to periodically send a keepalive message to the envisalink."""
-        raise NotImplementedError()
+            if self._loggedin:
+                await action()
 
-    async def periodic_zone_timer_dump(self):
-        """Used to periodically get the zone timers to make sure our zones are updated."""
-        raise NotImplementedError()
+            now = time.time();
+            await asyncio.sleep(next_send - now)
             
     async def connect(self):
         _LOGGER.info(str.format("Started to connect to Envisalink... at {0}:{1}", self._alarmPanel.host, self._alarmPanel.port))
@@ -204,8 +208,6 @@ class EnvisalinkClient(asyncio.Protocol):
             _LOGGER.debug('TX > %s', logData.encode('ascii'))
 
         try:
-            await self.delay_write_if_needed()
-
             self._writer.write((data + '\r\n').encode('ascii'))
             await self._writer.drain()
         except Exception as err:
@@ -218,6 +220,10 @@ class EnvisalinkClient(asyncio.Protocol):
 
     async def dump_zone_timers(self):
         """Public method for dumping zone timers."""
+        raise NotImplementedError()
+
+    async def keep_alive(self):
+        """Send a keepalive command to reset it's watchdog timer."""
         raise NotImplementedError()
 
     async def change_partition(self, partitionNumber):
@@ -385,16 +391,28 @@ class EnvisalinkClient(asyncio.Protocol):
 
 
     async def queue_command(self, cmd, data, code = None):
-        if _LOGGER.isEnabledFor(logging.DEBUG):
-            # Scrub the password and alarm code if necessary
-            logData = self.scrub_sensitive_data(data, code)
-            _LOGGER.debug("Queueing command '%s' data: '%s' ; calling_task=%s", cmd, logData, asyncio.current_task().get_name())
+        return await self.queue_commands([ { "cmd": cmd, "data": data, "code": code }])
 
-        op = self.Operation(cmd, data, code)
-        op.expiryTime = time.time() + self._alarmPanel.command_timeout
-        self._commandQueue.append(op)
+    async def queue_commands(self, command_list : list):
+        operations = []
+        for command in command_list:
+            cmd = command["cmd"]
+            data = command["data"]
+            code = command.get("code")
+
+            if _LOGGER.isEnabledFor(logging.DEBUG):
+                # Scrub the password and alarm code if necessary
+                logData = self.scrub_sensitive_data(data, code)
+                _LOGGER.debug("Queueing command '%s' data: '%s' ; calling_task=%s", cmd, logData, asyncio.current_task().get_name())
+
+            op = self.Operation(cmd, data, code)
+            op.expiryTime = time.time() + self._alarmPanel.command_timeout
+            operations.append(op)
+            self._commandQueue.append(op)
+
         self._commandEvent.set()
-        await op.responseEvent.wait()
+        for op in operations:
+            await op.responseEvent.wait()
         return op.state == op.State.SUCCEEDED
 
     async def process_command_queue(self):
@@ -512,33 +530,6 @@ class EnvisalinkClient(asyncio.Protocol):
 
         # Wake up the command processing task to process this result
         self._commandEvent.set()
-
-    async def delay_write_if_needed(self):
-        """ Some EVLs can become non-responsive for a period of time if sends and receives happen
-            within the same millisecond.
-
-            If we have received data from the EVL within 1ms then delay the send for a little bit.
-
-            Avoiding writes just before we receive data from the EVL is harder and we have to use
-            heuristics based on expected traffic patterns to try and predict when it's safe to send.
-        """
-        delay = None
-        now = time.time()
-        if self._nextExpectedReceiveWindow:
-            if (self._nextExpectedReceiveWindow[0] - 0.01) < now < (self._nextExpectedReceiveWindow[1] + 0.01):
-                delay = (self._nextExpectedReceiveWindow[1] - now) + 0.1
-        elif abs(now - self._lastReceiveTime) < 0.01:
-            delay = 0.1
-
-
-        if delay is not None:
-            _LOGGER.error("Delaying send to avoid being too close to a receive by %f seconds.", delay)
-            await asyncio.sleep(delay)
-
-    def set_next_expected_receive_window(self, window : tuple):
-        # Only update if it's happening sooner than the previous guess
-        if self._nextExpectedReceiveWindow is None or window[0] < self._nextExpectedReceiveWindow[0]:
-            self._nextExpectedReceiveWindow = window
 
     def scrub_sensitive_data(self, data, code = None):
         if not self._loggedin:

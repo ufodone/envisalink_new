@@ -41,17 +41,7 @@ class DSCClient(EnvisalinkClient):
 
     async def keep_alive(self):
         """Send a keepalive command to reset it's watchdog timer."""
-        while not self._shutdown:
-            if self._loggedin:
-                await self.queue_command(evl_Commands['KeepAlive'], '')
-            await asyncio.sleep(self._alarmPanel.keepalive_interval)
-
-    async def periodic_zone_timer_dump(self):
-        """Used to periodically get the zone timers to make sure our zones are updated."""
-        while not self._shutdown:
-            if self._loggedin:
-                await self.dump_zone_timers()
-            await asyncio.sleep(self._alarmPanel.zone_timer_interval)
+        await self.queue_command(evl_Commands['KeepAlive'], '')
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""

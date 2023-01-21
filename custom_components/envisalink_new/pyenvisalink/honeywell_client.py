@@ -13,18 +13,7 @@ class HoneywellClient(EnvisalinkClient):
     """Represents a honeywell alarm client."""
 
     async def keep_alive(self):
-        """Send a keepalive command to reset it's watchdog timer."""
-        while not self._shutdown:
-            if self._loggedin:
-                await self.queue_command(evl_Commands['KeepAlive'], '')
-            await asyncio.sleep(self._alarmPanel.keepalive_interval)
-
-    async def periodic_zone_timer_dump(self):
-        """Used to periodically get the zone timers to make sure our zones are updated."""
-        while not self._shutdown:
-            if self._loggedin:
-                await self.dump_zone_timers()
-            await asyncio.sleep(self._alarmPanel.zone_timer_interval)
+        await self.queue_command(evl_Commands['KeepAlive'], '')
 
     async def send_command(self, code, data):
         """Send a command in the proper honeywell format."""
@@ -37,10 +26,16 @@ class HoneywellClient(EnvisalinkClient):
 
     async def keypresses_to_partition(self, partitionNumber, keypresses):
         """Send keypresses to a particular partition."""
+        commands = []
         for char in keypresses:
-            result = await self.queue_command(evl_Commands['PartitionKeypress'], str.format("{0},{1}", partitionNumber, char))
-            if not result:
-                break
+            commands.append({
+                "cmd": evl_Commands['PartitionKeypress'],
+                "data": str.format("{0},{1}", partitionNumber, char)
+            })
+
+        # Queue up all the keypresses together to ensure an unrelated command cannot
+        # be inserted in the middle.
+        await self.queue_commands(commands)
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""
@@ -190,17 +185,6 @@ class HoneywellClient(EnvisalinkClient):
                                                                    'beep': beep,
                                                                    })
         _LOGGER.debug(json.dumps(self._alarmPanel.alarm_state['partition'][partitionNumber]['status']))
-
-        # Try and guess when the next update will come based on the state
-        now = time.time()
-        if (bool(flags.armed_stay) or bool(flags.armed_away)) and user_zone_field != 0:
-            # Exit delay in progress so updates come every second
-            self.set_next_expected_receive_window((now + 0.9, now + 1.1))
-        else:
-            # When in the Ready state we typically see an update every 10 seconds but sometimes it
-            # shows up at around the 9.5s mark.
-            # TODO: does the same happen once it's armed?
-            self.set_next_expected_receive_window((now + 9.5, now + 10))
 
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
