@@ -153,17 +153,32 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
+        errors = {}
+
+        zone_set = self.config_entry.options.get(CONF_ZONE_SET, DEFAULT_ZONE_SET)
+        partition_set = self.config_entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            controller = self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+            zone_set = user_input.get(CONF_ZONE_SET)
+            partition_set = user_input.get(CONF_PARTITION_SET)
+            if not parse_range_string(zone_set, 1, controller.controller.max_zones):
+                errors["base"] = "invalid_zone_spec"
+            elif not parse_range_string(partition_set, 1, controller.controller.max_partitions):
+                errors["base"] = "invalid_partition_spec"
+            else:
+                return self.async_create_entry(title="", data=user_input)
+
 
         options_schema = {
             vol.Optional(
                 CONF_ZONE_SET,
-                default=self.config_entry.options.get(CONF_ZONE_SET, DEFAULT_ZONE_SET)
+                default=zone_set
             ): cv.string,
             vol.Optional(
                 CONF_PARTITION_SET,
-                default=self.config_entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+                default=partition_set
             ): cv.string,
             vol.Optional(
                 CONF_CODE,
@@ -217,6 +232,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(options_schema),
+            errors=errors,
         )
 
 class CannotConnect(HomeAssistantError):

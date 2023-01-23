@@ -37,6 +37,11 @@
           "honeywell_arm_night_mode": "Arm Night Mode"
         }
       }
+    },
+    "error": {
+      "invalid_zone_spec": "invalid zone specification",
+      "invalid_partition_spec": "invalid partition specification",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   }
 }
