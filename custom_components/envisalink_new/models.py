@@ -7,10 +7,12 @@ from .controller import EnvisalinkController
 class EnvisalinkDevice(Entity):
     """Representation of an Envisalink device."""
 
+
     def __init__(self, name, controller, state_update_type, state_update_key):
         """Initialize the device."""
         self._controller = controller
-        self._name = name
+        self._attr_should_poll = False
+        self._attr_name = name
         self._state_update_type = state_update_type
         self._state_update_key = state_update_key
 
@@ -26,16 +28,6 @@ class EnvisalinkDevice(Entity):
                 state_updated
             )
         )
-
-    @property
-    def name(self):
-        """Return the name of the device."""
-        return self._name
-
-    @property
-    def should_poll(self):
-        """No polling needed."""
-        return False
 
     @property
     def device_info(self) -> DeviceInfo:

@@ -412,7 +412,7 @@ class EnvisalinkAlarmPanel:
                 if m is None or m.lastindex != 1:
                     _LOGGER.warn(f"# Unable to extract MAC address")
                 else:
-                    self._macAddress = m.group(1)
+                    self._macAddress = m.group(1).lower()
         except Exception as ex:
             _LOGGER.error("Unable to validate connection: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED

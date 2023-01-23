@@ -18,23 +18,17 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity import Entity
 
 from .const import (
-    CONF_ALARM_NAME,
-    CONF_CREATE_ZONE_BYPASS_SWITCHES,
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
     CONF_EVL_KEEPALIVE,
     CONF_EVL_PORT,
-    CONF_EVL_VERSION,
-    CONF_PANEL_TYPE,
     CONF_PASS,
     CONF_TIMEOUT,
     CONF_USERNAME,
-    CONF_ZONEDUMP_INTERVAL,
     CONF_ZONEDUMP_INTERVAL,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_KEEPALIVE,
     DEFAULT_TIMEOUT,
     DEFAULT_ZONEDUMP_INTERVAL,
-    DOMAIN,
     LOGGER,
     STATE_UPDATE_TYPE_PARTITION,
     STATE_UPDATE_TYPE_ZONE,
@@ -52,7 +46,7 @@ class EnvisalinkController:
         self._entry_id = entry.entry_id
 
         # Config
-        self.alarm_name = entry.data.get(CONF_ALARM_NAME)
+        self.alarm_name = entry.title
         host = entry.data.get(CONF_HOST)
         port = entry.data.get(CONF_EVL_PORT)
         user = entry.data.get(CONF_USERNAME)

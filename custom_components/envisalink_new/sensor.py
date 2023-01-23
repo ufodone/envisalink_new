@@ -31,7 +31,7 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
-    partition_spec = entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+    partition_spec = entry.options.get(CONF_PARTITION_SET)
     partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
     partition_info = entry.data.get(CONF_PARTITIONS)
     if partition_set is not None:
@@ -59,14 +59,15 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
         """Initialize the sensor."""
         self._icon = "mdi:alarm"
         self._partition_number = partition_number
-        name_suffix = f"partition_{partition_number}_keypad"
-        self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
+        name = f"Partition {partition_number} Keypad"
+        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        name = f"{controller.alarm_name}_{name_suffix}"
+        self._attr_has_entity_name = True
         if partition_info:
             # Override the name if there is info from the YAML configuration
             if CONF_PARTITIONNAME in partition_info:
                 name = f"{partition_info[CONF_PARTITIONNAME]} Keypad"
+                self._attr_has_entity_name = False
 
         LOGGER.debug("Setting up sensor for partition: %s", name)
         super().__init__(name, controller, STATE_UPDATE_TYPE_PARTITION, partition_number)

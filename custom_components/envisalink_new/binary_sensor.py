@@ -58,17 +58,18 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
     def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the binary_sensor."""
         self._zone_number = zone_number
-        name_suffix = f"zone_{self._zone_number}"
-        self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
+        name = f"Zone {self._zone_number}"
+        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        name = f"{controller.alarm_name}_{name_suffix}"
         self._zone_type = DEFAULT_ZONETYPE
 
+        self._attr_has_entity_name = True
         if zone_info:
             # Override the name and type if there is info from the YAML configuration
             self._zone_type = zone_info.get(CONF_ZONETYPE, DEFAULT_ZONETYPE)
             if CONF_ZONENAME in zone_info:
                 name = zone_info[CONF_ZONENAME]
+                self._attr_has_entity_name = False
 
         LOGGER.debug("Setting up zone: %s", name)
         super().__init__(name, controller, STATE_UPDATE_TYPE_ZONE, zone_number)

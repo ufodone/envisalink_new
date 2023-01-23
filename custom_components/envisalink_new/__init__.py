@@ -21,6 +21,7 @@ from .const import (
     CONF_EVL_VERSION,
     CONF_PANEL_TYPE,
     CONF_PANIC,
+    CONF_PARTITIONNAME,
     CONF_PARTITIONS,
     CONF_PARTITION_SET,
     CONF_PASS,
@@ -149,7 +150,8 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
         # Same off the parittion names so we can update the corresponding entities later
         config_data[CONF_PARTITIONS] = partitions
 
-    config_data[CONF_ALARM_NAME] = DEFAULT_ALARM_NAME
+
+    config_data[CONF_ALARM_NAME] = choose_alarm_name(partitions)
 
     # Extract config items that will now be treated as options in the ConfigEntry and
     # store them temporarily in the config entry so they can later be transfered into options
@@ -173,6 +175,26 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
     config_data[CONF_YAML_OPTIONS] = options
 
     return config_data
+
+def choose_alarm_name(partitions) -> str:
+    # If there is only a single partition defined, then use it
+    name = DEFAULT_ALARM_NAME
+
+    if not partitions:
+        return DEFAULT_ALARM_NAME
+
+    if partitions:
+        if len(partitions) == 1:
+            # Only a single partition defined so use it
+            part_info = next(iter(partitions.values()))
+        else:
+            # Multiple partitions so choose the smallest value
+            part_num = min(partitions, key=int)
+            part_info = partitions[part_num]
+
+        name = part_info.get(CONF_PARTITIONNAME, DEFAULT_ALARM_NAME)
+
+    return name
 
 @callback
 def _async_import_options_from_data_if_missing(

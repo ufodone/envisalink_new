@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, AbortFlow
 from homeassistant.exceptions import HomeAssistantError
 
 from homeassistant.helpers import config_validation as cv
@@ -74,25 +74,6 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect."""
-
-    panel = EnvisalinkAlarmPanel(
-        data[CONF_HOST],
-        userName=data[CONF_USERNAME],
-        password=data[CONF_PASS])
-
-    result = await panel.validate_device_connection()
-    if result == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
-        raise CannotConnect()
-    if result == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
-        raise InvalidAuth()
-
-    data[CONF_PANEL_TYPE] = panel.panel_type
-    data[CONF_EVL_VERSION] = panel.envisalink_version
-    return {"title": data[CONF_ALARM_NAME]}
-
-
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Envisalink_new."""
 
@@ -110,16 +91,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
-            info = await validate_input(self.hass, user_input)
+            title = await self.validate_input(self.hass, user_input)
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
             errors["base"] = "invalid_auth"
+        except AbortFlow as ex:
+            errors["base"] = ex.reason
         except Exception as ex:  # pylint: disable=broad-except
             LOGGER.exception("Unexpected exception: %r", ex)
             errors["base"] = "unknown"
         else:
-            return self.async_create_entry(title=info["title"], data=user_input)
+            return self.async_create_entry(title=title, data=user_input)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -136,6 +119,30 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
         return OptionsFlowHandler(config_entry)
+
+    async def validate_input(self, hass: HomeAssistant, data: dict[str, Any]) -> str:
+        """Validate the user input allows us to connect."""
+
+        panel = EnvisalinkAlarmPanel(
+            data[CONF_HOST],
+            userName=data[CONF_USERNAME],
+            password=data[CONF_PASS])
+
+        result = await panel.validate_device_connection()
+        if result == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
+            raise CannotConnect()
+        if result == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
+            raise InvalidAuth()
+
+        unique_id = panel.mac_address
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
+
+        data[CONF_PANEL_TYPE] = panel.panel_type
+        data[CONF_EVL_VERSION] = panel.envisalink_version
+        title = data[CONF_ALARM_NAME]
+        data.pop(CONF_ALARM_NAME)
+        return title
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:

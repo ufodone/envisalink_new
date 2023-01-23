@@ -56,14 +56,15 @@ class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
     def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the switch."""
         self._zone_number = zone_number
-        name_suffix = f"zone_{self._zone_number}_bypass"
-        self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
+        name = f"Zone {self._zone_number} Bypass"
+        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        name = f"{controller.alarm_name}_{name_suffix}"
+        self._attr_has_entity_name = True
         if zone_info:
             # Override the name if there is info from the YAML configuration
             if CONF_ZONENAME in zone_info:
                 name = f"{zone_info[CONF_ZONENAME]}_bypass"
+                self._attr_has_entity_name = False
 
         LOGGER.debug("Setting up zone: %s", name)
         super().__init__(name, controller, STATE_UPDATE_TYPE_ZONE_BYPASS, zone_number)

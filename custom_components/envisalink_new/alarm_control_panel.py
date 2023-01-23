@@ -56,7 +56,6 @@ ATTR_CODE = "code"
 
 SERVICE_SCHEMA = vol.Schema(
     {
-#        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
         vol.Required(ATTR_CUSTOM_FUNCTION): cv.string,
         vol.Optional(ATTR_CODE): cv.string,
     }
@@ -73,7 +72,7 @@ async def async_setup_entry(
     code = entry.options.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC)
     partition_info = entry.data.get(CONF_PARTITIONS)
-    partition_spec = entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+    partition_spec = entry.options.get(CONF_PARTITION_SET)
     partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
 
     arm_night_mode = None
@@ -139,14 +138,15 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self._code = code
         self._panic_type = panic_type
         self._arm_night_mode = arm_night_mode
-        name_suffix = f"partition_{partition_number}"
-        self._attr_unique_id = f"{controller.unique_id}_{name_suffix}"
+        name = f"Partition {partition_number}"
+        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        name = f"{controller.alarm_name}_{name_suffix}"
+        self._attr_has_entity_name = True
         if partition_info:
             # Override the name if there is info from the YAML configuration
             if CONF_PARTITIONNAME in partition_info:
                 name = f"{partition_info[CONF_PARTITIONNAME]}"
+                self._attr_has_entity_name = False
 
         LOGGER.debug("Setting up alarm: %s", name)
         super().__init__(name, controller, STATE_UPDATE_TYPE_PARTITION, partition_number)
