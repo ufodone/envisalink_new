@@ -51,8 +51,6 @@ from .const import (
     DEFAULT_ZONETYPE,
     DEFAULT_ZONE_SET,
     DOMAIN,
-    EVL_MAX_PARTITIONS,
-    EVL_MAX_ZONES,
     HONEYWELL_ARM_MODE_INSTANT_LABEL,
     HONEYWELL_ARM_MODE_INSTANT_VALUE,
     HONEYWELL_ARM_MODE_NIGHT_LABEL,
@@ -92,12 +90,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             title = await self.validate_input(self.hass, user_input)
-        except CannotConnect:
-            errors["base"] = "cannot_connect"
-        except InvalidAuth:
-            errors["base"] = "invalid_auth"
-        except AbortFlow as ex:
-            errors["base"] = ex.reason
+        except HomeAssistantError as err:
+            errors["base"] = err.reason
         except Exception as ex:  # pylint: disable=broad-except
             LOGGER.exception("Unexpected exception: %r", ex)
             errors["base"] = "unknown"
@@ -123,16 +117,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def validate_input(self, hass: HomeAssistant, data: dict[str, Any]) -> str:
         """Validate the user input allows us to connect."""
 
-        panel = EnvisalinkAlarmPanel(
-            data[CONF_HOST],
-            userName=data[CONF_USERNAME],
-            password=data[CONF_PASS])
-
-        result = await panel.validate_device_connection()
-        if result == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
-            raise CannotConnect()
-        if result == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
-            raise InvalidAuth()
+        panel = await check_connection(hass, data)
 
         unique_id = panel.mac_address
         await self.async_set_unique_id(unique_id)
@@ -155,23 +140,61 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the options."""
         errors = {}
 
+        config_defaults = {
+            CONF_HOST: self.config_entry.data[CONF_HOST],
+            CONF_PASS: self.config_entry.data[CONF_PASS],
+            CONF_USERNAME: self.config_entry.data[CONF_USERNAME],
+        }
         zone_set = self.config_entry.options.get(CONF_ZONE_SET, DEFAULT_ZONE_SET)
         partition_set = self.config_entry.options.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
 
         if user_input is not None:
-            controller = self.hass.data[DOMAIN][self.config_entry.entry_id]
+            evl_version = self.config_entry.options.get(CONF_EVL_VERSION, DEFAULT_EVL_VERSION)
+            max_zones = EnvisalinkAlarmPanel.get_max_zones_by_version(evl_version)
 
             zone_set = user_input.get(CONF_ZONE_SET)
             partition_set = user_input.get(CONF_PARTITION_SET)
-            if not parse_range_string(zone_set, 1, controller.controller.max_zones):
+            if not parse_range_string(zone_set, 1, max_zones):
                 errors["base"] = "invalid_zone_spec"
-            elif not parse_range_string(partition_set, 1, controller.controller.max_partitions):
+            elif not parse_range_string(partition_set, 1, EnvisalinkAlarmPanel.get_max_partitions()):
                 errors["base"] = "invalid_partition_spec"
             else:
-                return self.async_create_entry(title="", data=user_input)
+                # Pull the host, user and password out of the options and store them in
+                # the main config entry
+                data = dict(self.config_entry.data)
+                for key in [ CONF_HOST, CONF_USERNAME, CONF_PASS ]:
+                    value = user_input[key]
+                    data[key] = value
+                    config_defaults[key]  = value
+                    user_input.pop(key)
+                
+                # Validate that the new connection settings are valid
+                try:
+                    panel = await check_connection(self.hass, data)
+                except HomeAssistantError as err:
+                    errors["base"] = err.reason
+                except Exception as ex:  # pylint: disable=broad-except
+                    LOGGER.exception("Unexpected exception: %r", ex)
+                    errors["base"] = "unknown"
+                else:
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data=data)
 
+                    return self.async_create_entry(title="", data=user_input)
 
         options_schema = {
+            vol.Required(
+                CONF_HOST,
+                default=config_defaults[CONF_HOST],
+            ): cv.string,
+            vol.Required(
+                CONF_USERNAME,
+                default=config_defaults[CONF_USERNAME],
+            ): cv.string,
+            vol.Required(
+                CONF_PASS,
+                default=config_defaults[CONF_PASS],
+            ): cv.string,
             vol.Optional(
                 CONF_ZONE_SET,
                 default=zone_set
@@ -235,12 +258,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-class CannotConnect(HomeAssistantError):
+class DiscoveryError(HomeAssistantError):
     """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""
+    def __init__(self, result):
+        if result == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
+            self.reason = "cannot_connect"
+        elif result == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
+            self.reason = "invalid_auth"
+        else:
+            LOGGER.error("Unexpected error: %s", result)
+            self.reason = "unknown"
 
 def find_yaml_zone_info(zone_num: int, zone_info: map) -> map:
     if zone_info is None:
@@ -323,4 +350,18 @@ def generate_range_string(seq: set) -> str:
         result += f"{start}-{end}"
     start = end = i
     return result
+
+async def check_connection(hass: HomeAssistant, data: dict[str, Any]) -> EnvisalinkAlarmPanel:
+    """Check that we're able to successfully connect and auth with the envisalink"""
+
+    panel = EnvisalinkAlarmPanel(
+        data[CONF_HOST],
+        userName=data[CONF_USERNAME],
+        password=data[CONF_PASS])
+
+    result = await panel.discover()
+    if result != EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
+        raise DiscoveryError(result)
+
+    return panel
 

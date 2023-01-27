@@ -148,7 +148,6 @@ class EnvisalinkClient(asyncio.Protocol):
 
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
-                # TODO: implement exponential backoff 
                 reconnect_time = 30
                 _LOGGER.error("Reconnection attempt in %ds", reconnect_time)
                 await asyncio.sleep(reconnect_time)
@@ -350,7 +349,6 @@ class EnvisalinkClient(asyncio.Protocol):
         """Handler for when the envisalink rejects our credentials."""
         self._loggedin = False
         _LOGGER.error('Password is incorrect. Server is closing socket connection.')
-        self.stop()
 
     def handle_keypad_update(self, code, data):
         """Handler for when the envisalink wishes to send us a keypad update."""

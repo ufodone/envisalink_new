@@ -19,13 +19,16 @@ class EnvisalinkAlarmPanel:
         INVALID_AUTHORIZATION = "invalid_authorization"
         CONNECTION_FAILED = "connection_failed"
         INVALID_PANEL_TYPE = "invalid_panel_type"
+        INVALID_EVL_VERSION = "invalid_evl_version"
+        DISCOVERY_NOT_COMPLETE = "discovery_not_complete"
         
     def __init__(self, host, port=4025,
                  userName='user', password='user',
                  zoneTimerInterval=20, keepAliveInterval=30, eventLoop=None,
                  connectionTimeout=10, zoneBypassEnabled=False,
                  commandTimeout=5.0,
-                 httpPort=80):
+                 httpPort=8080):
+        self._discoveryComplete = False
         self._macAddress = None
         self._firmwareVersion = None
         self._host = host
@@ -38,8 +41,7 @@ class EnvisalinkAlarmPanel:
         self._password = password
         self._keepAliveInterval = keepAliveInterval
         self._zoneTimerInterval = zoneTimerInterval
-        self._maxPartitions = 8
-        self._maxZones = 0
+        self._maxPartitions = EnvisalinkAlarmPanel.get_max_partitions()
         self._alarmState = None
         self._client = None
         self._eventLoop = eventLoop
@@ -90,9 +92,17 @@ class EnvisalinkAlarmPanel:
     def panel_type(self):
         return self._panelType
 
+    @panel_type.setter
+    def panel_type(self, panel_type):
+        self._panelType = panel_type
+
     @property
     def envisalink_version(self):
         return self._evlVersion
+
+    @envisalink_version.setter
+    def envisalink_version(self, version):
+        self._evlVersion = version
         
     @property
     def keepalive_interval(self):
@@ -116,7 +126,13 @@ class EnvisalinkAlarmPanel:
 
     @property
     def max_zones(self):
-        return self._maxZones
+        return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
+
+    def get_max_zones_by_version(version) -> int:
+        return 64 if version < 4 else 128
+
+    def get_max_partitions() -> int:
+        return 8
 
     @property
     def max_partitions(self):
@@ -211,26 +227,20 @@ class EnvisalinkAlarmPanel:
         _LOGGER.debug("Callback has not been set by client.")	    
 
     async def start(self):
-
         # Validate the connection first if it hasn't been done already
-        if not self._firmwareVersion and not self._macAddress:
-            result = await self.validate_device_connection()
-            if result != self.ConnectionResult.SUCCESS:
-                return result
+        if not self._discoveryComplete:
+            logging.error("discover() must be run before starting the controller.")
+            return self.ConnectionResult.DISCOVERY_NOT_COMPLETE
 
         if self._panelType is None:
-            logging.error("Panel type could not be determined.")
+            logging.error("Panel could type not be determined.")
             return self.ConnectionResult.INVALID_PANEL_TYPE
 
         if self._evlVersion is None:
-            logging.error("EVL version could not be determined; defaulting to 3")
-            self._evlVersion = 3
+            logging.error("EVL version could not be determined")
+            return self.ConnectionResult.INVALID_EVL_VERSION
 
-        if self._evlVersion < 4:
-            self._maxZones = 64
-        else:
-            self._maxZones = 128
-        self._alarmState = AlarmState.get_initial_alarm_state(self._maxZones, self._maxPartitions)
+        self._alarmState = AlarmState.get_initial_alarm_state(self.max_zones, self._maxPartitions)
 
         """Connect to the envisalink, and listen for events to occur."""
         logging.info(str.format("Connecting to envisalink on host: {0}, port: {1}", self._host, self._port))
@@ -371,13 +381,13 @@ class EnvisalinkAlarmPanel:
                     if self._panelType not in [ PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL ]:
                         _LOGGER.warn("Unrecognized panel type: %s", self._panelType)
         except Exception as ex:
-            _LOGGER.error("Unable to validate connection: %s", ex)
+            _LOGGER.error("Unable to fetch panel information: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED
 
         _LOGGER.info(f"Discovered Envisalink %s: %s", self._evlVersion, self._panelType)
         return True
         
-    async def validate_device_connection(self) -> ConnectionResult:
+    async def discover(self) -> ConnectionResult:
         self._macAddress = None
         self._firmwareVersion = None
 
@@ -391,28 +401,26 @@ class EnvisalinkAlarmPanel:
                 elif resp.status == 404:
                     # Connection was successful but unable to extract FW and MAC info
                     _LOGGER.warn("Connection successful but unable to fetch FW/MAC: 404 (page not found): '%s'", url)
-                    return self.ConnectionResult.SUCCESS
                 elif resp.status != 200:
                     # Connection was successful but unable to extract FW and MAC info
                     _LOGGER.warn("Connection successful but unable to fetch FW/MAC: '%s'", resp.status)
-                    return self.ConnectionResult.SUCCESS
-
-                # Attempt to extract the firmware version and MAC address from the returned HTML
-                html = await resp.text()
-                fw_regex = 'Firmware Version: ([^ ]*)'
-                mac_regex = 'MAC: ([0-9a-fA-F]*)'
-
-                m = re.search(fw_regex, html)
-                if m is None or m.lastindex != 1:
-                    _LOGGER.warn(f"# Unable to extract Firmware version")
                 else:
-                    self._firmwareVersion = m.group(1)
+                    # Attempt to extract the firmware version and MAC address from the returned HTML
+                    html = await resp.text()
+                    fw_regex = 'Firmware Version: ([^ ]*)'
+                    mac_regex = 'MAC: ([0-9a-fA-F]*)'
 
-                m = re.search(mac_regex, html)
-                if m is None or m.lastindex != 1:
-                    _LOGGER.warn(f"# Unable to extract MAC address")
-                else:
-                    self._macAddress = m.group(1).lower()
+                    m = re.search(fw_regex, html)
+                    if m is None or m.lastindex != 1:
+                        _LOGGER.warn(f"# Unable to extract Firmware version")
+                    else:
+                        self._firmwareVersion = m.group(1)
+
+                    m = re.search(mac_regex, html)
+                    if m is None or m.lastindex != 1:
+                        _LOGGER.warn(f"# Unable to extract MAC address")
+                    else:
+                        self._macAddress = m.group(1).lower()
         except Exception as ex:
             _LOGGER.error("Unable to validate connection: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED
@@ -420,5 +428,6 @@ class EnvisalinkAlarmPanel:
         await self.discover_device_details()
 
         _LOGGER.info(f"Firmware Version: '{self._firmwareVersion}' / MAC address: '{self._macAddress}'")
+        self._discoveryComplete = True
         return self.ConnectionResult.SUCCESS
 

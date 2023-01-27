@@ -134,7 +134,11 @@ class EnvisalinkController:
 
     async def start(self) -> bool:
         LOGGER.info("Start envisalink")
-        await self.controller.start()
+        if await self.controller.discover() != self.controller.ConnectionResult.SUCCESS:
+            return False
+
+        if await self.controller.start() != self.controller.ConnectionResult.SUCCESS:
+            return False
 
         if not await self.sync_connect:
             return False

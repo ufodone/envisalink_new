@@ -39,9 +39,11 @@
       }
     },
     "error": {
+      "cannot_connect": "Cannot connect.",
+      "invalid_auth": "Invalid authentication credentials",
       "invalid_zone_spec": "invalid zone specification",
       "invalid_partition_spec": "invalid partition specification",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unknown error"
     }
   }
 }
