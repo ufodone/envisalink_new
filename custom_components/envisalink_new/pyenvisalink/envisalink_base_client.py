@@ -21,10 +21,11 @@ class EnvisalinkClient(asyncio.Protocol):
             RETRY = "retry"
             FAILED = "failed"
 
-        def __init__(self, cmd, data, code):
+        def __init__(self, cmd, data, code, logData):
             self.cmd = cmd
             self.data = data
             self.code = code
+            self.logData = logData
             self.state = self.State.QUEUED
             self.retryDelay = 0.1 # Start the retry backoff at 100ms
             self.retryTime = 0
@@ -199,12 +200,12 @@ class EnvisalinkClient(asyncio.Protocol):
         self._writer = None
         self._reader = None
             
-    async def send_data(self, data):
+    async def send_data(self, data, logData = None):
         """Raw data send- just make sure it's encoded properly and logged."""
-        if _LOGGER.isEnabledFor(logging.DEBUG):
-            # Scrub the password and alarm code if necessary
+        # Scrub the password and alarm code if necessary
+        if not logData:
             logData = self.scrub_sensitive_data(data)
-            _LOGGER.debug('TX > %s', logData.encode('ascii'))
+        _LOGGER.debug('TX > %s', logData.encode('ascii'))
 
         try:
             self._writer.write((data + '\r\n').encode('ascii'))
@@ -213,7 +214,7 @@ class EnvisalinkClient(asyncio.Protocol):
             _LOGGER.error('Failed to write to the stream: %r', err)
             await self.disconnect()
 
-    async def send_command(self, code, data):
+    async def send_command(self, code, data, logData = None):
         """Used to send a properly formatted command to the envisalink"""
         raise NotImplementedError()
 
@@ -397,13 +398,14 @@ class EnvisalinkClient(asyncio.Protocol):
             cmd = command["cmd"]
             data = command["data"]
             code = command.get("code")
+            logData = command.get("log")
 
-            if _LOGGER.isEnabledFor(logging.DEBUG):
-                # Scrub the password and alarm code if necessary
+            # Scrub the password and alarm code if necessary
+            if not logData:
                 logData = self.scrub_sensitive_data(data, code)
-                _LOGGER.debug("Queueing command '%s' data: '%s' ; calling_task=%s", cmd, logData, asyncio.current_task().get_name())
+            _LOGGER.debug("Queueing command '%s' data: '%s' ; calling_task=%s", cmd, logData, asyncio.current_task().get_name())
 
-            op = self.Operation(cmd, data, code)
+            op = self.Operation(cmd, data, code, logData)
             op.expiryTime = time.time() + self._alarmPanel.command_timeout
             operations.append(op)
             self._commandQueue.append(op)
@@ -449,7 +451,7 @@ class EnvisalinkClient(asyncio.Protocol):
                         op.state = self.Operation.State.SENT
                         self._cachedCode = op.code
                         try:
-                            await self.send_command(op.cmd, op.data)
+                            await self.send_command(op.cmd, op.data, op.logData)
                         except Exception as ex:
                             _LOGGER.error(f"Unexpected exception trying to send command: {ex}")
                             op.state = self.Operation.State.FAILED

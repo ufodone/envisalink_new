@@ -26,7 +26,7 @@ class DSCClient(EnvisalinkClient):
         """part of each command includes a checksum.  Calculate."""
         return ("%02X" % sum(self.to_chars(code)+self.to_chars(data)))[-2:]
 
-    async def send_command(self, code, data):
+    async def send_command(self, code, data, logData = None):
         """Send a command in the proper honeywell format."""
         to_send = code + data + self.get_checksum(code, data)
         await self.send_data(to_send)
