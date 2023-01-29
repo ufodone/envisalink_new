@@ -4,6 +4,7 @@ import json
 import re
 import asyncio
 import datetime
+import time
 from .envisalink_base_client import EnvisalinkClient
 from .dsc_envisalinkdefs import *
 
@@ -168,10 +169,12 @@ class DSCClient(EnvisalinkClient):
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
         """Event 601-610."""
+        now = time.time()
         parse = re.match('^[0-9]{3,4}$', data)
         if parse:
             zoneNumber = int(data[-3:])
             self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update(evl_ResponseTypes[code]['status'])
+            self._alarmPanel.alarm_state['zone'][zoneNumber]['updated'] = now
             _LOGGER.debug(str.format("(zone {0}) state has updated: {1}", zoneNumber, json.dumps(evl_ResponseTypes[code]['status'])))
             return [ zoneNumber ]
         else:
@@ -273,4 +276,7 @@ class DSCClient(EnvisalinkClient):
             to work if the alarm panel is setup to require a code to bypass zones. """
         await self.keypresses_to_partition(1, "*1#")
 
+    def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
+        # DSC seems to report accurately to 0 means open, anything else means closed
+        return ticks == 0
 

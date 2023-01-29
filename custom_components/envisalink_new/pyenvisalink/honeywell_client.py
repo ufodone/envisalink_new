@@ -245,10 +245,12 @@ class HoneywellClient(EnvisalinkClient):
         for inputItem in inputItems:
             zonefieldString += inputItem[::-1]
 
+        now = time.time()
         for zoneNumber, zoneBit in enumerate(zonefieldString, start=1):
                 self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update({'open': zoneBit == '1', 'fault': zoneBit == '1'})
                 if zoneBit == '1':
                     self._alarmPanel.alarm_state['zone'][zoneNumber]['last_fault'] = 0
+                self._alarmPanel.alarm_state['zone'][zoneNumber]['updated'] = now
 
                 _LOGGER.debug("(zone %i) is %s", zoneNumber, "Open/Faulted" if zoneBit == '1' else "Closed/Not Faulted")
 
@@ -291,3 +293,17 @@ class HoneywellClient(EnvisalinkClient):
         _LOGGER.debug(cidEvent['type'] + ' value is ' + str(zoneOrUser))
         
         return cidEvent
+
+    def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
+        now = time.time();
+        last_zone_dump = now - self._alarmPanel.zone_timer_interval
+        last_update = self._alarmPanel.alarm_state['zone'][zone]['updated']
+
+        if last_zone_dump < last_update:
+            # This zone has been explicitly updated since the last zone timer dump so honor
+            # its current state
+            return self._alarmPanel.alarm_state['zone'][zone]['status']['open']
+
+        # The envisalink never seems to report back exactly 0 seconds for an open zone.
+        # It always seems to be 1-3 ticks.  So 3 ticks or less will be considered open.
+        return ticks <= 3

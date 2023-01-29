@@ -320,15 +320,12 @@ class EnvisalinkClient(asyncio.Protocol):
             itemInt = int(itemHexString, 16)
 
             # each value is a timer for a zone that ticks down every five seconds from maxint
-            MAXINT = 65536
+            MAXINT = 0xffff
             itemTicks = MAXINT - itemInt
             itemSeconds = itemTicks * 5
 
             status = ''
-            #The envisalink never seems to report back exactly 0 seconds for an open zone.
-            #it always seems to be 10-15 seconds.  So anything below 30 seconds will be open.
-            #this will of course be augmented with zone/partition events.
-            if itemSeconds < 30:
+            if self.is_zone_open_from_zonedump(zoneNumber, itemTicks):
                 status = 'open'
             else:
                 status = 'closed'
@@ -369,6 +366,11 @@ class EnvisalinkClient(asyncio.Protocol):
 
     def handle_realtime_cid_event(self, code, data):
         """Callback for whenever the envisalink triggers alarm arm/disarm/trigger."""
+        raise NotImplementedError()
+
+    def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
+        """Indicate whether or not a zone should be considered open based on the number of
+           ticks in a zone dump timer update"""
         raise NotImplementedError()
 
     def handle_zone_timer_dump(self, code, data):
