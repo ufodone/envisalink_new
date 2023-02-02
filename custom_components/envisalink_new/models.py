@@ -41,3 +41,7 @@ class EnvisalinkDevice(Entity):
             hw_version=self._controller.controller.envisalink_version,
             configuration_url=f"http://{self._controller.controller.host}",
         )
+
+    @property
+    def available(self) -> bool:
+        return self._controller.available and super().available

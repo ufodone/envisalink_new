@@ -85,8 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: config_entries.ConfigEnt
     _async_import_options_from_data_if_missing(hass, entry)
 
     controller = EnvisalinkController(hass, entry)
-    if not await controller.start():
-        return False
+    await controller.start()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = controller
 

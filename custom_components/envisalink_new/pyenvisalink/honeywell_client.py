@@ -96,72 +96,32 @@ class HoneywellClient(EnvisalinkClient):
     def parseHandler(self, rawInput):
         """When the envisalink contacts us- parse out which command and data."""
         cmd = {}
+        _LOGGER.debug(str.format("Data received:{0}", rawInput))
 
-        if not self._loggedin:
-            # assume it is login info but look for a sentinel first in case there is other info here
-            m = re.match(r'[^\r\n%\^]+', rawInput)
-            if m is None:
-                # Don't have the full login response yet
-                return (None, None)
-            code = m.group(0)
-            rawInput = rawInput[m.end(0):]
+        parse = re.match('([%\^].+)\$', rawInput)
+        if parse and parse.group(1):
+            # keep first sentinel char to tell difference between tpi and
+            # Envisalink command responses.  Drop the trailing $ sentinel.
+            inputList = parse.group(1).split(',')
+            code = inputList[0]
+            cmd['code'] = code
+            cmd['data'] = ','.join(inputList[1:])
+            _LOGGER.debug(str.format("Code:{0} Data:{1}", code, cmd['data']))
+        elif not self._loggedin:
+            # assume it is login info
+            code = rawInput
             cmd['code'] = code
             cmd['data'] = ''
         else:
-            rawInput = re.sub("[\r\n]", "", rawInput)
-
-            # Nothing left to process after stripping the line breaks
-            if not rawInput:
-                return (None, None)
-
-            # Look for a sentinel
-            m = re.match("[%\^]", rawInput)
-            if m is None:
-                # No sentinels so ignore the data
-                _LOGGER.error("Unrecognized data received from the envisalink. Ignoring: '%s'", rawInput)
-                return (None, None)
-
-            start_idx = m.start(0)
-            if start_idx != 0:
-                # Ignore characters up to the sentinel
-                rawInput = rawInput[start_idx:]
-
-            # There's a command here; find the end of it
-            end_idx = rawInput.find("$")
-            if end_idx == -1:
-                # We don't have the full command yet
-                if len(rawInput) == 0:
-                    rawInput = None
-                return (None, rawInput)
-
-            # A full command is present
-
-            # keep first sentinel char to tell difference between tpi and
-            # Envisalink command responses.  Drop the trailing $ sentinel.
-            inputList = rawInput[start_idx:end_idx]
-            cmd_sep_idx = inputList.find(',')
-            if cmd_sep_idx == -1:
-                code = inputList
-                cmd['code'] = code
-                cmd['data'] = ''
-            else:
-                code = inputList[0:cmd_sep_idx]
-                cmd['code'] = code
-                cmd['data'] = inputList[cmd_sep_idx+1:]
-
-            rawInput = rawInput[end_idx+1:]
-
-            _LOGGER.debug(str.format("Code:{0} Data:'{1}'", cmd['code'], cmd['data']))
-
+            _LOGGER.error("Unrecognized data recieved from the envisalink. Ignoring.")
+            return None
         try:
             cmd['handler'] = "handle_%s" % evl_ResponseTypes[code]['handler']
             cmd['callback'] = "callback_%s" % evl_ResponseTypes[code]['handler']
         except KeyError:
             _LOGGER.warning(str.format('No handler defined in config for {0}, skipping...', code))
 
-        if rawInput and len(rawInput) == 0:
-            rawInput = None
-        return (cmd, rawInput)
+        return cmd
 
     def handle_login(self, code, data):
         """When the envisalink asks us for our password- send it."""
@@ -179,7 +139,7 @@ class HoneywellClient(EnvisalinkClient):
                 self.command_succeeded(code[1:])
             else:
                 _LOGGER.error("error sending command to envisalink.  Response was: " + responseInfo["msg"])
-                self.command_failed(retry=errorInfo['retry'])
+                self.command_failed(retry=responseInfo['retry'])
         else:
             _LOGGER.error(str.format("Unrecognized response code ({0}) received", data))
             self.command_failed(retry=False)

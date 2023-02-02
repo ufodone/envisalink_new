@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity import Entity
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -59,7 +60,7 @@ class EnvisalinkController:
         connection_timeout = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
         self.hass = hass
-        self.sync_connect: asyncio.Future[bool] = asyncio.Future()
+        self.sync_connect: asyncio.Future[EnvisalinkAlarmPanel.ConnectionResult] = asyncio.Future()
 
         self.controller = EnvisalinkAlarmPanel(
             host,
@@ -83,9 +84,10 @@ class EnvisalinkController:
         self.controller.callback_zone_state_change = self.async_zones_updated_callback
         self.controller.callback_partition_state_change = self.async_partition_updated_callback
         self.controller.callback_keypad_update = self.async_alarm_data_updated_callback
+        self.controller.callback_connection_status = self.async_connection_status_callback
         self.controller.callback_login_failure = self.async_login_fail_callback
-        self.controller.callback_login_timeout = self.async_connection_fail_callback
-        self.controller.callback_login_success = self.async_connection_success_callback
+        self.controller.callback_login_timeout = self.async_login_timeout_callback
+        self.controller.callback_login_success = self.async_login_success_callback
         self.controller.callback_zone_bypass_update = self.async_zone_bypass_update
 
         LOGGER.debug("Created EnvisalinkController for %s (host=%s port=%r)",
@@ -124,6 +126,13 @@ class EnvisalinkController:
                     for listener in state_info[key]:
                         listener[1]()
 
+    def _update_entity_states(self):
+        """Trigger a state update for all entities"""
+        for state_info in self._listeners.values():
+            for key_list in state_info.values():
+                for listener in key_list:
+                    listener[1]()
+
     @property
     def unique_id(self):
         id = self.controller.mac_address
@@ -132,16 +141,26 @@ class EnvisalinkController:
             id = self._entry_id
         return id
 
+
     async def start(self) -> bool:
         LOGGER.info("Start envisalink")
-        if await self.controller.discover() != self.controller.ConnectionResult.SUCCESS:
-            return False
+        result = await self.controller.discover()
+        if result != self.controller.ConnectionResult.SUCCESS:
+            raise ConfigEntryNotReady(self.get_exception_message(result, f"{self.controller.host}:{self.controller.httpPort}"))
 
-        if await self.controller.start() != self.controller.ConnectionResult.SUCCESS:
-            return False
+        result = await self.controller.start()
+        if result != self.controller.ConnectionResult.SUCCESS:
+            raise ConfigEntryNotReady(self.get_exception_message(result, f"{self.controller.host}:{self.controller.port}"))
 
-        if not await self.sync_connect:
-            return False
+        result = await self.sync_connect
+        if result != self.controller.ConnectionResult.SUCCESS:
+            await self.stop()
+            raise ConfigEntryNotReady(
+                self.get_exception_message(
+                    result,
+                    f"{self.controller.host}:{self.controller.port}"
+                )
+            )
 
         return True
 
@@ -149,29 +168,63 @@ class EnvisalinkController:
         if self.controller:
             await self.controller.stop()
 
+    def get_exception_message(self, error, location) -> str:
+        if error == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
+            msg = "Unable to authenticate with Envisalink"
+        elif error == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
+            msg = "Unable to connect to Envisalink"
+        elif error == EnvisalinkAlarmPanel.ConnectionResult.INVALID_PANEL_TYPE:
+            msg = "Unrecognized/undetermined panel type"
+        elif error == EnvisalinkAlarmPanel.ConnectionResult.INVALID_EVL_VERSION:
+            msg = "Unrecognized/undetermined Envisalink version"
+        elif error == EnvisalinkAlarmPanel.ConnectionResult.DISCOVERY_NOT_COMPLETE:
+            msg = "Unable to complete discovery of Envisalink"
+        else:
+            msg = f"Unknown error: {error}"
+        return f"{msg} at {location}"
+
+    @property
+    def available(self) -> bool:
+        if not self.controller:
+            return False
+        return self.controller.is_online()
 
     @callback
     def async_login_fail_callback(self, data):
         """Handle when the evl rejects our login."""
         LOGGER.error("The Envisalink rejected your credentials")
         if not self.sync_connect.done():
-            self.sync_connect.set_result(False)
+            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION)
+        self._update_entity_states()
 
     @callback
-    def async_connection_fail_callback(self, data):
-        """Network failure callback."""
-        LOGGER.error("Could not establish a connection with the Envisalink- retrying")
+    def async_login_timeout_callback(self, data):
+        """Timed out trying to login"""
+        LOGGER.error("Timed out trying to login to the Envisalink- retrying")
         if not self.sync_connect.done():
-            self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.stop_envisalink)
-            self.sync_connect.set_result(True)
+            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION)
+        self._update_entity_states()
 
     @callback
-    def async_connection_success_callback(self, data):
-        """Handle a successful connection."""
-        LOGGER.info("Established a connection with the Envisalink")
+    def async_login_success_callback(self, data):
+        """Handle a successful login."""
+        LOGGER.info("Established a connection and logged into the Envisalink")
         if not self.sync_connect.done():
-            self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.stop_envisalink)
-            self.sync_connect.set_result(True)
+            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.SUCCESS)
+        self._update_entity_states()
+
+    @callback
+    def async_connection_status_callback(self, connected):
+        """Handle when the evl rejects our login."""
+        if not connected:
+            LOGGER.error("Lost connection to the envisalink device.")
+            if not self.sync_connect.done():
+                self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED)
+
+            # Trigger a state update for all the entities so they appear as unavailable
+            self._update_entity_states()
+        else:
+            LOGGER.info("Connected to the envisalink device.")
 
     @callback
     def async_zone_timer_dump_callback(self, data):
@@ -202,11 +255,5 @@ class EnvisalinkController:
         """Handle zone bypass status updates."""
         LOGGER.debug("Envisalink '%s' sent a zone bypass update event. Updating zones: %r", self.alarm_name, data)
         self._process_state_change(STATE_UPDATE_TYPE_ZONE_BYPASS, data)
-
-    @callback
-    async def stop_envisalink(self, event):
-        """Shutdown envisalink connection and thread on exit."""
-        LOGGER.info("Shutting down Envisalink")
-        await self.controller.stop()
 
 

@@ -78,47 +78,37 @@ class DSCClient(EnvisalinkClient):
 
     def parseHandler(self, rawInput):
         """When the envisalink contacts us- parse out which command and data."""
-
-        end_idx = rawInput.find("\r\n")
-        if end_idx ==-1:
-            # We don't have a full command yet
-            return (None, rawInput)
-
-        remainder = rawInput[end_idx+2:]
-        rawInput = rawInput[:end_idx]
-
         cmd = {}
         dataoffset = 0
-        if re.match('\d\d:\d\d:\d\d\s', rawInput):
-            dataoffset = dataoffset + 9
-        code = rawInput[dataoffset:dataoffset+3]
-        cmd['code'] = code
-        cmd['data'] = rawInput[dataoffset+3:][:-2]
+        if rawInput != '':
+            if re.match('\d\d:\d\d:\d\d\s', rawInput):
+                dataoffset = dataoffset + 9
+            code = rawInput[dataoffset:dataoffset+3]
+            cmd['code'] = code
+            cmd['data'] = rawInput[dataoffset+3:][:-2]
 
-        try:
-            #Interpret the login command further to see what our handler is.
-            if evl_ResponseTypes[code]['handler'] == 'login':
-                if cmd['data'] == '3':
-                  handler = 'login'
-                elif cmd['data'] == '2':
-                  handler = 'login_timeout'
-                elif cmd['data'] == '1':
-                  handler = 'login_success'
-                elif cmd['data'] == '0':
-                  handler = 'login_failure'
+            try:
+                #Interpret the login command further to see what our handler is.
+                if evl_ResponseTypes[code]['handler'] == 'login':
+                    if cmd['data'] == '3':
+                      handler = 'login'
+                    elif cmd['data'] == '2':
+                      handler = 'login_timeout'
+                    elif cmd['data'] == '1':
+                      handler = 'login_success'
+                    elif cmd['data'] == '0':
+                      handler = 'login_failure'
 
-                cmd['handler'] = "handle_%s" % handler
-                cmd['callback'] = "callback_%s" % handler
+                    cmd['handler'] = "handle_%s" % handler
+                    cmd['callback'] = "callback_%s" % handler
 
-            else:
-                cmd['handler'] = "handle_%s" % evl_ResponseTypes[code]['handler']
-                cmd['callback'] = "callback_%s" % evl_ResponseTypes[code]['handler']
-        except KeyError:
-            _LOGGER.debug(str.format('No handler defined in config for {0}, skipping...', code))
-                
-        if len(remainder) == 0:
-            remainder = None
-        return (cmd, remainder)
+                else:
+                    cmd['handler'] = "handle_%s" % evl_ResponseTypes[code]['handler']
+                    cmd['callback'] = "callback_%s" % evl_ResponseTypes[code]['handler']
+            except KeyError:
+                _LOGGER.debug(str.format('No handler defined in config for {0}, skipping...', code))
+
+        return cmd
 
     def handle_login(self, code, data):
         """When the envisalink asks us for our password- send it."""
