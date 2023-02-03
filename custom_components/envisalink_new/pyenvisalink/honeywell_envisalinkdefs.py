@@ -32,6 +32,46 @@ class IconLED_Flags( ctypes.Union ):
                ]
     _anonymous_ = ("b")
 
+def get_partition_state(flags, alpha):
+    if bool(flags.alarm) or bool(flags.alarm_fire_zone) or bool(flags.fire):
+        return 'alarm'
+    elif bool(flags.alarm_in_memory):
+        return 'alarmcleared'
+    elif alpha.find('You may exit now') != -1:
+        return 'arming'
+    elif alpha.find('May Exit Now') != -1:
+        return 'arming'
+    elif bool(flags.armed_stay) and bool(flags.armed_zero_entry_delay):
+        return 'armedinstant'
+    elif bool(flags.armed_away) and bool(flags.armed_zero_entry_delay):
+        return 'armedmax'
+    elif bool(flags.armed_stay):
+        return 'armedstay'
+    elif bool(flags.armed_away):
+        return 'armedaway'
+    elif bool(flags.ready):
+        return 'ready'
+    elif not bool(flags.ready):
+        return 'notready'
+    else:
+        return 'unknown'
+
+def get_zone_report_type(flags, alpha):
+    if bool(flags.alarm) or bool(flags.alarm_fire_zone) or bool(flags.fire):
+        return "alarm"
+    elif bool(flags.alarm_in_memory):
+        return "alarmcleared"
+    elif bool(flags.system_trouble):
+        return 'tamper'
+    elif bool(flags.low_battery):
+        return 'battery'
+    elif bool(flags.bypass) and (alpha.find('BYPAS') != -1):
+        return 'bypass'
+    elif not bool(flags.ready):
+        return 'notready'
+    else:
+        return 'unknown'
+
 evl_Commands = {
     'KeepAlive' : '00',
     'ChangeDefaultPartition' : '01',
@@ -50,7 +90,7 @@ evl_ResponseTypes = {
     'OK' : {'name' : 'Login Success', 'description' : 'Send During Session Login Only, successful login', 'handler' : 'login_success'},
     'FAILED' : {'name' : 'Login Failure', 'description' : 'Sent During Session Login Only, password not accepted', 'handler' : 'login_failure'},
     'Timed Out!' : {'name' : 'Login Interaction Timed Out', 'description' : 'Sent during Session Login Only, socket connection is then closed', 'handler' : 'login_timeout'},
-    '%00' : {'name' : 'Virtual Keypad Update', 'description' : 'The panel wants to update the state of the keypad','handler' : 'keypad_update'},
+    '%00' : {'name' : 'Virtual Keypad Update', 'description' : 'The panel wants to update the state of the keypad','handler' : 'hw_keypad_update'},
     '%01' : {'type' : 'zone', 'name' : 'Zone State Change', 'description' : 'A zone change-of-state has occurred', 'handler' : 'zone_state_change'},
     '%02' : {'type' : 'partition', 'name' : 'Partition State Change', 'description' : 'A partition change-of-state has occured', 'handler' : 'partition_state_change'},
     '%03' : {'type' : 'system', 'name' : 'Realtime CID Event', 'description' : 'A system event has happened that is signaled to either the Envisalerts servers or the central monitoring station', 'handler' : 'realtime_cid_event'},

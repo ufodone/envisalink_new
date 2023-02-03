@@ -85,6 +85,7 @@ class EnvisalinkController:
         self.controller.callback_partition_state_change = self.async_partition_updated_callback
         self.controller.callback_keypad_update = self.async_alarm_data_updated_callback
         self.controller.callback_connection_status = self.async_connection_status_callback
+        self.controller.callback_hw_keypad_update = self.async_multi_updated_callback
         self.controller.callback_login_failure = self.async_login_fail_callback
         self.controller.callback_login_timeout = self.async_login_timeout_callback
         self.controller.callback_login_success = self.async_login_success_callback
@@ -97,7 +98,7 @@ class EnvisalinkController:
         )
 
     def add_state_change_listener(self, state_type, state_key, update_callback) -> Callable[[], None]:
-        """Register an entity to have a state update triggered when it's underlying data is changed."""
+        """Register an entity to have a state update triggered when its underlying data is changed."""
 
         def remove_listener() -> None:
             for state_types in self._listeners.values():
@@ -256,4 +257,15 @@ class EnvisalinkController:
         LOGGER.debug("Envisalink '%s' sent a zone bypass update event. Updating zones: %r", self.alarm_name, data)
         self._process_state_change(STATE_UPDATE_TYPE_ZONE_BYPASS, data)
 
-
+    @callback
+    def async_multi_updated_callback(self, data):
+        """Handle keypad updates with partition and zone data."""
+        LOGGER.debug('we are here')
+        LOGGER.debug("Envisalink '%s' sent a partition update event. Updating partitions: %r", self.alarm_name, data['partitions'])
+        self._process_state_change(STATE_UPDATE_TYPE_PARTITION, data['partitions'])
+        if data['zone_update']:
+            LOGGER.debug("Envisalink '%s' sent a zone update event. Updating zones: %r", self.alarm_name, data['zones'])
+            self._process_state_change(STATE_UPDATE_TYPE_ZONE, data['zones'])
+        if data['bypass_update']:
+            LOGGER.debug("Envisalink '%s' sent a zone bypass update event. Updating zones: %r", self.alarm_name, data['bypass'])
+            self._process_state_change(STATE_UPDATE_TYPE_ZONE_BYPASS, data['bypass'])

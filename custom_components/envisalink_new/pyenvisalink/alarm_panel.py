@@ -55,6 +55,7 @@ class EnvisalinkAlarmPanel:
         self._commandResponseCallback = self._defaultCallback
         self._pollResponseCallback = self._defaultCallback
         self._keypadUpdateCallback = self._defaultCallback
+        self._hwKeypadUpdateCallback = self._defaultCallback
         self._zoneStateChangeCallback = self._defaultCallback
         self._partitionStateChangeCallback = self._defaultCallback
         self._cidEventCallback = self._defaultCallback
@@ -202,6 +203,14 @@ class EnvisalinkAlarmPanel:
     @callback_keypad_update.setter
     def callback_keypad_update(self, value):
         self._keypadUpdateCallback = value
+
+    @property
+    def callback_hw_keypad_update(self):
+        return self._hwKeypadUpdateCallback
+
+    @callback_hw_keypad_update.setter
+    def callback_hw_keypad_update(self, value):
+        self._hwKeypadUpdateCallback = value
 
     @property
     def callback_zone_state_change(self):

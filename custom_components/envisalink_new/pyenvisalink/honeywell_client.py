@@ -12,6 +12,14 @@ _LOGGER = logging.getLogger(__name__)
 class HoneywellClient(EnvisalinkClient):
     """Represents a honeywell alarm client."""
 
+    def __init__(self, panel, loop):
+        EnvisalinkClient.__init__(self, panel, loop)
+        self._zoneTimers = {}
+
+    def handle_zone_timer_dump(self, code, data):
+        """Handle the zone timer data."""
+        # TODO: Is there any reason to use zone timer dumps?
+
     async def keep_alive(self):
         await self.queue_command(evl_Commands['KeepAlive'], '')
 
@@ -144,9 +152,9 @@ class HoneywellClient(EnvisalinkClient):
             _LOGGER.error(str.format("Unrecognized response code ({0}) received", data))
             self.command_failed(retry=False)
 
-			
-    def handle_keypad_update(self, code, data):
+    def handle_hw_keypad_update(self, code, data):
         """Handle the response to when the envisalink sends keypad updates our way."""
+        results = {'partitions': [], 'zones': [], 'bypass': [], 'zone_update':False, 'bypass_update': False}
         dataList = data.split(',')
         # Custom messages and alpha fields might contain unescaped commas, so we'll recombine them:
         if len(dataList) > 5:
@@ -159,6 +167,9 @@ class HoneywellClient(EnvisalinkClient):
             return
 
         partitionNumber = int(dataList[0])
+        if not (partitionNumber in self._zoneTimers.keys()):
+            self._zoneTimers[partitionNumber] = {}
+        results['partitions'].append(partitionNumber)
         flags = IconLED_Flags()
         flags.asShort = int(dataList[1], 16)
         user_zone_field = int(dataList[2])
@@ -169,53 +180,90 @@ class HoneywellClient(EnvisalinkClient):
                                                                    'ac_present': bool(flags.ac_present), 'armed_bypass': bool(flags.bypass), 'chime': bool(flags.chime),
                                                                    'armed_zero_entry_delay': bool(flags.armed_zero_entry_delay), 'alarm_fire_zone': bool(flags.alarm_fire_zone),
                                                                    'trouble': bool(flags.system_trouble), 'ready': bool(flags.ready), 'fire': bool(flags.fire),
-                                                                   'armed_stay': bool(flags.armed_stay), 'bat_trouble': bool(flags.low_battery),
-                                                                   'alpha': alpha,
-                                                                   'beep': beep,
+                                                                   'armed_stay': bool(flags.armed_stay), 'alpha': alpha, 'beep': beep,
                                                                    })
+
+        partition_status = get_partition_state(flags, alpha)
+        zone_code = get_zone_report_type(flags,alpha)
+        if partition_status == 'ready':
+            # Clear all zones known to be in this partition
+            _LOGGER.debug(str.format('Clear partition {0}',partitionNumber))
+            for z in list(self._zoneTimers[partitionNumber]):
+                _LOGGER.debug(str.format('Timer {0} :: {1} Closing',z,self._zoneTimers[partitionNumber][z]))
+                timer = str.split(z,'|')
+                results['zones'].append(int(timer[0]))
+                results['zone_update'] = True
+                if timer[1] == 'state':
+                    self._alarmPanel.alarm_state['zone'][int(timer[0])]['status'].update({'open':False, 'fault': False})
+                self._zoneTimers[partitionNumber].pop(z)
+        if self._alarmPanel.alarm_state['partition'][partitionNumber]['status']['armed_bypass'] and not bool(flags.bypass):
+            # Partition has switched from bypassed to not bypassed, so clear bypass flags
+            # TODO Need to know which bypassed zones are in which partition to handle this. No zone timers for these - either maintain a list or add partition to zone status
+            _LOGGER.debug('Clear bypassed zones')
+
+        if bool(flags.not_used2) and bool(flags.not_used3):
+            # Keypad update is giving partition status. Battery report applies to system battery
+            _LOGGER.debug("Keypad update is giving partition status.")
+            self._alarmPanel.alarm_state['partition'][partitionNumber]['status'].update({'bat_trouble': bool(flags.low_battery)})
+            
+        elif (partition_status == 'arming') and (zone_code == 'notready'):
+            # Keypad is counting down. Nothing to do
+            _LOGGER.debug("Keypad is counting down to arm.")
+
+        elif isinstance(user_zone_field, int):
+            # Keypad is giving zone status. Update zone status and check zone timers
+            _LOGGER.debug("Keypad is giving zone status.")
+
+            # Increment all existing zone timers by 1
+            for z in self._zoneTimers[partitionNumber]:
+                    self._zoneTimers[partitionNumber][z] += 1
+            
+            # Add a zone timer (if needed) of the appropriate type and update zone status
+            if zone_code in ['battery','tamper']:
+                # Battery or tamper report for a wireless zone. These are added to the keypad update queue separate from state changes, so need their own zone timers.
+                self._zoneTimers[partitionNumber][str.format("{0}|{1}",user_zone_field,zone_code)] = 1
+            elif zone_code == 'bypass':
+                # Bypassed zones only show once in keypad updates and only clear when the partition is disarmed. No zone timer needed.
+                self._alarmPanel.alarm_state['zone'][user_zone_field]['bypassed'] = True
+                results['bypass'].append(user_zone_field)
+                results['bypass_update'] = True
+            elif zone_code in ['alarm','alarmcleared','notready']:
+                # Zone is open
+                self._alarmPanel.alarm_state['zone'][user_zone_field]['status'].update({'open': True, 'fault': True})
+                self._zoneTimers[partitionNumber][str.format("{0}|state",user_zone_field)] = 1
+                results['zones'].append(user_zone_field)
+                results['zone_update'] = True
+
+            # Check and kill any overdue timers
+            active_timers = len(self._zoneTimers[partitionNumber])
+            #TODO Is this the right margin to add?
+            max_timer = round(active_timers * 1.5 + 2, 0)
+            for z in list(self._zoneTimers[partitionNumber]):
+                if self._zoneTimers[partitionNumber][z] > max_timer:
+                    _LOGGER.debug(str.format('Timer {0} :: {1} Closing',z,self._zoneTimers[partitionNumber][z]))
+                    timer = str.split(z,'|')
+                    results['zones'].append(int(timer[0]))
+                    results['zone_update'] = True
+                    if timer[1] == 'state':
+                        self._alarmPanel.alarm_state['zone'][int(timer[0])]['status'].update({'open':False, 'fault': False})
+                    #else:
+                        #TODO Clear tamper/battery status
+                    self._zoneTimers[partitionNumber].pop(z)
+                else:
+                    _LOGGER.debug(str.format('Timer {0} :: {1}',z,self._zoneTimers[partitionNumber][z]))
+            _LOGGER.debug(str.format("There are ({0}) active timers", active_timers))
+
         _LOGGER.debug(json.dumps(self._alarmPanel.alarm_state['partition'][partitionNumber]['status']))
+        return results
 
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
-        # Envisalink TPI is inconsistent at generating these
-        bigEndianHexString = ''
-        # every four characters
-        inputItems = re.findall('....', data)
-        for inputItem in inputItems:
-            # Swap the couples of every four bytes
-            # (little endian to big endian)
-            swapedBytes = []
-            swapedBytes.insert(0, inputItem[0:2])
-            swapedBytes.insert(0, inputItem[2:4])
-
-            # add swapped set of four bytes to our return items,
-            # converting from hex to int
-            bigEndianHexString += ''.join(swapedBytes)
-
-        # convert hex string to 64 bit bitstring TODO: THIS IS 128 for evl4
-        if self._alarmPanel.envisalink_version < 4:
-            bitfieldString = str(bin(int(bigEndianHexString, 16))[2:].zfill(64))
-        else:
-            bitfieldString = str(bin(int(bigEndianHexString, 16))[2:].zfill(128))
-
-        # reverse every 16 bits so "lowest" zone is on the left
-        zonefieldString = ''
-        inputItems = re.findall('.' * 16, bitfieldString)
-
-        for inputItem in inputItems:
-            zonefieldString += inputItem[::-1]
-
-        now = time.time()
-        for zoneNumber, zoneBit in enumerate(zonefieldString, start=1):
-                self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update({'open': zoneBit == '1', 'fault': zoneBit == '1'})
-                if zoneBit == '1':
-                    self._alarmPanel.alarm_state['zone'][zoneNumber]['last_fault'] = 0
-                self._alarmPanel.alarm_state['zone'][zoneNumber]['updated'] = now
-
-                _LOGGER.debug("(zone %i) is %s", zoneNumber, "Open/Faulted" if zoneBit == '1' else "Closed/Not Faulted")
+        # Ignore these EVL-generated messages in favor of the raw keypad updates directly from the panel
 
     def handle_partition_state_change(self, code, data):
         """Handle when the envisalink sends us a partition change."""
+        # Ignore these EVL-generated messages in favor of the raw keypad updates directly from the panel
+        """
         for currentIndex in range(0, 8):
             partitionStateCode = data[currentIndex * 2:(currentIndex * 2) + 2]
             partitionState = evl_Partition_Status_Codes[str(partitionStateCode)]
@@ -231,6 +279,7 @@ class HoneywellClient(EnvisalinkClient):
             if partitionState['name'] == 'NOT_READY': self._alarmPanel.alarm_state['partition'][partitionNumber]['status'].update({'ready': False})
             _LOGGER.debug('Parition ' + str(partitionNumber) + ' is in state ' + partitionState['name'])
             _LOGGER.debug(json.dumps(self._alarmPanel.alarm_state['partition'][partitionNumber]['status']))
+        """
 
     def handle_realtime_cid_event(self, code, data):
         """Handle when the envisalink sends us an alarm arm/disarm/trigger."""
@@ -255,7 +304,7 @@ class HoneywellClient(EnvisalinkClient):
         return cidEvent
 
     def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
-        now = time.time();
+        now = time.time()
         last_zone_dump = now - self._alarmPanel.zone_timer_interval
         last_update = self._alarmPanel.alarm_state['zone'][zone]['updated']
 
