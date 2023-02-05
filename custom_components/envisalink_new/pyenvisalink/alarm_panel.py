@@ -389,13 +389,14 @@ class EnvisalinkAlarmPanel:
 
         try:
             async with aiohttp.ClientSession(
-                auth=aiohttp.BasicAuth(self._username, self._password)
+                auth=aiohttp.BasicAuth(self._username, self._password),
+                timeout=aiohttp.ClientTimeout(total=self.connection_timeout),
             ) as client:
                 url = f"http://{self._host}:{self._httpPort}/2"
                 resp = await client.get(url)
                 if resp.status != 200:
                     _LOGGER.warn(
-                        "Unable to discover Envisalink version and patel type: '%s'",
+                        "Unable to discover Envisalink version and panel type: '%s'",
                         resp.status,
                     )
                     return False
@@ -431,7 +432,8 @@ class EnvisalinkAlarmPanel:
 
         try:
             async with aiohttp.ClientSession(
-                auth=aiohttp.BasicAuth(self._username, self._password)
+                auth=aiohttp.BasicAuth(self._username, self._password),
+                timeout=aiohttp.ClientTimeout(total=self.connection_timeout),
             ) as client:
                 url = f"http://{self._host}:{self._httpPort}/3"
                 resp = await client.get(url)
@@ -471,7 +473,7 @@ class EnvisalinkAlarmPanel:
                     else:
                         self._macAddress = m.group(1).lower()
         except Exception as ex:
-            _LOGGER.error("Unable to validate connection: %s", ex)
+            _LOGGER.error("Unable to validate connection: %r", ex)
             return self.ConnectionResult.CONNECTION_FAILED
 
         await self.discover_device_details()
