@@ -60,7 +60,7 @@ from .const import (
     PANEL_TYPE_HONEYWELL,
 )
 
-from .pyenvisalink import EnvisalinkAlarmPanel
+from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {

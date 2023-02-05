@@ -1,34 +1,90 @@
 #!/usr/bin/env python3
 import asyncio
-import logging
-import signal
 import sys
-from pyenvisalink import EnvisalinkAlarmPanel
 
-#This is a test harness for the pyenvisalink library.  It will assist in testing the library against both Honeywell and DSC.
+from pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 
-def signal_handler(signal, frame):
-        print('You pressed Ctrl+C!')
-        testpanel.stop()
-        sys.exit(0)
+# This is a test harness for the pyenvisalink library.
+# It will assist in testing the library against both Honeywell and DSC.
 
-signal.signal(signal.SIGINT, signal_handler)
 
-#Get Details from the user...
-ip = input("Please input the IP address of your envisalink device: ")
-port = input("Please input the port of your envisalink device (4025 is default): ")
-if len(port) == 0:
-    port = "4025"
-user = input("Please input your envisalink username: ")
-pw = input("Please input your envisalink password: ")
+async def shutdown_handler(testpanel):
+    await testpanel.stop()
+    asyncio.get_running_loop().stop()
 
-na = input("Config complete. Please press enter now to connect to the envisalink.  When finished, use Ctrl+C to disconnect and exit")
 
-loop = asyncio.new_event_loop()
+def async_connection_status_callback(connected):
+    print(f"Callback: connection status: {connected}")
 
-testpanel = EnvisalinkAlarmPanel(ip, int(port), user, pw, zoneTimerInterval=0, zoneBypassEnabled=True, eventLoop=loop)
 
-result = asyncio.run(testpanel.start())
-if result == EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
-    loop.run_forever()
+def async_login_fail_callback(data):
+    print("Callback: login failure")
 
+
+def async_connection_fail_callback(data):
+    print("Callback: connection failure")
+
+
+def async_connection_success_callback(data):
+    print("Callback: login success")
+
+
+async def main():
+    global testpanel
+    loop = asyncio.get_running_loop()
+
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+    user = sys.argv[3]
+    pw = sys.argv[4]
+    httpPort = 8080
+    if len(sys.argv) > 5:
+        httpPort = int(sys.argv[5])
+
+    testpanel = EnvisalinkAlarmPanel(
+        host,
+        port,
+        user,
+        pw,
+        zoneTimerInterval=30,
+        zoneBypassEnabled=True,
+        eventLoop=loop,
+        httpPort=httpPort,
+        keepAliveInterval=60,
+    )
+
+    result = await testpanel.discover()
+    if result != EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
+        return
+
+    testpanel.callback_connection_status = async_connection_status_callback
+    testpanel.callback_login_failure = async_login_fail_callback
+    testpanel.callback_login_timeout = async_connection_fail_callback
+    testpanel.callback_login_success = async_connection_success_callback
+
+    result = await testpanel.start()
+
+    if result in [
+        EnvisalinkAlarmPanel.ConnectionResult.INVALID_PANEL_TYPE,
+        EnvisalinkAlarmPanel.ConnectionResult.INVALID_EVL_VERSION,
+    ]:
+        testpanel.envisalink_version = 4
+        testpanel.panel_type = "DSC"
+        result = await testpanel.start()
+
+    if result == EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
+        #        await asyncio.sleep(5)
+        #        loop.create_task(testpanel.arm_stay_partition("12345", 1))
+        #        loop.create_task(testpanel.arm_away_partition("12345", 1))
+        #        loop.create_task(testpanel.arm_max_partition("12345", 1))
+        #        loop.create_task(testpanel.arm_night_partition("12345", 1))
+        #        loop.create_task(testpanel.disarm_partition("12345", 1))
+        await asyncio.sleep(3600)
+
+
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("You pressed Ctrl+C!")
+
+asyncio.run(shutdown_handler(testpanel))

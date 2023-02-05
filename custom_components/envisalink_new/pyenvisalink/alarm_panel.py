@@ -1,10 +1,12 @@
-import aiohttp
 import logging
 import re
 from enum import Enum
-from .honeywell_client import HoneywellClient
-from .dsc_client import DSCClient
+
+import aiohttp
+
 from .alarm_state import AlarmState
+from .dsc_client import DSCClient
+from .honeywell_client import HoneywellClient
 
 PANEL_TYPE_DSC = "DSC"
 PANEL_TYPE_HONEYWELL = "HONEYWELL"
@@ -12,8 +14,10 @@ PANEL_TYPE_HONEYWELL = "HONEYWELL"
 _LOGGER = logging.getLogger(__name__)
 COMMAND_ERR = "Cannot run this command while disconnected. Please run start() first."
 
+
 class EnvisalinkAlarmPanel:
     """This class represents an envisalink-based alarm panel."""
+
     class ConnectionResult(Enum):
         SUCCESS = "success"
         INVALID_AUTHORIZATION = "invalid_authorization"
@@ -21,13 +25,21 @@ class EnvisalinkAlarmPanel:
         INVALID_PANEL_TYPE = "invalid_panel_type"
         INVALID_EVL_VERSION = "invalid_evl_version"
         DISCOVERY_NOT_COMPLETE = "discovery_not_complete"
-        
-    def __init__(self, host, port=4025,
-                 userName='user', password='user',
-                 zoneTimerInterval=20, keepAliveInterval=30, eventLoop=None,
-                 connectionTimeout=10, zoneBypassEnabled=False,
-                 commandTimeout=5.0,
-                 httpPort=8080):
+
+    def __init__(
+        self,
+        host,
+        port=4025,
+        userName="user",
+        password="user",
+        zoneTimerInterval=20,
+        keepAliveInterval=30,
+        eventLoop=None,
+        connectionTimeout=10,
+        zoneBypassEnabled=False,
+        commandTimeout=5.0,
+        httpPort=8080,
+    ):
         self._discoveryComplete = False
         self._macAddress = None
         self._firmwareVersion = None
@@ -47,7 +59,7 @@ class EnvisalinkAlarmPanel:
         self._eventLoop = eventLoop
         self._zoneBypassEnabled = zoneBypassEnabled
         self._commandTimeout = commandTimeout
-        
+
         self._connectionStatusCallback = self._defaultCallback
         self._loginSuccessCallback = self._defaultCallback
         self._loginFailureCallback = self._defaultCallback
@@ -60,16 +72,18 @@ class EnvisalinkAlarmPanel:
         self._cidEventCallback = self._defaultCallback
         self._zoneTimerCallback = self._defaultCallback
 
-        loggingconfig = {'level': 'DEBUG',
-                     'format': '%(asctime)s %(levelname)s <%(name)s %(module)s %(funcName)s> %(message)s'}
+        loggingconfig = {
+            "level": "DEBUG",
+            "format": "%(asctime)s %(levelname)s <%(name)s %(module)s %(funcName)s> %(message)s",
+        }
 
         logging.basicConfig(**loggingconfig)
 
     @property
     def host(self):
         return self._host
-        
-    @ property
+
+    @property
     def port(self):
         return self._port
 
@@ -77,22 +91,22 @@ class EnvisalinkAlarmPanel:
     def httpPort(self):
         return self._httpPort
 
-    @ property
+    @property
     def connection_timeout(self):
         return self._connectionTimeout
-        
-    @ property
+
+    @property
     def command_timeout(self):
         return self._commandTimeout
-        
+
     @property
     def user_name(self):
         return self._username
-        
+
     @property
     def password(self):
         return self._password
-        
+
     @property
     def panel_type(self):
         return self._panelType
@@ -108,7 +122,7 @@ class EnvisalinkAlarmPanel:
     @envisalink_version.setter
     def envisalink_version(self, version):
         self._evlVersion = version
-        
+
     @property
     def keepalive_interval(self):
         return self._keepAliveInterval
@@ -154,7 +168,7 @@ class EnvisalinkAlarmPanel:
     @property
     def callback_login(self):
         return self._defaultCallback
-        
+
     @property
     def callback_login_success(self):
         return self._loginSuccessCallback
@@ -230,14 +244,14 @@ class EnvisalinkAlarmPanel:
     @property
     def callback_zone_timer_dump(self):
         return self._zoneTimerCallback
- 
+
     @callback_zone_timer_dump.setter
     def callback_zone_timer_dump(self, value):
         self._zoneTimerCallback = value
-        
+
     def _defaultCallback(self, data):
         """This is the callback that occurs when the client doesn't subscribe."""
-        _LOGGER.debug("Callback has not been set by client.")	    
+        _LOGGER.debug("Callback has not been set by client.")
 
     async def start(self):
         # Validate the connection first if it hasn't been done already
@@ -256,7 +270,13 @@ class EnvisalinkAlarmPanel:
         self._alarmState = AlarmState.get_initial_alarm_state(self.max_zones, self._maxPartitions)
 
         """Connect to the envisalink, and listen for events to occur."""
-        logging.info(str.format("Connecting to envisalink on host: {0}, port: {1}", self._host, self._port))
+        logging.info(
+            str.format(
+                "Connecting to envisalink on host: {0}, port: {1}",
+                self._host,
+                self._port,
+            )
+        )
         if self._panelType == PANEL_TYPE_HONEYWELL:
             self._client = HoneywellClient(self, self._eventLoop)
             self._client.start()
@@ -268,7 +288,7 @@ class EnvisalinkAlarmPanel:
             return self.ConnectionResult.INVALID_PANEL_TYPE
 
         return self.ConnectionResult.SUCCESS
-        
+
     async def stop(self):
         """Shut down and close our connection to the envisalink."""
         if self._client:
@@ -368,16 +388,21 @@ class EnvisalinkAlarmPanel:
         self._panelType = None
 
         try:
-            async with aiohttp.ClientSession(auth=aiohttp.BasicAuth(self._username, self._password)) as client:
-                url = f'http://{self._host}:{self._httpPort}/2'
+            async with aiohttp.ClientSession(
+                auth=aiohttp.BasicAuth(self._username, self._password)
+            ) as client:
+                url = f"http://{self._host}:{self._httpPort}/2"
                 resp = await client.get(url)
                 if resp.status != 200:
-                    _LOGGER.warn("Unable to discover Envisalink version and patel type: '%s'", resp.status)
+                    _LOGGER.warn(
+                        "Unable to discover Envisalink version and patel type: '%s'",
+                        resp.status,
+                    )
                     return False
 
                 # Try and scrape the HTML for the EVL version and panel type
                 html = await resp.text()
-                version_regex = '<TITLE>Envisalink ([0-9])<\/TITLE>'
+                version_regex = r"<TITLE>Envisalink ([0-9])<\/TITLE>"
 
                 m = re.search(version_regex, html)
                 if m is None or m.lastindex != 1:
@@ -385,53 +410,64 @@ class EnvisalinkAlarmPanel:
                 else:
                     self._evlVersion = int(m.group(1))
 
-                panel_regex = '>Security Subsystem - ([^<]*)<'
+                panel_regex = ">Security Subsystem - ([^<]*)<"
                 m = re.search(panel_regex, html)
                 if m is None or m.lastindex != 1:
                     _LOGGER.warn("Unable to determine panel type: raw HTML: %s", html)
                 else:
                     self._panelType = m.group(1).upper()
-                    if self._panelType not in [ PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL ]:
+                    if self._panelType not in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL]:
                         _LOGGER.warn("Unrecognized panel type: %s", self._panelType)
         except Exception as ex:
             _LOGGER.error("Unable to fetch panel information: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED
 
-        _LOGGER.info(f"Discovered Envisalink %s: %s", self._evlVersion, self._panelType)
+        _LOGGER.info("Discovered Envisalink %s: %s", self._evlVersion, self._panelType)
         return True
-        
+
     async def discover(self) -> ConnectionResult:
         self._macAddress = None
         self._firmwareVersion = None
 
         try:
-            async with aiohttp.ClientSession(auth=aiohttp.BasicAuth(self._username, self._password)) as client:
-                url = f'http://{self._host}:{self._httpPort}/3'
+            async with aiohttp.ClientSession(
+                auth=aiohttp.BasicAuth(self._username, self._password)
+            ) as client:
+                url = f"http://{self._host}:{self._httpPort}/3"
                 resp = await client.get(url)
                 if resp.status == 401:
                     _LOGGER.error("Unable to validate connection: invalid authorization.")
                     return self.ConnectionResult.INVALID_AUTHORIZATION
                 elif resp.status == 404:
                     # Connection was successful but unable to extract FW and MAC info
-                    _LOGGER.warn("Connection successful but unable to fetch FW/MAC: 404 (page not found): '%s'", url)
+                    _LOGGER.warn(
+                        (
+                            "Connection successful but unable to fetch FW/MAC: "
+                            "404 (page not found): '%s'"
+                        ),
+                        url,
+                    )
                 elif resp.status != 200:
                     # Connection was successful but unable to extract FW and MAC info
-                    _LOGGER.warn("Connection successful but unable to fetch FW/MAC: '%s'", resp.status)
+                    _LOGGER.warn(
+                        "Connection successful but unable to fetch FW/MAC: '%s'",
+                        resp.status,
+                    )
                 else:
                     # Attempt to extract the firmware version and MAC address from the returned HTML
                     html = await resp.text()
-                    fw_regex = 'Firmware Version: ([^ ]*)'
-                    mac_regex = 'MAC: ([0-9a-fA-F]*)'
+                    fw_regex = "Firmware Version: ([^ ]*)"
+                    mac_regex = "MAC: ([0-9a-fA-F]*)"
 
                     m = re.search(fw_regex, html)
                     if m is None or m.lastindex != 1:
-                        _LOGGER.warn(f"# Unable to extract Firmware version")
+                        _LOGGER.warn("# Unable to extract Firmware version")
                     else:
                         self._firmwareVersion = m.group(1)
 
                     m = re.search(mac_regex, html)
                     if m is None or m.lastindex != 1:
-                        _LOGGER.warn(f"# Unable to extract MAC address")
+                        _LOGGER.warn("# Unable to extract MAC address")
                     else:
                         self._macAddress = m.group(1).lower()
         except Exception as ex:
@@ -440,7 +476,9 @@ class EnvisalinkAlarmPanel:
 
         await self.discover_device_details()
 
-        _LOGGER.info(f"Firmware Version: '{self._firmwareVersion}' / MAC address: '{self._macAddress}'")
+        _LOGGER.info(
+            f"Firmware Version: '{self._firmwareVersion}' / MAC address: '{self._macAddress}'"
+        )
         self._discoveryComplete = True
         return self.ConnectionResult.SUCCESS
 
@@ -448,5 +486,3 @@ class EnvisalinkAlarmPanel:
         if not self._client:
             return False
         return self._client.is_online()
-
-
