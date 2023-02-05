@@ -13,7 +13,7 @@ class HoneywellClient(EnvisalinkClient):
     """Represents a honeywell alarm client."""
 
     def __init__(self, panel, loop):
-        EnvisalinkClient.__init__(self, panel, loop)
+        super().__init__(self, panel, loop)
         self._zoneTimers = {}
 
     def handle_zone_timer_dump(self, code, data):
@@ -175,21 +175,21 @@ class HoneywellClient(EnvisalinkClient):
         user_zone_field = int(dataList[2])
         beep = evl_Virtual_Keypad_How_To_Beep.get(dataList[3], 'unknown')
         alpha = dataList[4]
+        partition_status = get_partition_state(flags, alpha)
+        zone_code = get_zone_report_type(flags,alpha)
         _LOGGER.debug("Updating our local alarm state...")
         self._alarmPanel.alarm_state['partition'][partitionNumber]['status'].update({'alarm': bool(flags.alarm), 'alarm_in_memory': bool(flags.alarm_in_memory), 'armed_away': bool(flags.armed_away),
                                                                    'ac_present': bool(flags.ac_present), 'armed_bypass': bool(flags.bypass), 'chime': bool(flags.chime),
                                                                    'armed_zero_entry_delay': bool(flags.armed_zero_entry_delay), 'alarm_fire_zone': bool(flags.alarm_fire_zone),
                                                                    'trouble': bool(flags.system_trouble), 'ready': bool(flags.ready), 'fire': bool(flags.fire),
-                                                                   'armed_stay': bool(flags.armed_stay), 'alpha': alpha, 'beep': beep,
+                                                                   'armed_stay': bool(flags.armed_stay), 'alpha': alpha, 'beep': beep, 'exit_delay': (partition_status == 'arming') and (zone_code == 'notready'),
                                                                    })
 
-        partition_status = get_partition_state(flags, alpha)
-        zone_code = get_zone_report_type(flags,alpha)
         if partition_status == 'ready':
             # Clear all zones known to be in this partition
-            _LOGGER.debug(str.format('Clear partition {0}',partitionNumber))
+            _LOGGER.debug(f'Clear partition {partitionNumber}')
             for z in list(self._zoneTimers[partitionNumber]):
-                _LOGGER.debug(str.format('Timer {0} :: {1} Closing',z,self._zoneTimers[partitionNumber][z]))
+                _LOGGER.debug(f'Timer {z} :: {self._zoneTimers[partitionNumber][z]} Closing')
                 timer = str.split(z,'|')
                 results['zones'].append(int(timer[0]))
                 results['zone_update'] = True
@@ -198,21 +198,22 @@ class HoneywellClient(EnvisalinkClient):
                 self._zoneTimers[partitionNumber].pop(z)
         if self._alarmPanel.alarm_state['partition'][partitionNumber]['status']['armed_bypass'] and not bool(flags.bypass):
             # Partition has switched from bypassed to not bypassed, so clear bypass flags
+            # TODO Check whether prior state was bypassed in the condition above.
             # TODO Need to know which bypassed zones are in which partition to handle this. No zone timers for these - either maintain a list or add partition to zone status
             _LOGGER.debug('Clear bypassed zones')
 
         if bool(flags.not_used2) and bool(flags.not_used3):
             # Keypad update is giving partition status. Battery report applies to system battery
-            _LOGGER.debug("Keypad update is giving partition status.")
+            _LOGGER.debug(f"Keypad update is giving partition {partitionNumber} status.")
             self._alarmPanel.alarm_state['partition'][partitionNumber]['status'].update({'bat_trouble': bool(flags.low_battery)})
             
         elif (partition_status == 'arming') and (zone_code == 'notready'):
             # Keypad is counting down. Nothing to do
-            _LOGGER.debug("Keypad is counting down to arm.")
+            _LOGGER.debug(f"Keypad is counting down to arm partition {partitionNumber}.")
 
         elif isinstance(user_zone_field, int):
             # Keypad is giving zone status. Update zone status and check zone timers
-            _LOGGER.debug("Keypad is giving zone status.")
+            _LOGGER.debug(f"Keypad is giving zone status for partition {partitionNumber}.")
 
             # Increment all existing zone timers by 1
             for z in self._zoneTimers[partitionNumber]:
@@ -221,7 +222,7 @@ class HoneywellClient(EnvisalinkClient):
             # Add a zone timer (if needed) of the appropriate type and update zone status
             if zone_code in ['battery','tamper']:
                 # Battery or tamper report for a wireless zone. These are added to the keypad update queue separate from state changes, so need their own zone timers.
-                self._zoneTimers[partitionNumber][str.format("{0}|{1}",user_zone_field,zone_code)] = 1
+                self._zoneTimers[partitionNumber][f"{user_zone_field}|{zone_code}"] = 1
             elif zone_code == 'bypass':
                 # Bypassed zones only show once in keypad updates and only clear when the partition is disarmed. No zone timer needed.
                 self._alarmPanel.alarm_state['zone'][user_zone_field]['bypassed'] = True
@@ -230,7 +231,7 @@ class HoneywellClient(EnvisalinkClient):
             elif zone_code in ['alarm','alarmcleared','notready']:
                 # Zone is open
                 self._alarmPanel.alarm_state['zone'][user_zone_field]['status'].update({'open': True, 'fault': True})
-                self._zoneTimers[partitionNumber][str.format("{0}|state",user_zone_field)] = 1
+                self._zoneTimers[partitionNumber][f"{user_zone_field}|state"] = 1
                 results['zones'].append(user_zone_field)
                 results['zone_update'] = True
 
@@ -240,7 +241,7 @@ class HoneywellClient(EnvisalinkClient):
             max_timer = round(active_timers * 1.5 + 2, 0)
             for z in list(self._zoneTimers[partitionNumber]):
                 if self._zoneTimers[partitionNumber][z] > max_timer:
-                    _LOGGER.debug(str.format('Timer {0} :: {1} Closing',z,self._zoneTimers[partitionNumber][z]))
+                    _LOGGER.debug(f'Timer {z} :: {self._zoneTimers[partitionNumber][z]} Closing')
                     timer = str.split(z,'|')
                     results['zones'].append(int(timer[0]))
                     results['zone_update'] = True
@@ -250,8 +251,8 @@ class HoneywellClient(EnvisalinkClient):
                         #TODO Clear tamper/battery status
                     self._zoneTimers[partitionNumber].pop(z)
                 else:
-                    _LOGGER.debug(str.format('Timer {0} :: {1}',z,self._zoneTimers[partitionNumber][z]))
-            _LOGGER.debug(str.format("There are ({0}) active timers", active_timers))
+                    _LOGGER.debug(f'Timer {z} :: {self._zoneTimers[partitionNumber][z]}')
+            _LOGGER.debug(f"There are ({active_timers}) active timers")
 
         _LOGGER.debug(json.dumps(self._alarmPanel.alarm_state['partition'][partitionNumber]['status']))
         return results
@@ -263,6 +264,7 @@ class HoneywellClient(EnvisalinkClient):
     def handle_partition_state_change(self, code, data):
         """Handle when the envisalink sends us a partition change."""
         # Ignore these EVL-generated messages in favor of the raw keypad updates directly from the panel
+        # TODO Add entry_delay to %00 update handler
         """
         for currentIndex in range(0, 8):
             partitionStateCode = data[currentIndex * 2:(currentIndex * 2) + 2]
