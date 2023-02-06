@@ -260,7 +260,6 @@ class EnvisalinkController:
     @callback
     def async_multi_updated_callback(self, data):
         """Handle keypad updates with partition and zone data."""
-        LOGGER.debug('we are here')
         LOGGER.debug("Envisalink '%s' sent a partition update event. Updating partitions: %r", self.alarm_name, data['partitions'])
         self._process_state_change(STATE_UPDATE_TYPE_PARTITION, data['partitions'])
         if data['zone_update']:
