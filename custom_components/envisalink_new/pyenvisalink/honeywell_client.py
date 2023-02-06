@@ -188,7 +188,7 @@ class HoneywellClient(EnvisalinkClient):
         results['partitions'].append(partitionNumber)
         flags = IconLED_Flags()
         flags.asShort = int(dataList[1], 16)
-        # user_zone_field = int(dataList[2])
+        user_zone_field = int(dataList[2])
         beep = evl_Virtual_Keypad_How_To_Beep.get(dataList[3], "unknown")
         alpha = dataList[4]
         partition_status = get_partition_state(flags, alpha)
