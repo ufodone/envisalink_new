@@ -4,7 +4,7 @@ import logging
 from typing import Any
 from collections.abc import Callable
 
-from .pyenvisalink import EnvisalinkAlarmPanel
+from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 
 from homeassistant.const import (
     CONF_HOST,
