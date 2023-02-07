@@ -36,7 +36,7 @@ from .const import (
 )
 
 from .controller import EnvisalinkController
-from .config_flow import generate_range_string
+from .helpers import generate_range_string
 
 PLATFORMS: list[Platform] = [Platform.ALARM_CONTROL_PANEL, Platform.BINARY_SENSOR, Platform.SENSOR, Platform.SWITCH]
 

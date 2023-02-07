@@ -44,7 +44,7 @@ from .const import (
 
 from .models import EnvisalinkDevice
 from .controller import EnvisalinkController
-from .config_flow import find_yaml_partition_info, parse_range_string
+from .helpers import find_yaml_partition_info, parse_range_string
 
 
 SERVICE_ALARM_KEYPRESS = "alarm_keypress"

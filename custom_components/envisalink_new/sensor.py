@@ -20,7 +20,7 @@ from .const import (
 )
 
 from .models import EnvisalinkDevice
-from .config_flow import find_yaml_partition_info, parse_range_string
+from .helpers import find_yaml_partition_info, parse_range_string
 
 
 async def async_setup_entry(

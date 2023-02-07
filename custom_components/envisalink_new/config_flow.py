@@ -14,6 +14,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
+from homeassistant.helpers.device_registry import format_mac
 
 from homeassistant.const import (
     CONF_CODE,
@@ -47,6 +48,7 @@ from .const import (
     DEFAULT_PARTITION_SET,
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
+    DEFAULT_USERNAME,
     DEFAULT_ZONEDUMP_INTERVAL,
     DEFAULT_ZONETYPE,
     DEFAULT_ZONE_SET,
@@ -61,13 +63,14 @@ from .const import (
 )
 
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
+from .helpers import parse_range_string
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_ALARM_NAME, default=DEFAULT_ALARM_NAME): cv.string,
         vol.Required(CONF_HOST): cv.string,
         vol.Required(CONF_EVL_PORT, default=DEFAULT_PORT): cv.port,
-        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): cv.string,
         vol.Required(CONF_PASS): cv.string,
     }
 )
@@ -119,7 +122,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         panel = await check_connection(hass, data)
 
-        unique_id = panel.mac_address
+        unique_id = format_mac(panel.mac_address)
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured()
 
@@ -268,88 +271,6 @@ class DiscoveryError(HomeAssistantError):
         else:
             LOGGER.error("Unexpected error: %s", result)
             self.reason = "unknown"
-
-def find_yaml_zone_info(zone_num: int, zone_info: map) -> map:
-    if zone_info is None:
-        return None
-
-    for key, entry in zone_info.items():
-        if int(key) == zone_num:
-            return entry
-    return None
-
-def find_yaml_partition_info(part_num: int, part_info: map) -> map:
-    if part_info is None:
-        return None
-
-    for key, entry in part_info.items():
-        if int(key) == part_num:
-            return entry
-    return None
-
-
-def parse_range_string(sequence: str, min_val: int, max_val: int) -> set:
-    # Empty strings are not valid
-    if sequence is None or len(sequence) == 0:
-        return None
-
-    # Make sure there are only valid characters
-    valid_chars = '1234567890,- '
-    v = sequence.strip(valid_chars)
-    if len(v) != 0:
-        return None
-
-    # Strip whitespace
-    sequence = sequence.strip(' ')
-
-    r = []
-    for seg in sequence.split(","):
-        nums = seg.split("-")
-        for v in nums:
-            if len(v) == 0:
-                return None
-            v = int(v)
-            if v < min_val or v > max_val:
-                return None
-        if len(nums) == 1:
-            r.append(int(nums[0]))
-        elif len(nums) == 2:
-            for i in range(int(nums[0]), int(nums[1]) + 1):
-                r.append(i)
-        else:
-            return None
-
-    if len(r) == 0:
-        return None
-
-    return sorted(set(r))
-
-def generate_range_string(seq: set) -> str:
-    if len(seq) == 0:
-        return None
-    l = list(seq)
-    if len(seq) == 1:
-        return str(l[0])
-
-    result = ""
-    l.sort()
-    end = start = l[0]
-    for i in l[1:]:
-        if i == (end + 1):
-            end = i
-        else:
-            if start == end:
-                result += f"{start},"
-            else:
-                result += f"{start}-{end},"
-            start = end = i
-
-    if start == end:
-        result += f"{start}"
-    else:
-        result += f"{start}-{end}"
-    start = end = i
-    return result
 
 async def check_connection(hass: HomeAssistant, data: dict[str, Any]) -> EnvisalinkAlarmPanel:
     """Check that we're able to successfully connect and auth with the envisalink"""

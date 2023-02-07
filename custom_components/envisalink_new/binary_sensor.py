@@ -11,7 +11,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .config_flow import find_yaml_zone_info, parse_range_string
+from .helpers import find_yaml_zone_info, parse_range_string
 from .models import EnvisalinkDevice
 from .const import (
     CONF_ZONENAME,

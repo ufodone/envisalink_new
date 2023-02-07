@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.device_registry import format_mac
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
@@ -135,7 +136,7 @@ class EnvisalinkController:
 
     @property
     def unique_id(self):
-        id = self.controller.mac_address
+        id = format_mac(self.controller.mac_address)
         if not id:
             LOGGER.warn("MAC address not available from EVL.  Using config entry ID as unique ID.")
             id = self._entry_id
