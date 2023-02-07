@@ -20,22 +20,29 @@ _LOGGER = logging.getLogger(__name__)
 class DSCClient(EnvisalinkClient):
     """Represents a dsc alarm client."""
 
+    def detect(prompt):
+        """Given the initial connection data, determine if this is a DSC panel."""
+        code = "505"
+        data = "3"
+        login = code + data + DSCClient.get_checksum(code, data)
+        return prompt == login
+
     def __init__(self, panel, loop):
         super().__init__(panel, loop)
 
-    def to_chars(self, string):
+    def to_chars(string):
         chars = []
         for char in string:
             chars.append(ord(char))
         return chars
 
-    def get_checksum(self, code, data):
+    def get_checksum(code, data):
         """part of each command includes a checksum.  Calculate."""
-        return ("%02X" % sum(self.to_chars(code) + self.to_chars(data)))[-2:]
+        return ("%02X" % sum(DSCClient.to_chars(code) + DSCClient.to_chars(data)))[-2:]
 
     async def send_command(self, code, data, logData=None):
         """Send a command in the proper honeywell format."""
-        to_send = code + data + self.get_checksum(code, data)
+        to_send = code + data + DSCClient.get_checksum(code, data)
         await self.send_data(to_send)
 
     async def dump_zone_timers(self):

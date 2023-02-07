@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from enum import Enum
@@ -13,6 +14,13 @@ PANEL_TYPE_HONEYWELL = "HONEYWELL"
 
 _LOGGER = logging.getLogger(__name__)
 COMMAND_ERR = "Cannot run this command while disconnected. Please run start() first."
+
+# Maximum number of partitions supports by the EVL
+MAX_PARTITIONS = 8
+
+# Maximum number of zones supported by the EVL based on version
+EVL3_MAX_ZONES = 64
+EVL4_MAX_ZONES = 128
 
 
 class EnvisalinkAlarmPanel:
@@ -40,7 +48,6 @@ class EnvisalinkAlarmPanel:
         commandTimeout=5.0,
         httpPort=8080,
     ):
-        self._discoveryComplete = False
         self._macAddress = None
         self._firmwareVersion = None
         self._host = host
@@ -48,7 +55,7 @@ class EnvisalinkAlarmPanel:
         self._httpPort = httpPort
         self._connectionTimeout = connectionTimeout
         self._panelType = None
-        self._evlVersion = None
+        self._evlVersion = 0
         self._username = userName
         self._password = password
         self._keepAliveInterval = keepAliveInterval
@@ -148,10 +155,10 @@ class EnvisalinkAlarmPanel:
         return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
 
     def get_max_zones_by_version(version) -> int:
-        return 64 if version < 4 else 128
+        return EVL3_MAX_ZONES if version < 4 else EVL4_MAX_ZONES
 
     def get_max_partitions() -> int:
-        return 8
+        return MAX_PARTITIONS
 
     @property
     def max_partitions(self):
@@ -254,20 +261,13 @@ class EnvisalinkAlarmPanel:
         _LOGGER.debug("Callback has not been set by client.")
 
     async def start(self):
-        # Validate the connection first if it hasn't been done already
-        if not self._discoveryComplete:
-            logging.error("discover() must be run before starting the controller.")
-            return self.ConnectionResult.DISCOVERY_NOT_COMPLETE
+        result = await self.discover_panel_type()
+        if result != self.ConnectionResult.SUCCESS:
+            return result
 
-        if self._panelType is None:
-            logging.error("Panel could type not be determined.")
-            return self.ConnectionResult.INVALID_PANEL_TYPE
-
-        if self._evlVersion is None:
-            logging.error("EVL version could not be determined")
-            return self.ConnectionResult.INVALID_EVL_VERSION
-
-        self._alarmState = AlarmState.get_initial_alarm_state(self.max_zones, self._maxPartitions)
+        self._alarmState = AlarmState.get_initial_alarm_state(
+            max(EVL3_MAX_ZONES, EVL4_MAX_ZONES), MAX_PARTITIONS
+        )
 
         """Connect to the envisalink, and listen for events to occur."""
         logging.info(
@@ -384,7 +384,7 @@ class EnvisalinkAlarmPanel:
             _LOGGER.error(COMMAND_ERR)
 
     async def discover_device_details(self) -> bool:
-        self._evlVersion = None
+        self._evlVersion = 0
         self._panelType = None
 
         try:
@@ -481,8 +481,44 @@ class EnvisalinkAlarmPanel:
         _LOGGER.info(
             f"Firmware Version: '{self._firmwareVersion}' / MAC address: '{self._macAddress}'"
         )
-        self._discoveryComplete = True
         return self.ConnectionResult.SUCCESS
+
+    async def discover_panel_type(self) -> ConnectionResult:
+        _LOGGER.info("Checking panel type for %s", self.host)
+        self._panelType = None
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port), self.connection_timeout
+            )
+            data = await asyncio.wait_for(
+                reader.readuntil(separator=b"\n"), self.connection_timeout
+            )
+            if data:
+                data = data.decode("ascii").strip()
+                if HoneywellClient.detect(data):
+                    self._panelType = PANEL_TYPE_HONEYWELL
+                    _LOGGER.info("Panel type: %s", self._panelType)
+                    return self.ConnectionResult.SUCCESS
+                elif DSCClient.detect(data):
+                    self._panelType = PANEL_TYPE_DSC
+                    _LOGGER.info("Panel type: %s", self._panelType)
+                    return self.ConnectionResult.SUCCESS
+            _LOGGER.error("Unable to determine panel type from connection data: '%s'", data)
+        except ConnectionResetError:
+            _LOGGER.error(
+                "Unable to connect to %s; it is likely that another client is already connected",
+                self.host,
+            )
+        except Exception as ex:
+            _LOGGER.error("Unable to connect to %s: %r", self.host, ex)
+        finally:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+
+        return self.ConnectionResult.INVALID_PANEL_TYPE
 
     def is_online(self):
         if not self._client:

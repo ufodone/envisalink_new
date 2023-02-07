@@ -33,13 +33,14 @@ async def main():
     global testpanel
     loop = asyncio.get_running_loop()
 
-    host = sys.argv[1]
-    port = int(sys.argv[2])
-    user = sys.argv[3]
-    pw = sys.argv[4]
+    action = sys.argv[1]
+    host = sys.argv[2]
+    port = int(sys.argv[3])
+    user = sys.argv[4]
+    pw = sys.argv[5]
     httpPort = 8080
-    if len(sys.argv) > 5:
-        httpPort = int(sys.argv[5])
+    if len(sys.argv) > 6:
+        httpPort = int(sys.argv[6])
 
     testpanel = EnvisalinkAlarmPanel(
         host,
@@ -53,9 +54,13 @@ async def main():
         keepAliveInterval=60,
     )
 
-    result = await testpanel.discover()
-    if result != EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
-        return
+    if action == "discover":
+        await testpanel.discover()
+        sys.exit(0)
+
+    if action != "start":
+        print(f"Unrecognized action: {action}")
+        sys.exit(1)
 
     testpanel.callback_connection_status = async_connection_status_callback
     testpanel.callback_login_failure = async_login_fail_callback
@@ -63,22 +68,13 @@ async def main():
     testpanel.callback_login_success = async_connection_success_callback
 
     result = await testpanel.start()
-
-    if result in [
-        EnvisalinkAlarmPanel.ConnectionResult.INVALID_PANEL_TYPE,
-        EnvisalinkAlarmPanel.ConnectionResult.INVALID_EVL_VERSION,
-    ]:
-        testpanel.envisalink_version = 4
-        testpanel.panel_type = "DSC"
-        result = await testpanel.start()
-
     if result == EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
-        #        await asyncio.sleep(5)
-        #        loop.create_task(testpanel.arm_stay_partition("12345", 1))
-        #        loop.create_task(testpanel.arm_away_partition("12345", 1))
-        #        loop.create_task(testpanel.arm_max_partition("12345", 1))
-        #        loop.create_task(testpanel.arm_night_partition("12345", 1))
-        #        loop.create_task(testpanel.disarm_partition("12345", 1))
+        # await asyncio.sleep(5)
+        # loop.create_task(testpanel.arm_stay_partition("12345", 1))
+        # loop.create_task(testpanel.arm_away_partition("12345", 1))
+        # loop.create_task(testpanel.arm_max_partition("12345", 1))
+        # loop.create_task(testpanel.arm_night_partition("12345", 1))
+        # loop.create_task(testpanel.disarm_partition("12345", 1))
         await asyncio.sleep(3600)
 
 

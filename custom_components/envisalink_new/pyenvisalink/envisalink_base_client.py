@@ -173,6 +173,7 @@ class EnvisalinkClient:
                 self._alarmPanel.port,
             )
         )
+        self._loggedin = False
         try:
             coro = asyncio.open_connection(self._alarmPanel.host, self._alarmPanel.port)
             self._reader, self._writer = await asyncio.wait_for(
@@ -181,11 +182,19 @@ class EnvisalinkClient:
             _LOGGER.info("Connection Successful!")
 
             self._alarmPanel.callback_connection_status(True)
-        except Exception as ex:
-            self._loggedin = False
+        except asyncio.exceptions.TimeoutError:
+            _LOGGER.error("Timed out connecting to the envisalink at %s", self._alarmPanel.host)
             if not self._shutdown:
-                _LOGGER.error("Unable to connect to envisalink: %r", ex)
                 self._alarmPanel._loginTimeoutCallback(False)
+            await self.disconnect()
+        except ConnectionResetError:
+            _LOGGER.error(
+                "Unable to connect to %s; it is likely that another client is already connected",
+                self._alarmPanel.host,
+            )
+            await self.disconnect()
+        except Exception as ex:
+            _LOGGER.error("Unable to connect to envisalink at %s: %r", self._alarmPanel.self, ex)
             await self.disconnect()
 
     async def disconnect(self):

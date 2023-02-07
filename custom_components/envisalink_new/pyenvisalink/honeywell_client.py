@@ -23,6 +23,10 @@ _LOGGER = logging.getLogger(__name__)
 class HoneywellClient(EnvisalinkClient):
     """Represents a honeywell alarm client."""
 
+    def detect(prompt):
+        """Given the initial connection data, determine if this is a Honeywell panel."""
+        return prompt == "Login:"
+
     async def keep_alive(self):
         await self.queue_command(evl_Commands["KeepAlive"], "")
 
@@ -204,47 +208,32 @@ class HoneywellClient(EnvisalinkClient):
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
         # Envisalink TPI is inconsistent at generating these
-        bigEndianHexString = ""
-        # every four characters
-        inputItems = re.findall("....", data)
-        for inputItem in inputItems:
-            # Swap the couples of every four bytes
-            # (little endian to big endian)
-            swapedBytes = []
-            swapedBytes.insert(0, inputItem[0:2])
-            swapedBytes.insert(0, inputItem[2:4])
 
-            # add swapped set of four bytes to our return items,
-            # converting from hex to int
-            bigEndianHexString += "".join(swapedBytes)
-
-        # convert hex string to 64 bit bitstring TODO: THIS IS 128 for evl4
-        if self._alarmPanel.envisalink_version < 4:
-            bitfieldString = str(bin(int(bigEndianHexString, 16))[2:].zfill(64))
-        else:
-            bitfieldString = str(bin(int(bigEndianHexString, 16))[2:].zfill(128))
-
-        # reverse every 16 bits so "lowest" zone is on the left
-        zonefieldString = ""
-        inputItems = re.findall("." * 16, bitfieldString)
-
-        for inputItem in inputItems:
-            zonefieldString += inputItem[::-1]
-
+        # The data is encoded as a sequence of 2-character ascii 8-bit hex numbers (e.g. "A4")
+        # with each bit representing the state of a zone (1=fault, 0=clear).  The first hex
+        # number (characters 0-1) represents zones 1-8, the second set (characters 2-3)
+        # represents zones 9-16, etc.
         now = time.time()
-        for zoneNumber, zoneBit in enumerate(zonefieldString, start=1):
-            self._alarmPanel.alarm_state["zone"][zoneNumber]["status"].update(
-                {"open": zoneBit == "1", "fault": zoneBit == "1"}
-            )
-            if zoneBit == "1":
-                self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = 0
-            self._alarmPanel.alarm_state["zone"][zoneNumber]["updated"] = now
+        zoneNumber = 0
+        for idx in range(0, int(len(data) / 2)):
+            byte = int(data[idx * 2 : (idx * 2) + 2], 16)
+            for bit in range(0, 8):
+                mask = 1 << (bit % 8)
+                zoneNumber = zoneNumber + 1
+                zoneFaulted = int((byte & mask) != 0)
 
-            _LOGGER.debug(
-                "(zone %i) is %s",
-                zoneNumber,
-                "Open/Faulted" if zoneBit == "1" else "Closed/Not Faulted",
-            )
+                self._alarmPanel.alarm_state["zone"][zoneNumber]["status"].update(
+                    {"open": zoneFaulted, "fault": zoneFaulted}
+                )
+                if zoneFaulted:
+                    self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = 0
+                self._alarmPanel.alarm_state["zone"][zoneNumber]["updated"] = now
+
+                _LOGGER.debug(
+                    "(zone %i) is %s",
+                    zoneNumber,
+                    "Open/Faulted" if zoneFaulted else "Closed/Not Faulted",
+                )
 
     def handle_partition_state_change(self, code, data):
         """Handle when the envisalink sends us a partition change."""
