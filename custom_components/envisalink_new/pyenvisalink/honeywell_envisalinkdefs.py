@@ -67,18 +67,21 @@ evl_ResponseTypes = {
         "name": "Virtual Keypad Update",
         "description": "The panel wants to update the state of the keypad",
         "handler": "keypad_update",
+        "state_change": True,
     },
     "%01": {
         "type": "zone",
         "name": "Zone State Change",
         "description": "A zone change-of-state has occurred",
         "handler": "zone_state_change",
+        "state_change": True,
     },
     "%02": {
         "type": "partition",
         "name": "Partition State Change",
         "description": "A partition change-of-state has occured",
         "handler": "partition_state_change",
+        "state_change": True,
     },
     "%03": {
         "type": "system",
@@ -90,6 +93,7 @@ evl_ResponseTypes = {
         "name": "Envisalink Zone Timer Dump",
         "description": "This command contains the raw zone timers used inside the Envisalink. The dump is a 256 character packed HEX string representing 64 UINT16 (little endian) zone timers. Zone timers count down from 0xFFFF (zone is open) to 0x0000 (zone is closed too long ago to remember). Each 'tick' of the zone time is actually 5 seconds so a zone timer of 0xFFFE means '5 seconds ago'. Remember, the zone timers are LITTLE ENDIAN so the above example would be transmitted as FEFF.",  # noqa: E501
         "handler": "zone_timer_dump",
+        "state_change": True,
     },
     "^00": {
         "type": "envisalink",

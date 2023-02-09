@@ -58,11 +58,10 @@ from .const import (
     HONEYWELL_ARM_MODE_NIGHT_LABEL,
     HONEYWELL_ARM_MODE_NIGHT_VALUE,
     LOGGER,
-    PANEL_TYPE_DSC,
-    PANEL_TYPE_HONEYWELL,
 )
 
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 from .helpers import parse_range_string
 
 STEP_USER_DATA_SCHEMA = vol.Schema(

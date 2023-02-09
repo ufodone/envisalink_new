@@ -4,6 +4,12 @@ import logging
 import re
 import time
 
+from .const import (
+    STATE_CHANGE_KEYPAD,
+    STATE_CHANGE_PARTITION,
+    STATE_CHANGE_ZONE,
+    STATE_CHANGE_ZONE_BYPASS,
+)
 from .dsc_envisalinkdefs import (
     evl_ArmModes,
     evl_Commands,
@@ -120,11 +126,9 @@ class DSCClient(EnvisalinkClient):
                         handler = "login_failure"
 
                     cmd["handler"] = "handle_%s" % handler
-                    cmd["callback"] = "callback_%s" % handler
-
                 else:
                     cmd["handler"] = "handle_%s" % evl_ResponseTypes[code]["handler"]
-                    cmd["callback"] = "callback_%s" % evl_ResponseTypes[code]["handler"]
+                cmd["state_change"] = evl_ResponseTypes[code].get("state_change", False)
             except KeyError:
                 _LOGGER.debug(str.format("No handler defined in config for {0}, skipping...", code))
 
@@ -193,7 +197,7 @@ class DSCClient(EnvisalinkClient):
                     json.dumps(evl_ResponseTypes[code]["status"]),
                 )
             )
-            return [zoneNumber]
+            return {STATE_CHANGE_ZONE: [zoneNumber]}
         else:
             _LOGGER.error("Invalid data has been passed in the zone update.")
 
@@ -215,7 +219,7 @@ class DSCClient(EnvisalinkClient):
                         json.dumps(evl_ArmModes[data[1]]["status"]),
                     )
                 )
-                return [partitionNumber]
+                return {STATE_CHANGE_PARTITION: [partitionNumber]}
             else:
                 _LOGGER.error("Invalid data has been passed when arming the alarm.")
         else:
@@ -252,7 +256,7 @@ class DSCClient(EnvisalinkClient):
                         self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
                     )
 
-                return [partitionNumber]
+                return {STATE_CHANGE_PARTITION: [partitionNumber]}
             else:
                 _LOGGER.error("Invalid data has been passed in the partition update.")
 
@@ -286,9 +290,12 @@ class DSCClient(EnvisalinkClient):
         else:
             new_status = evl_ResponseTypes[code]["status"]
 
+        updatedPartitions = []
         for part in self._alarmPanel.alarm_state["partition"]:
             self._alarmPanel.alarm_state["partition"][part]["status"].update(new_status)
+            updatedPartitions.append(part)
         _LOGGER.debug(str.format("(All partitions) state has updated: {0}", json.dumps(new_status)))
+        return {STATE_CHANGE_KEYPAD: updatedPartitions}
 
     def handle_zone_bypass_update(self, code, data):
         """Handle zone bypass update triggered when *1 is used on the keypad"""
@@ -315,7 +322,7 @@ class DSCClient(EnvisalinkClient):
                     )
 
             _LOGGER.debug(str.format("zone bypass updates: {0}", updates))
-            return updates
+            return {STATE_CHANGE_ZONE_BYPASS: updates}
         else:
             _LOGGER.error(
                 str.format(

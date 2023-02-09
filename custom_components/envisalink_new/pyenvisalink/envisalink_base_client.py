@@ -4,6 +4,13 @@ import re
 import time
 from enum import Enum
 
+from .const import (
+    STATE_CHANGE_KEYPAD,
+    STATE_CHANGE_PARTITION,
+    STATE_CHANGE_ZONE,
+    STATE_CHANGE_ZONE_BYPASS,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -297,6 +304,7 @@ class EnvisalinkClient:
     def process_data(self, data) -> str:
         cmd = self.parseHandler(data)
 
+        result = None
         try:
             _LOGGER.debug(
                 str.format(
@@ -314,12 +322,27 @@ class EnvisalinkClient:
             _LOGGER.debug(str.format("KeyError: {0}", err))
 
         try:
-            _LOGGER.debug(str.format("Invoking callback: {0}", cmd["callback"]))
-            callbackFunc = getattr(self._alarmPanel, cmd["callback"])
-            callbackFunc(result)
+            _LOGGER.debug("Invoking state change callbacks")
+            if result and cmd["state_change"]:
+                self.handle_state_change_callbacks(result)
 
-        except (AttributeError, TypeError, KeyError):
-            _LOGGER.debug("No callback configured for evl command.")
+        except (AttributeError, TypeError, KeyError) as ex:
+            _LOGGER.debug("No callback configured for evl command. %r", ex)
+
+    def handle_state_change_callbacks(self, updates):
+        for change_type, values in updates.items():
+            if values:
+                _LOGGER.debug("Triggering state change callback for %s: %s", change_type, values)
+                if change_type == STATE_CHANGE_PARTITION:
+                    self._alarmPanel.callback_partition_state_change(values)
+                elif change_type == STATE_CHANGE_ZONE:
+                    self._alarmPanel.callback_zone_state_change(values)
+                elif change_type == STATE_CHANGE_ZONE_BYPASS:
+                    self._alarmPanel.callback_zone_bypass_state_change(values)
+                elif change_type == STATE_CHANGE_KEYPAD:
+                    self._alarmPanel.callback_keypad_update(values)
+                else:
+                    _LOGGER.error("Unhandled state change update: %s: %s", change_type, values)
 
     def convertZoneDump(self, theString):
         """Interpret the zone dump result, and convert to readable times."""
@@ -360,11 +383,21 @@ class EnvisalinkClient:
         """Handler for when the envisalink accepts our credentials."""
         self._loggedin = True
         _LOGGER.debug("Password accepted, session created")
+        self._alarmPanel.callback_login_success()
 
     def handle_login_failure(self, code, data):
         """Handler for when the envisalink rejects our credentials."""
         self._loggedin = False
         _LOGGER.error("Password is incorrect. Server is closing socket connection.")
+        self._alarmPanel.callback_login_failure()
+
+    def handle_login_timeout(self, code, data):
+        """Handler for when the envisalink times out waiting for our credentials."""
+        self._loggedin = False
+        _LOGGER.error(
+            "Envisalink timed out waiting for credentials. Server is closing socket connection."
+        )
+        self._alarmPanel.callback_login_timeout()
 
     def handle_keypad_update(self, code, data):
         """Handler for when the envisalink wishes to send us a keypad update."""
@@ -408,7 +441,7 @@ class EnvisalinkClient:
             )
             self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = zoneInfo["seconds"]
             _LOGGER.debug("(zone %i) %s", zoneNumber, zoneInfo["status"])
-        return results
+        return {"zone": results}
 
     async def queue_command(self, cmd, data, code=None):
         return await self.queue_commands([{"cmd": cmd, "data": data, "code": code}])

@@ -9,6 +9,8 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
+from .pyenvisalink.const import STATE_CHANGE_PARTITION
+
 from .const import (
     DOMAIN,
     LOGGER,
@@ -16,7 +18,6 @@ from .const import (
     CONF_PARTITIONS,
     CONF_PARTITION_SET,
     DEFAULT_PARTITION_SET,
-    STATE_UPDATE_TYPE_PARTITION,
 )
 
 from .models import EnvisalinkDevice
@@ -70,7 +71,7 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
                 self._attr_has_entity_name = False
 
         LOGGER.debug("Setting up sensor for partition: %s", name)
-        super().__init__(name, controller, STATE_UPDATE_TYPE_PARTITION, partition_number)
+        super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
 
     @property
     def _info(self):

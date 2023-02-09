@@ -17,16 +17,32 @@ def async_connection_status_callback(connected):
     print(f"Callback: connection status: {connected}")
 
 
-def async_login_fail_callback(data):
+def async_login_fail_callback():
     print("Callback: login failure")
 
 
-def async_connection_fail_callback(data):
+def async_login_timeout_callback():
     print("Callback: connection failure")
 
 
-def async_connection_success_callback(data):
+def async_login_success_callback():
     print("Callback: login success")
+
+
+def async_keypad_update(data):
+    print("Callback: keypad update")
+
+
+def async_zone_state_change(data):
+    print("Callback: zone state change")
+
+
+def async_zone_bypass_state_change(data):
+    print("Callback: zone bypass state change")
+
+
+def async_partition_state_change(data):
+    print("Callback: partition state change")
 
 
 async def main():
@@ -64,8 +80,13 @@ async def main():
 
     testpanel.callback_connection_status = async_connection_status_callback
     testpanel.callback_login_failure = async_login_fail_callback
-    testpanel.callback_login_timeout = async_connection_fail_callback
-    testpanel.callback_login_success = async_connection_success_callback
+    testpanel.callback_login_timeout = async_login_timeout_callback
+    testpanel.callback_login_success = async_login_success_callback
+
+    testpanel.callback_keypad_update = async_keypad_update
+    testpanel.callback_zone_state_change = async_zone_state_change
+    testpanel.callback_zone_bypass_state_change = async_zone_bypass_state_change
+    testpanel.callback_partition_state_change = async_partition_state_change
 
     result = await testpanel.start()
     if result == EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:

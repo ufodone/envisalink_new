@@ -5,6 +5,12 @@ from typing import Any
 from collections.abc import Callable
 
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
+from .pyenvisalink.const import (
+    STATE_CHANGE_KEYPAD,
+    STATE_CHANGE_PARTITION,
+    STATE_CHANGE_ZONE,
+    STATE_CHANGE_ZONE_BYPASS,
+)
 
 from homeassistant.const import (
     CONF_HOST,
@@ -32,9 +38,6 @@ from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_ZONEDUMP_INTERVAL,
     LOGGER,
-    STATE_UPDATE_TYPE_PARTITION,
-    STATE_UPDATE_TYPE_ZONE,
-    STATE_UPDATE_TYPE_ZONE_BYPASS,
 )
 
 class EnvisalinkController:
@@ -76,20 +79,21 @@ class EnvisalinkController:
         )
 
         self._listeners = {
-            STATE_UPDATE_TYPE_PARTITION : { },
-            STATE_UPDATE_TYPE_ZONE : { },
-            STATE_UPDATE_TYPE_ZONE_BYPASS : { },
+            STATE_CHANGE_PARTITION : { },
+            STATE_CHANGE_ZONE : { },
+            STATE_CHANGE_ZONE_BYPASS : { },
         }
 
-        self.controller.callback_zone_timer_dump = self.async_zone_timer_dump_callback
-        self.controller.callback_zone_state_change = self.async_zones_updated_callback
-        self.controller.callback_partition_state_change = self.async_partition_updated_callback
-        self.controller.callback_keypad_update = self.async_alarm_data_updated_callback
+
         self.controller.callback_connection_status = self.async_connection_status_callback
         self.controller.callback_login_failure = self.async_login_fail_callback
         self.controller.callback_login_timeout = self.async_login_timeout_callback
         self.controller.callback_login_success = self.async_login_success_callback
-        self.controller.callback_zone_bypass_update = self.async_zone_bypass_update
+
+        self.controller.callback_keypad_update = self.async_keypad_updated_callback
+        self.controller.callback_zone_state_change = self.async_zones_updated_callback
+        self.controller.callback_zone_bypass_state_change = self.async_zone_bypass_update
+        self.controller.callback_partition_state_change = self.async_partition_updated_callback
 
         LOGGER.debug("Created EnvisalinkController for %s (host=%s port=%r)",
             self.alarm_name,
@@ -191,7 +195,7 @@ class EnvisalinkController:
         return self.controller.is_online()
 
     @callback
-    def async_login_fail_callback(self, data):
+    def async_login_fail_callback(self):
         """Handle when the evl rejects our login."""
         LOGGER.error("The Envisalink rejected your credentials")
         if not self.sync_connect.done():
@@ -199,7 +203,7 @@ class EnvisalinkController:
         self._update_entity_states()
 
     @callback
-    def async_login_timeout_callback(self, data):
+    def async_login_timeout_callback(self):
         """Timed out trying to login"""
         LOGGER.error("Timed out trying to login to the Envisalink- retrying")
         if not self.sync_connect.done():
@@ -207,7 +211,7 @@ class EnvisalinkController:
         self._update_entity_states()
 
     @callback
-    def async_login_success_callback(self, data):
+    def async_login_success_callback(self):
         """Handle a successful login."""
         LOGGER.info("Established a connection and logged into the Envisalink")
         if not self.sync_connect.done():
@@ -228,33 +232,27 @@ class EnvisalinkController:
             LOGGER.info("Connected to the envisalink device.")
 
     @callback
-    def async_zone_timer_dump_callback(self, data):
-        """Handle zone dump updates."""
-        LOGGER.debug("Envisalink sent a '%s' zone timer dump event. Updating zones: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_ZONE, data)
-
-    @callback
     def async_zones_updated_callback(self, data):
         """Handle zone state updates."""
         LOGGER.debug("Envisalink sent a '%s' zone update event. Updating zones: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_ZONE, data)
+        self._process_state_change(STATE_CHANGE_ZONE, data)
 
     @callback
-    def async_alarm_data_updated_callback(self, data):
+    def async_keypad_updated_callback(self, data):
         """Handle non-alarm based info updates."""
         LOGGER.debug("Envisalink sent '%s' new alarm info. Updating alarms: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_PARTITION)
+        self._process_state_change(STATE_CHANGE_PARTITION)
 
     @callback
     def async_partition_updated_callback(self, data):
         """Handle partition changes thrown by evl (including alarms)."""
         LOGGER.debug("The envisalink '%s' sent a partition update event: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_PARTITION, data)
+        self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
     def async_zone_bypass_update(self, data):
         """Handle zone bypass status updates."""
         LOGGER.debug("Envisalink '%s' sent a zone bypass update event. Updating zones: %r", self.alarm_name, data)
-        self._process_state_change(STATE_UPDATE_TYPE_ZONE_BYPASS, data)
+        self._process_state_change(STATE_CHANGE_ZONE_BYPASS, data)
 
 

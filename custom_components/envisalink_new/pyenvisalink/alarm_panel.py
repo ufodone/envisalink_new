@@ -2,25 +2,24 @@ import asyncio
 import logging
 import re
 from enum import Enum
+from functools import partial
 
 import aiohttp
 
 from .alarm_state import AlarmState
+from .const import (
+    EVL3_MAX_ZONES,
+    EVL4_MAX_ZONES,
+    MAX_PARTITIONS,
+    PANEL_TYPE_DSC,
+    PANEL_TYPE_HONEYWELL,
+)
 from .dsc_client import DSCClient
 from .honeywell_client import HoneywellClient
 
-PANEL_TYPE_DSC = "DSC"
-PANEL_TYPE_HONEYWELL = "HONEYWELL"
-
 _LOGGER = logging.getLogger(__name__)
+
 COMMAND_ERR = "Cannot run this command while disconnected. Please run start() first."
-
-# Maximum number of partitions supports by the EVL
-MAX_PARTITIONS = 8
-
-# Maximum number of zones supported by the EVL based on version
-EVL3_MAX_ZONES = 64
-EVL4_MAX_ZONES = 128
 
 
 class EnvisalinkAlarmPanel:
@@ -68,16 +67,14 @@ class EnvisalinkAlarmPanel:
         self._commandTimeout = commandTimeout
 
         self._connectionStatusCallback = self._defaultCallback
-        self._loginSuccessCallback = self._defaultCallback
-        self._loginFailureCallback = self._defaultCallback
-        self._loginTimeoutCallback = self._defaultCallback
-        self._commandResponseCallback = self._defaultCallback
-        self._pollResponseCallback = self._defaultCallback
+        self._loginSuccessCallback = partial(self._defaultCallback, None)
+        self._loginFailureCallback = partial(self._defaultCallback, None)
+        self._loginTimeoutCallback = partial(self._defaultCallback, None)
         self._keypadUpdateCallback = self._defaultCallback
         self._zoneStateChangeCallback = self._defaultCallback
         self._partitionStateChangeCallback = self._defaultCallback
+        self._zoneBypassStateChangeCallback = self._defaultCallback
         self._cidEventCallback = self._defaultCallback
-        self._zoneTimerCallback = self._defaultCallback
 
         loggingconfig = {
             "level": "DEBUG",
@@ -173,10 +170,6 @@ class EnvisalinkAlarmPanel:
         self._connectionStatusCallback = value
 
     @property
-    def callback_login(self):
-        return self._defaultCallback
-
-    @property
     def callback_login_success(self):
         return self._loginSuccessCallback
 
@@ -201,22 +194,6 @@ class EnvisalinkAlarmPanel:
         self._loginTimeoutCallback = value
 
     @property
-    def callback_poll_response(self):
-        return self._pollResponseCallback
-
-    @callback_poll_response.setter
-    def callback_poll_response(self, value):
-        self._pollResponseCallback = value
-
-    @property
-    def callback_command_response(self):
-        return self._commandResponseCallback
-
-    @callback_command_response.setter
-    def callback_command_response(self, value):
-        self._commandResponseCallback = value
-
-    @property
     def callback_keypad_update(self):
         return self._keypadUpdateCallback
 
@@ -233,6 +210,14 @@ class EnvisalinkAlarmPanel:
         self._zoneStateChangeCallback = value
 
     @property
+    def callback_zone_bypass_state_change(self):
+        return self._zoneBypassStateChangeCallback
+
+    @callback_zone_bypass_state_change.setter
+    def callback_zone_bypass_state_change(self, value):
+        self._zoneBypassStateChangeCallback = value
+
+    @property
     def callback_partition_state_change(self):
         return self._partitionStateChangeCallback
 
@@ -247,14 +232,6 @@ class EnvisalinkAlarmPanel:
     @callback_realtime_cid_event.setter
     def callback_realtime_cid_event(self, value):
         self._cidEventCallback = value
-
-    @property
-    def callback_zone_timer_dump(self):
-        return self._zoneTimerCallback
-
-    @callback_zone_timer_dump.setter
-    def callback_zone_timer_dump(self, value):
-        self._zoneTimerCallback = value
 
     def _defaultCallback(self, data):
         """This is the callback that occurs when the client doesn't subscribe."""

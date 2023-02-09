@@ -66,7 +66,11 @@ evl_ArmModes = {
 
 evl_ResponseTypes = {
     "505": {"name": "Login Prompt", "handler": "login"},
-    "615": {"name": "Envisalink Zone Timer Dump", "handler": "zone_timer_dump"},
+    "615": {
+        "name": "Envisalink Zone Timer Dump",
+        "handler": "zone_timer_dump",
+        "state_change": True,
+    },
     "500": {"name": "Command Acknowledge", "handler": "command_response"},
     "501": {"name": "Command Error", "handler": "command_response"},
     "502": {"name": "System Error", "handler": "command_response"},
@@ -76,68 +80,81 @@ evl_ResponseTypes = {
     "601": {
         "name": "Zone Alarm",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"alarm": True},
     },
     "602": {
         "name": "Zone Alarm Restore",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"alarm": False},
     },
     "603": {
         "name": "Zone Tamper",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"tamper": True},
     },
     "604": {
         "name": "Zone Tamper Restore",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"tamper": False},
     },
     "605": {
         "name": "Zone Fault",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"fault": True},
     },
     "606": {
         "name": "Zone Fault Restore",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"fault": False},
     },
     "609": {
         "name": "Zone Open",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"open": True},
     },
     "610": {
         "name": "Zone Restored",
         "handler": "zone_state_change",
+        "state_change": True,
         "status": {"open": False},
     },
     # PARTITION UPDATES
     "650": {
         "name": "Ready",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"ready": True, "alpha": "Ready"},
     },
     "651": {
         "name": "Not Ready",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"ready": False, "alpha": "Not Ready"},
     },
-    "652": {"name": "Armed", "handler": "partition_state_change"},
+    "652": {"name": "Armed", "handler": "partition_state_change", "state_change": True},
     "653": {
         "name": "Ready - Force Arming Enabled",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"ready": True, "alpha": "Ready - Force Arm"},
     },
     "654": {
         "name": "Alarm",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"alarm": True, "alpha": "Alarm"},
     },
     "655": {
         "name": "Disarmed",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {
             "alarm": False,
             "armed_stay": False,
@@ -151,32 +168,43 @@ evl_ResponseTypes = {
     "656": {
         "name": "Exit Delay in Progress",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"exit_delay": True, "alpha": "Exit Delay In Progress"},
     },
     "657": {
         "name": "Entry Delay in Progress",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"entry_delay": True, "alpha": "Entry Delay in Progress"},
     },
     "663": {
         "name": "ChimeOn",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"chime": True},
     },
     "664": {
         "name": "ChimeOff",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"chime": False},
     },
     "673": {
         "name": "Busy",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"alpha": "Busy"},
     },
-    "700": {"name": "Armed by user", "handler": "partition_state_change", "status": {}},
+    "700": {
+        "name": "Armed by user",
+        "handler": "partition_state_change",
+        "state_change": True,
+        "status": {},
+    },
     "750": {
         "name": "Disarmed by user",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {
             "alarm": False,
             "armed_stay": False,
@@ -190,6 +218,7 @@ evl_ResponseTypes = {
     "751": {
         "name": "Disarmed special",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {
             "alarm": False,
             "armed_stay": False,
@@ -203,92 +232,119 @@ evl_ResponseTypes = {
     "840": {
         "name": "Trouble LED",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"trouble": True},
     },
     "841": {
         "name": "Trouble Clear",
         "handler": "partition_state_change",
+        "state_change": True,
         "status": {"trouble": False, "ac_present": True},
     },
     # GENERAL UPDATES
     "621": {
         "name": "FireAlarmButton",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"fire": True, "alarm": True, "alpha": "Fire Alarm"},
     },
     "622": {
         "name": "FireAlarmButtonOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"fire": False, "alarm": False, "alpha": "Fire Alarm Cleared"},
     },
     "623": {
         "name": "AuxAlarmButton",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alarm": True, "alpha": "Aux Alarm"},
     },
     "624": {
         "name": "AuxAlarmButtonOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alarm": False, "alpha": "Aux Alarm Cleared"},
     },
     "625": {
         "name": "PanicAlarmButton",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alarm": True, "alpha": "Panic Alarm"},
     },
     "626": {
         "name": "PanicAlarmButtonOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alarm": False, "alpha": "Panic Alarm Cleared"},
     },
     "631": {
         "name": "SmokeAlarmButton",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alarm": True, "alpha": "Smoke Alarm"},
     },
     "632": {
         "name": "SmokeAlarmButtonOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alarm": False, "alpha": "Smoke Alarm Cleared"},
     },
     "660": {
         "name": "PGMrelay",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"PGMrelay": True, "alpha": "PGM output active"},
     },
     "800": {
         "name": "LowBatTrouble",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"bat_trouble": True, "alpha": "Low Battery"},
     },
     "801": {
         "name": "LowBatTroubleOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"bat_trouble": False, "alpha": "Low Battery Cleared"},
     },
     "802": {
         "name": "ACTrouble",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"ac_present": False, "alpha": "AC Power Lost"},
     },
     "803": {
         "name": "ACTroubleOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"ac_present": True, "alpha": "AC Power Restored"},
     },
     "829": {
         "name": "SystemTamper",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alpha": "System tamper"},
     },
     "830": {
         "name": "SystemTamperOff",
         "handler": "keypad_update",
+        "state_change": True,
         "status": {"alpha": "System tamper Restored"},
     },
-    "849": {"name": "TroubleVerbose", "handler": "keypad_update", "status": None},
+    "849": {
+        "name": "TroubleVerbose",
+        "handler": "keypad_update",
+        "state_change": True,
+        "status": None,
+    },
     # ZONE BYPASS UPDATES
-    "616": {"name": "Zone Bypass", "handler": "zone_bypass_update", "status": None},
+    "616": {
+        "name": "Zone Bypass",
+        "handler": "zone_bypass_update",
+        "state_change": True,
+        "status": None,
+    },
 }
 
 evl_verboseTrouble = {

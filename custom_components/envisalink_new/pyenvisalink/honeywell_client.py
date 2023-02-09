@@ -3,6 +3,7 @@ import logging
 import re
 import time
 
+from .const import STATE_CHANGE_KEYPAD, STATE_CHANGE_PARTITION, STATE_CHANGE_ZONE
 from .envisalink_base_client import EnvisalinkClient
 from .honeywell_envisalinkdefs import (
     IconLED_Flags,
@@ -133,7 +134,7 @@ class HoneywellClient(EnvisalinkClient):
             return None
         try:
             cmd["handler"] = "handle_%s" % evl_ResponseTypes[code]["handler"]
-            cmd["callback"] = "callback_%s" % evl_ResponseTypes[code]["handler"]
+            cmd["state_change"] = evl_ResponseTypes[code].get("state_change", False)
         except KeyError:
             _LOGGER.warning(str.format("No handler defined in config for {0}, skipping...", code))
 
@@ -204,6 +205,7 @@ class HoneywellClient(EnvisalinkClient):
         _LOGGER.debug(
             json.dumps(self._alarmPanel.alarm_state["partition"][partitionNumber]["status"])
         )
+        return {STATE_CHANGE_KEYPAD: [partitionNumber]}
 
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
@@ -215,28 +217,36 @@ class HoneywellClient(EnvisalinkClient):
         # represents zones 9-16, etc.
         now = time.time()
         zoneNumber = 0
+        changedZones = []
         for idx in range(0, int(len(data) / 2)):
             byte = int(data[idx * 2 : (idx * 2) + 2], 16)
             for bit in range(0, 8):
                 mask = 1 << (bit % 8)
                 zoneNumber = zoneNumber + 1
-                zoneFaulted = int((byte & mask) != 0)
+                zoneFaulted = int(byte & mask) != 0
 
-                self._alarmPanel.alarm_state["zone"][zoneNumber]["status"].update(
-                    {"open": zoneFaulted, "fault": zoneFaulted}
-                )
-                if zoneFaulted:
-                    self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = 0
-                self._alarmPanel.alarm_state["zone"][zoneNumber]["updated"] = now
+                currentState = self._alarmPanel.alarm_state["zone"][zoneNumber]["status"]["open"]
+                if currentState != zoneFaulted:
+                    changedZones.append(zoneNumber)
+
+                    self._alarmPanel.alarm_state["zone"][zoneNumber]["status"].update(
+                        {"open": zoneFaulted, "fault": zoneFaulted}
+                    )
+                    if zoneFaulted:
+                        self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = 0
+                    self._alarmPanel.alarm_state["zone"][zoneNumber]["updated"] = now
 
                 _LOGGER.debug(
-                    "(zone %i) is %s",
+                    "(zone %i) is %s (%s)",
                     zoneNumber,
                     "Open/Faulted" if zoneFaulted else "Closed/Not Faulted",
+                    "updated" if currentState != zoneFaulted else "no change",
                 )
+        return {STATE_CHANGE_ZONE: changedZones}
 
     def handle_partition_state_change(self, code, data):
         """Handle when the envisalink sends us a partition change."""
+        changedPartitions = []
         for currentIndex in range(0, 8):
             partitionStateCode = data[currentIndex * 2 : (currentIndex * 2) + 2]
             partitionState = evl_Partition_Status_Codes[str(partitionStateCode)]
@@ -272,12 +282,15 @@ class HoneywellClient(EnvisalinkClient):
                 self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
                     {"ready": False}
                 )
+
+            changedPartitions.append(partitionNumber)
             _LOGGER.debug(
                 "Partition " + str(partitionNumber) + " is in state " + partitionState["name"]
             )
             _LOGGER.debug(
                 json.dumps(self._alarmPanel.alarm_state["partition"][partitionNumber]["status"])
             )
+        return {STATE_CHANGE_PARTITION: changedPartitions}
 
     def handle_realtime_cid_event(self, code, data):
         """Handle when the envisalink sends us an alarm arm/disarm/trigger."""

@@ -28,6 +28,8 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
+from .pyenvisalink.const import STATE_CHANGE_PARTITION, PANEL_TYPE_HONEYWELL
+
 from .const import (
     CONF_HONEYWELL_ARM_NIGHT_MODE,
     CONF_PANIC,
@@ -38,8 +40,6 @@ from .const import (
     DEFAULT_PARTITION_SET,
     DOMAIN,
     LOGGER,
-    PANEL_TYPE_HONEYWELL,
-    STATE_UPDATE_TYPE_PARTITION,
 )
 
 from .models import EnvisalinkDevice
@@ -149,7 +149,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
                 self._attr_has_entity_name = False
 
         LOGGER.debug("Setting up alarm: %s", name)
-        super().__init__(name, controller, STATE_UPDATE_TYPE_PARTITION, partition_number)
+        super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
 
     @property
     def code_format(self) -> CodeFormat | None:
