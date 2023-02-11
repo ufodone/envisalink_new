@@ -27,6 +27,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
+    CONF_EVL_DISCOVERY_PORT,
     CONF_EVL_KEEPALIVE,
     CONF_EVL_PORT,
     CONF_PASS,
@@ -34,7 +35,9 @@ from .const import (
     CONF_USERNAME,
     CONF_ZONEDUMP_INTERVAL,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
+    DEFAULT_DISCOVERY_PORT,
     DEFAULT_KEEPALIVE,
+    DEFAULT_PORT,
     DEFAULT_TIMEOUT,
     DEFAULT_ZONEDUMP_INTERVAL,
     LOGGER,
@@ -53,7 +56,8 @@ class EnvisalinkController:
         # Config
         self.alarm_name = entry.title
         host = entry.data.get(CONF_HOST)
-        port = entry.data.get(CONF_EVL_PORT)
+        port = entry.data.get(CONF_EVL_PORT, DEFAULT_PORT)
+        discovery_port = entry.data.get(CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT)
         user = entry.data.get(CONF_USERNAME)
         password = str(entry.data.get(CONF_PASS))
 
@@ -76,6 +80,7 @@ class EnvisalinkController:
             hass.loop,
             connection_timeout,
             create_zone_bypass_switches,
+            httpPort=discovery_port,
         )
 
         self._listeners = {
@@ -222,7 +227,6 @@ class EnvisalinkController:
     def async_connection_status_callback(self, connected):
         """Handle when the evl rejects our login."""
         if not connected:
-            LOGGER.error("Lost connection to the envisalink device.")
             if not self.sync_connect.done():
                 self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED)
 

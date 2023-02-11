@@ -8,14 +8,18 @@
           "port": "[%key:common::config_flow::data::port%]",
           "user_name": "[%key:common::config_flow::data::username%]",
           "password": "[%key:common::config_flow::data::password%]",
-          "evl_version": "Envisalink version",
-          "panel_type": "Panel type"
+          "partition_set": "Partition list",
+          "zone_set": "Zone list",
+          "code": "Alarm code",
+          "discovery_port": "Discovery Port"
         }
       }
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "invalid_zone_spec": "invalid zone specification",
+      "invalid_partition_spec": "Invalid partition specification",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
@@ -26,9 +30,24 @@
     "step": {
       "init": {
         "data": {
-          "zone_set": "Zone list",
-          "partition_set": "Partition list",
-          "code": "Alarm code",
+          "Basic": "Basic",
+          "Advanced": "Advanced"
+        }
+      },
+      "basic": {
+        "data": {
+          "host": "[%key:component:envisalink_new:config:step:user:host%]",
+          "port": "[%key:component:envisalink_new:config:step:user:port%]",
+          "user_name": "[%key:component:envisalink_new:config:step:user:user_name%]",
+          "password": "[%key:component:envisalink_new:config:step:user:password%]",
+          "partition_set": "[%key:component:envisalink_new:config:step:user:partition_set%]",
+          "zone_set": "[%key:component:envisalink_new:config:step:user:zone_set%]",
+          "zone_set": "[%key:component:envisalink_new:config:step:user:code%]",
+          "discovery_port": "[%key:component:envisalink_new:config:step:user:discovery_port%]"
+        }
+      },
+      "advanced": {
+        "data": {
           "panic_type": "Panic type",
           "keepalive_interval": "Keep-alive interval",
           "zonedump_interval": "Zone dump interval",
@@ -41,8 +60,8 @@
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "invalid_zone_spec": "invalid zone specification",
-      "invalid_partition_spec": "invalid partition specification",
+      "invalid_zone_spec": "Invalid zone specification",
+      "invalid_partition_spec": "Invalid partition specification",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   }

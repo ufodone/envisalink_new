@@ -32,7 +32,7 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
-    partition_spec = entry.options.get(CONF_PARTITION_SET)
+    partition_spec = entry.data.get(CONF_PARTITION_SET)
     partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
     partition_info = entry.data.get(CONF_PARTITIONS)
     if partition_set is not None:

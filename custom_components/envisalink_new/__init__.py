@@ -128,24 +128,26 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
         if key in yaml:
             config_data[key] = yaml[key]
 
-    zone_spec = None
     zones = yaml.get(CONF_ZONES)
     if zones:
         zone_set = set()
         for zone_num in zones.keys():
             zone_set.add(int(zone_num))
         zone_spec = generate_range_string(zone_set)
+        if zone_spec is not None:
+            config_data[CONF_ZONE_SET] = zone_spec
 
         # Save off the zone names and types so we can update the corresponding entities later
         config_data[CONF_ZONES] = zones
 
-    partition_spec = None
     partitions = yaml.get(CONF_PARTITIONS)
     if partitions:
         partition_set = set()
         for part_num in partitions.keys():
             partition_set.add(int(part_num))
         partition_spec = generate_range_string(partition_set)
+        if partition_spec is not None:
+            config_data[CONF_PARTITION_SET] = partition_spec
 
         # Same off the parittion names so we can update the corresponding entities later
         config_data[CONF_PARTITIONS] = partitions
@@ -157,10 +159,6 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
     # store them temporarily in the config entry so they can later be transfered into options
     # since it is apparently not possible to create options as part of the import flow.
     options = {}
-    if zone_spec is not None:
-        options[CONF_ZONE_SET] = zone_spec
-    if partition_spec is not None:
-        options[CONF_PARTITION_SET] = partition_spec
     for key in (
         CONF_CODE,
         CONF_PANIC,
@@ -214,8 +212,6 @@ def _async_import_options_from_data_if_missing(
         CONF_ZONEDUMP_INTERVAL,
         CONF_TIMEOUT,
         CONF_CREATE_ZONE_BYPASS_SWITCHES,
-        CONF_ZONE_SET,
-        CONF_PARTITION_SET,
     ):
         if importable_option in yaml_options:
             item = yaml_options[importable_option]

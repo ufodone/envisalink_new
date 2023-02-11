@@ -33,7 +33,7 @@ async def async_setup_entry(
 
     controller = hass.data[DOMAIN][entry.entry_id]
 
-    zone_spec = entry.options.get(CONF_ZONE_SET)
+    zone_spec = entry.data.get(CONF_ZONE_SET)
     zone_set = parse_range_string(zone_spec, min_val=1, max_val=controller.controller.max_zones)
 
     zone_info = entry.data.get(CONF_ZONES)

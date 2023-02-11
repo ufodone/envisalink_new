@@ -32,7 +32,7 @@ async def async_setup_entry(
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
-        zone_spec = entry.options.get(CONF_ZONE_SET)
+        zone_spec = entry.data.get(CONF_ZONE_SET)
         zone_set = parse_range_string(zone_spec, min_val=1, max_val=controller.controller.max_zones)
         zone_info = entry.data.get(CONF_ZONES)
         if zone_set is not None:
