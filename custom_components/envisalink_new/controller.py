@@ -51,7 +51,7 @@ class EnvisalinkController:
         entry: ConfigEntry,
     ) -> None:
 
-        self._entry_id = entry.entry_id
+        self._unique_id = entry.unique_id
 
         # Config
         self.alarm_name = entry.title
@@ -145,18 +145,21 @@ class EnvisalinkController:
 
     @property
     def unique_id(self):
-        id = format_mac(self.controller.mac_address)
-        if not id:
-            LOGGER.warn("MAC address not available from EVL.  Using config entry ID as unique ID.")
-            id = self._entry_id
-        return id
-
+        return self._unique_id
 
     async def start(self) -> bool:
         LOGGER.info("Start envisalink")
-        result = await self.controller.discover()
-        if result != self.controller.ConnectionResult.SUCCESS:
-            raise ConfigEntryNotReady(self.get_exception_message(result, f"{self.controller.host}:{self.controller.httpPort}"))
+        await self.controller.discover()
+
+        if self.controller.mac_address:
+            mac = format_mac(self.controller.mac_address)
+            if mac != self._unique_id:
+                LOGGER.warn(
+                    "MAC address (%s) of EVL device (%s) does not match unique ID (%s).",
+                    mac,
+                    self.alarm_name,
+                    self._unique_id
+                )
 
         result = await self.controller.start()
         if result != self.controller.ConnectionResult.SUCCESS:
