@@ -123,11 +123,11 @@ class EnvisalinkClient:
 
             _LOGGER.debug("Starting read loop.")
 
-            await self.connect()
+            try:
+                await self.connect()
 
-            if self._reader and self._writer:
-                # Connected to EVL; start reading data from the connection
-                try:
+                if self._reader and self._writer:
+                    # Connected to EVL; start reading data from the connection
                     while not self._shutdown and self._reader:
                         _LOGGER.debug("Waiting for data from EVL")
                         try:
@@ -136,8 +136,10 @@ class EnvisalinkClient:
                             )
                         except asyncio.exceptions.TimeoutError:
                             continue
+                        except asyncio.IncompleteReadError:
+                            data = None
 
-                        if not data or len(data) == 0 or self._reader.at_eof():
+                        if not data or self._reader.at_eof():
                             _LOGGER.error("The server closed the connection.")
                             await self.disconnect()
                             break
@@ -148,9 +150,10 @@ class EnvisalinkClient:
 
                         self.process_data(data.strip())
                         _LOGGER.debug("}---------------------------------------")
-                except Exception as ex:
-                    _LOGGER.error("Caught unexpected exception: %r", ex)
-                    await self.disconnect()
+
+            except Exception as ex:
+                _LOGGER.error("Caught unexpected exception: %r", ex)
+                await self.disconnect()
 
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
@@ -201,7 +204,7 @@ class EnvisalinkClient:
             )
             await self.disconnect()
         except Exception as ex:
-            _LOGGER.error("Unable to connect to envisalink at %s: %r", self._alarmPanel.self, ex)
+            _LOGGER.error("Unable to connect to envisalink at %s: %r", self._alarmPanel.host, ex)
             await self.disconnect()
 
     async def disconnect(self):
@@ -225,6 +228,9 @@ class EnvisalinkClient:
         self._writer = None
         self._reader = None
 
+        # Clean out all the failed commands from the queue
+        self._commandEvent.set()
+
         self._alarmPanel.callback_connection_status(False)
 
     async def send_data(self, data, logData=None):
@@ -233,6 +239,10 @@ class EnvisalinkClient:
         if not logData:
             logData = self.scrub_sensitive_data(data)
         _LOGGER.debug("TX > %s", logData.encode("ascii"))
+
+        if not self._writer:
+            _LOGGER.debug("Unable to send data; not connected.")
+            return
 
         try:
             self._writer.write((data + "\r\n").encode("ascii"))
