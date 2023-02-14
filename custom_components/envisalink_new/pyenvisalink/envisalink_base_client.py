@@ -140,8 +140,9 @@ class EnvisalinkClient:
                             data = None
 
                         if not data or self._reader.at_eof():
-                            _LOGGER.error("The server closed the connection.")
-                            await self.disconnect()
+                            if self._writer:
+                                _LOGGER.error("The server closed the connection.")
+                                await self.disconnect()
                             break
 
                         data = data.decode("ascii")
