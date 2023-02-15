@@ -69,7 +69,7 @@ async def async_setup_entry(
 ) -> None:
 
     controller = hass.data[DOMAIN][entry.entry_id]
-    code = entry.options.get(CONF_CODE)
+    code = entry.data.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC)
     partition_info = entry.data.get(CONF_PARTITIONS)
     partition_spec = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)

@@ -8,7 +8,6 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 
 from homeassistant.const import (
-    CONF_CODE,
     CONF_HOST,
     CONF_TIMEOUT,
 )
@@ -160,7 +159,6 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
     # since it is apparently not possible to create options as part of the import flow.
     options = {}
     for key in (
-        CONF_CODE,
         CONF_PANIC,
         CONF_EVL_KEEPALIVE,
         CONF_ZONEDUMP_INTERVAL,
@@ -206,7 +204,6 @@ def _async_import_options_from_data_if_missing(
 
     modified = False
     for importable_option in (
-        CONF_CODE,
         CONF_PANIC,
         CONF_EVL_KEEPALIVE,
         CONF_ZONEDUMP_INTERVAL,
