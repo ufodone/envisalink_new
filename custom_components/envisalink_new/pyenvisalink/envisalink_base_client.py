@@ -139,7 +139,7 @@ class EnvisalinkClient:
                         except asyncio.IncompleteReadError:
                             data = None
 
-                        if not data or self._reader.at_eof():
+                        if not data:
                             if self._writer:
                                 _LOGGER.error("The server closed the connection.")
                                 await self.disconnect()
@@ -527,6 +527,7 @@ class EnvisalinkClient:
                     elif op.state == self.Operation.State.QUEUED:
                         # Send command to the EVL
                         op.state = self.Operation.State.SENT
+                        op.expiryTime = time.time() + self._alarmPanel.command_timeout
                         self._cachedCode = op.code
                         try:
                             await self.send_command(op.cmd, op.data, op.logData)
