@@ -14,6 +14,7 @@ from homeassistant.const import (
 
 from .const import (
     CONF_ALARM_NAME,
+    CONF_CODE,
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
     CONF_EVL_KEEPALIVE,
     CONF_EVL_PORT,
@@ -117,12 +118,13 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
        before sending it along to the config import flow."""
     config_data = {}
     for key in (
-        CONF_HOST,
+        CONF_CODE,
         CONF_EVL_PORT,
-        CONF_USERNAME,
-        CONF_PASS,
         CONF_EVL_VERSION,
+        CONF_HOST,
         CONF_PANEL_TYPE,
+        CONF_PASS,
+        CONF_USERNAME,
     ):
         if key in yaml:
             config_data[key] = yaml[key]
