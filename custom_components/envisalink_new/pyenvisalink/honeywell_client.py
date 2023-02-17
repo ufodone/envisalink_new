@@ -190,7 +190,10 @@ class HoneywellClient(EnvisalinkClient):
         partition_updates.append(partitionNumber)
         flags = IconLED_Flags()
         flags.asShort = int(dataList[1], 16)
-        user_zone_field = int(dataList[2])
+        try:
+            user_zone_field = int(dataList[2])
+        except ValueError:
+            user_zone_field = None
         beep = evl_Virtual_Keypad_How_To_Beep.get(dataList[3], "unknown")
         alpha = dataList[4]
         partition_status = HoneywellClient.get_partition_state(flags, alpha)
@@ -255,7 +258,7 @@ class HoneywellClient(EnvisalinkClient):
                 # TODO Add entry_delay to %00 update handler
                 _LOGGER.debug(f"Keypad is counting down to arm partition {partitionNumber}.")
 
-        elif isinstance(user_zone_field, int):
+        elif user_zone_field is not None:
             # Keypad is giving zone status. Update zone status and check zone timers
             _LOGGER.debug(f"Keypad is giving zone status for partition {partitionNumber}.")
 
