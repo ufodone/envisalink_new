@@ -1,22 +1,12 @@
 
-def find_yaml_zone_info(zone_num: int, zone_info: map) -> map:
-    if zone_info is None:
+def find_yaml_info(entry_number: int, info: map) -> map:
+    if info is None:
         return None
 
-    for key, entry in zone_info.items():
-        if int(key) == zone_num:
+    for key, entry in info.items():
+        if int(key) == entry_number:
             return entry
     return None
-
-def find_yaml_partition_info(part_num: int, part_info: map) -> map:
-    if part_info is None:
-        return None
-
-    for key, entry in part_info.items():
-        if int(key) == part_num:
-            return entry
-    return None
-
 
 def parse_range_string(sequence: str, min_val: int, max_val: int) -> set:
     # Empty strings are not valid

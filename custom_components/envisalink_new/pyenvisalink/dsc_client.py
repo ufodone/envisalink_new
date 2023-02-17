@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import logging
@@ -35,6 +36,7 @@ class DSCClient(EnvisalinkClient):
 
     def __init__(self, panel, loop):
         super().__init__(panel, loop)
+        self._loginEvent = asyncio.Event()
 
     def to_chars(string):
         chars = []
@@ -139,13 +141,32 @@ class DSCClient(EnvisalinkClient):
         self.create_internal_task(self.queue_login_response(), name="queue_login_response")
 
     async def queue_login_response(self):
+        self._loginEvent.clear()
         await self.queue_command(evl_Commands["Login"], self._alarmPanel.password)
+
+        # Wait until the 505 resposnse is received
+        try:
+            await asyncio.wait_for(
+                self._loginEvent.wait(), timeout=self._alarmPanel.connection_timeout
+            )
+        except Exception:
+            pass
+
+        if not self._loggedin:
+            # Timed out waiting for login
+            await self.disconnect()
 
     def handle_login_success(self, code, data):
         """Handler for when the envisalink accepts our credentials."""
         super().handle_login_success(code, data)
 
+        self._loginEvent.set()
         self.create_internal_task(self.complete_login(), name="complete_login")
+
+    def handle_login_failure(self, code, data):
+        """Handler for when the envisalink rejects our credentials."""
+        super().handle_login_failure(code, data)
+        self._loginEvent.set()
 
     async def complete_login(self):
         dt = datetime.datetime.now().strftime("%H%M%m%d%y")
