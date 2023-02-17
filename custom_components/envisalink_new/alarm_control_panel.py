@@ -44,7 +44,7 @@ from .const import (
 
 from .models import EnvisalinkDevice
 from .controller import EnvisalinkController
-from .helpers import find_yaml_partition_info, parse_range_string
+from .helpers import find_yaml_info, parse_range_string
 
 
 SERVICE_ALARM_KEYPRESS = "alarm_keypress"
@@ -84,7 +84,7 @@ async def async_setup_entry(
     if partition_set is not None:
         entities = []
         for part_num in partition_set:
-            part_entry = find_yaml_partition_info(part_num, partition_info)
+            part_entry = find_yaml_info(part_num, partition_info)
             entity = EnvisalinkAlarm(
                 hass,
                 part_num,

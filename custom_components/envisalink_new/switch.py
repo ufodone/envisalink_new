@@ -11,7 +11,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS
 
-from .helpers import find_yaml_zone_info, parse_range_string
+from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -38,7 +38,7 @@ async def async_setup_entry(
         if zone_set is not None:
             entities = []
             for zone_num in zone_set:
-                zone_entry = find_yaml_zone_info(zone_num, zone_info)
+                zone_entry = find_yaml_info(zone_num, zone_info)
 
                 entity = EnvisalinkSwitch(
                     hass,

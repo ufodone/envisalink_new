@@ -13,7 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .pyenvisalink.const import STATE_CHANGE_ZONE
 
-from .helpers import find_yaml_zone_info, parse_range_string
+from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
 from .const import (
     CONF_ZONENAME,
@@ -40,7 +40,7 @@ async def async_setup_entry(
     entities = []
     if zone_set is not None:
         for zone_num in zone_set:
-            zone_entry = find_yaml_zone_info(zone_num, zone_info)
+            zone_entry = find_yaml_info(zone_num, zone_info)
 
             entity = EnvisalinkBinarySensor(
                 hass,
