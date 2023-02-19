@@ -68,7 +68,6 @@ class EnvisalinkController:
         connection_timeout = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
         self.hass = hass
-        self.sync_connect: asyncio.Future[EnvisalinkAlarmPanel.ConnectionResult] = asyncio.Future()
 
         self.controller = EnvisalinkAlarmPanel(
             host,
@@ -77,7 +76,6 @@ class EnvisalinkController:
             password,
             zone_dump,
             keep_alive,
-            hass.loop,
             connection_timeout,
             create_zone_bypass_switches,
             httpPort=discovery_port,
@@ -165,16 +163,6 @@ class EnvisalinkController:
         if result != self.controller.ConnectionResult.SUCCESS:
             raise ConfigEntryNotReady(self.get_exception_message(result, f"{self.controller.host}:{self.controller.port}"))
 
-        result = await self.sync_connect
-        if result != self.controller.ConnectionResult.SUCCESS:
-            await self.stop()
-            raise ConfigEntryNotReady(
-                self.get_exception_message(
-                    result,
-                    f"{self.controller.host}:{self.controller.port}"
-                )
-            )
-
         return True
 
     async def stop(self):
@@ -206,33 +194,24 @@ class EnvisalinkController:
     def async_login_fail_callback(self):
         """Handle when the evl rejects our login."""
         LOGGER.error("The Envisalink rejected your credentials")
-        if not self.sync_connect.done():
-            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION)
         self._update_entity_states()
 
     @callback
     def async_login_timeout_callback(self):
         """Timed out trying to login"""
         LOGGER.error("Timed out trying to login to the Envisalink- retrying")
-        if not self.sync_connect.done():
-            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION)
         self._update_entity_states()
 
     @callback
     def async_login_success_callback(self):
         """Handle a successful login."""
         LOGGER.info("Established a connection and logged into the Envisalink")
-        if not self.sync_connect.done():
-            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.SUCCESS)
         self._update_entity_states()
 
     @callback
     def async_connection_status_callback(self, connected):
         """Handle when the evl rejects our login."""
         if not connected:
-            if not self.sync_connect.done():
-                self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED)
-
             # Trigger a state update for all the entities so they appear as unavailable
             self._update_entity_states()
         else:

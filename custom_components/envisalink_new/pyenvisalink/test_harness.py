@@ -64,8 +64,7 @@ async def main():
         user,
         pw,
         zoneTimerInterval=30,
-        zoneBypassEnabled=True,
-        eventLoop=loop,
+        zoneBypassEnabled=False,
         httpPort=httpPort,
         keepAliveInterval=60,
     )
@@ -90,12 +89,18 @@ async def main():
 
     result = await testpanel.start()
     if result == EnvisalinkAlarmPanel.ConnectionResult.SUCCESS:
+        print(f"### HERE {result}")
+
         # await asyncio.sleep(5)
         # loop.create_task(testpanel.arm_stay_partition("12345", 1))
         # loop.create_task(testpanel.arm_away_partition("12345", 1))
         # loop.create_task(testpanel.arm_max_partition("12345", 1))
         # loop.create_task(testpanel.arm_night_partition("12345", 1))
         # loop.create_task(testpanel.disarm_partition("12345", 1))
+#        await asyncio.sleep(0.1)
+#        loop.create_task(testpanel.toggle_zone_bypass(1))
+#        loop.create_task(testpanel.toggle_zone_bypass(2))
+#        loop.create_task(testpanel.toggle_zone_bypass(3))
         await asyncio.sleep(3600)
 
 
