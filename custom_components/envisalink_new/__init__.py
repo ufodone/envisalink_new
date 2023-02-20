@@ -4,6 +4,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_CODE, CONF_HOST, CONF_TIMEOUT, Platform
 from homeassistant.core import HomeAssistant, callback
@@ -25,12 +27,22 @@ from .const import (
     CONF_YAML_OPTIONS,
     CONF_ZONE_SET,
     CONF_ZONEDUMP_INTERVAL,
+    CONF_ZONENAME,
     CONF_ZONES,
+    CONF_ZONETYPE,
     DEFAULT_ALARM_NAME,
+    DEFAULT_EVL_VERSION,
+    DEFAULT_KEEPALIVE,
+    DEFAULT_PANIC,
+    DEFAULT_PORT,
+    DEFAULT_TIMEOUT,
+    DEFAULT_ZONEDUMP_INTERVAL,
+    DEFAULT_ZONETYPE,
     DOMAIN,
 )
 from .controller import EnvisalinkController
 from .helpers import generate_range_string
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 
 PLATFORMS: list[Platform] = [
     Platform.ALARM_CONTROL_PANEL,
@@ -38,6 +50,46 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.SWITCH,
 ]
+
+ZONE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_ZONENAME): cv.string,
+        vol.Optional(CONF_ZONETYPE, default=DEFAULT_ZONETYPE): cv.string,
+    }
+)
+
+PARTITION_SCHEMA = vol.Schema({vol.Required(CONF_PARTITIONNAME): cv.string})
+
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Required(CONF_HOST): cv.string,
+                vol.Required(CONF_PANEL_TYPE): vol.All(
+                    cv.string, vol.In([PANEL_TYPE_HONEYWELL, PANEL_TYPE_DSC])
+                ),
+                vol.Required(CONF_USERNAME): cv.string,
+                vol.Required(CONF_PASS): cv.string,
+                vol.Optional(CONF_CODE): cv.string,
+                vol.Optional(CONF_PANIC, default=DEFAULT_PANIC): cv.string,
+                vol.Optional(CONF_ZONES): {vol.Coerce(int): ZONE_SCHEMA},
+                vol.Optional(CONF_PARTITIONS): {vol.Coerce(int): PARTITION_SCHEMA},
+                vol.Optional(CONF_EVL_PORT, default=DEFAULT_PORT): cv.port,
+                vol.Optional(CONF_EVL_VERSION, default=DEFAULT_EVL_VERSION): vol.All(
+                    vol.Coerce(int), vol.Range(min=3, max=4)
+                ),
+                vol.Optional(CONF_EVL_KEEPALIVE, default=DEFAULT_KEEPALIVE): vol.All(
+                    vol.Coerce(int), vol.Range(min=15)
+                ),
+                vol.Optional(
+                    CONF_ZONEDUMP_INTERVAL, default=DEFAULT_ZONEDUMP_INTERVAL
+                ): vol.Coerce(int),
+                vol.Optional(CONF_TIMEOUT, default=DEFAULT_TIMEOUT): vol.Coerce(int),
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -180,7 +232,8 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
         if key in yaml:
             options[key] = yaml[key]
 
-    config_data[CONF_YAML_OPTIONS] = options
+    if options:
+        config_data[CONF_YAML_OPTIONS] = options
 
     return config_data
 
