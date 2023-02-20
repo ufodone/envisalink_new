@@ -435,7 +435,7 @@ class EnvisalinkClient:
             )
             self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = zoneInfo["seconds"]
             _LOGGER.debug("(zone %i) %s", zoneNumber, zoneInfo["status"])
-        return {"zone": results}
+        return {STATE_CHANGE_ZONE: results}
 
     async def queue_command(self, cmd, data, code=None):
         return await self.queue_commands([{"cmd": cmd, "data": data, "code": code}])

@@ -121,18 +121,12 @@ class EnvisalinkController:
         state_info[state_key].append((remove_listener, update_callback))
         return remove_listener
 
-    def _process_state_change(self, update_type: str, update_keys : list = None):
+    def _process_state_change(self, update_type: str, update_keys : list):
         state_info = self._listeners[update_type]
-        if update_keys is None:
-            # No specific zone/partition provided so update all the listeners
-            for key_list in state_info.values():
-                for listener in key_list:
+        for key in update_keys:
+            if key in state_info:
+                for listener in state_info[key]:
                     listener[1]()
-        else:
-            for key in update_keys:
-                if key in state_info:
-                    for listener in state_info[key]:
-                        listener[1]()
 
     def _update_entity_states(self):
         """Trigger a state update for all entities"""
@@ -186,8 +180,6 @@ class EnvisalinkController:
 
     @property
     def available(self) -> bool:
-        if not self.controller:
-            return False
         return self.controller.is_online()
 
     @callback
@@ -227,7 +219,7 @@ class EnvisalinkController:
     def async_keypad_updated_callback(self, data):
         """Handle non-alarm based info updates."""
         LOGGER.debug("Envisalink sent '%s' new alarm info. Updating alarms: %r", self.alarm_name, data)
-        self._process_state_change(STATE_CHANGE_PARTITION)
+        self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
     def async_partition_updated_callback(self, data):
