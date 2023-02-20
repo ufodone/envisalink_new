@@ -1,39 +1,37 @@
 """Support for Envisalink zone bypass switches."""
 from __future__ import annotations
 
-import logging
-
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS
-
-from .helpers import find_yaml_info, parse_range_string
-from .models import EnvisalinkDevice
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
+    CONF_ZONE_SET,
     CONF_ZONENAME,
     CONF_ZONES,
-    CONF_ZONE_SET,
     DOMAIN,
     LOGGER,
 )
+from .helpers import find_yaml_info, parse_range_string
+from .models import EnvisalinkDevice
+from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-
     controller = hass.data[DOMAIN][entry.entry_id]
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
         zone_spec = entry.data.get(CONF_ZONE_SET)
-        zone_set = parse_range_string(zone_spec, min_val=1, max_val=controller.controller.max_zones)
+        zone_set = parse_range_string(
+            zone_spec, min_val=1, max_val=controller.controller.max_zones
+        )
         zone_info = entry.data.get(CONF_ZONES)
         if zone_set is not None:
             entities = []
@@ -86,4 +84,3 @@ class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
         await self._controller.controller.toggle_zone_bypass(self._zone_number)
-

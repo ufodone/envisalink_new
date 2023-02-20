@@ -1,29 +1,11 @@
 """Support for Envisalink devices."""
-import asyncio
-import logging
-from typing import Any
 from collections.abc import Callable
 
-from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
-from .pyenvisalink.const import (
-    STATE_CHANGE_KEYPAD,
-    STATE_CHANGE_PARTITION,
-    STATE_CHANGE_ZONE,
-    STATE_CHANGE_ZONE_BYPASS,
-)
-
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_TIMEOUT,
-    EVENT_HOMEASSISTANT_STOP,
-)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.helpers.discovery import async_load_platform
-from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.device_registry import format_mac
+from homeassistant.const import CONF_HOST, CONF_TIMEOUT
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.device_registry import format_mac
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -31,7 +13,6 @@ from .const import (
     CONF_EVL_KEEPALIVE,
     CONF_EVL_PORT,
     CONF_PASS,
-    CONF_TIMEOUT,
     CONF_USERNAME,
     CONF_ZONEDUMP_INTERVAL,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
@@ -42,15 +23,20 @@ from .const import (
     DEFAULT_ZONEDUMP_INTERVAL,
     LOGGER,
 )
+from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
+from .pyenvisalink.const import (
+    STATE_CHANGE_PARTITION,
+    STATE_CHANGE_ZONE,
+    STATE_CHANGE_ZONE_BYPASS,
+)
+
 
 class EnvisalinkController:
-
     def __init__(
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
     ) -> None:
-
         self._unique_id = entry.unique_id
 
         # Config
@@ -61,10 +47,12 @@ class EnvisalinkController:
         user = entry.data.get(CONF_USERNAME)
         password = str(entry.data.get(CONF_PASS))
 
-        # Options 
+        # Options
         keep_alive = entry.options.get(CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE)
         zone_dump = entry.options.get(CONF_ZONEDUMP_INTERVAL, DEFAULT_ZONEDUMP_INTERVAL)
-        create_zone_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES, DEFAULT_CREATE_ZONE_BYPASS_SWITCHES)
+        create_zone_bypass_switches = entry.options.get(
+            CONF_CREATE_ZONE_BYPASS_SWITCHES, DEFAULT_CREATE_ZONE_BYPASS_SWITCHES
+        )
         connection_timeout = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
         self.hass = hass
@@ -82,30 +70,39 @@ class EnvisalinkController:
         )
 
         self._listeners = {
-            STATE_CHANGE_PARTITION : { },
-            STATE_CHANGE_ZONE : { },
-            STATE_CHANGE_ZONE_BYPASS : { },
+            STATE_CHANGE_PARTITION: {},
+            STATE_CHANGE_ZONE: {},
+            STATE_CHANGE_ZONE_BYPASS: {},
         }
 
-
-        self.controller.callback_connection_status = self.async_connection_status_callback
+        self.controller.callback_connection_status = (
+            self.async_connection_status_callback
+        )
         self.controller.callback_login_failure = self.async_login_fail_callback
         self.controller.callback_login_timeout = self.async_login_timeout_callback
         self.controller.callback_login_success = self.async_login_success_callback
 
         self.controller.callback_keypad_update = self.async_keypad_updated_callback
         self.controller.callback_zone_state_change = self.async_zones_updated_callback
-        self.controller.callback_zone_bypass_state_change = self.async_zone_bypass_update
-        self.controller.callback_partition_state_change = self.async_partition_updated_callback
-
-        LOGGER.debug("Created EnvisalinkController for %s (host=%s port=%r)",
-            self.alarm_name,
-            host,
-            port
+        self.controller.callback_zone_bypass_state_change = (
+            self.async_zone_bypass_update
+        )
+        self.controller.callback_partition_state_change = (
+            self.async_partition_updated_callback
         )
 
-    def add_state_change_listener(self, state_type, state_key, update_callback) -> Callable[[], None]:
-        """Register an entity to have a state update triggered when it's underlying data is changed."""
+        LOGGER.debug(
+            "Created EnvisalinkController for %s (host=%s port=%r)",
+            self.alarm_name,
+            host,
+            port,
+        )
+
+    def add_state_change_listener(
+        self, state_type, state_key, update_callback
+    ) -> Callable[[], None]:
+        """Register an entity to have a state update triggered when it's underlying
+        data is changed."""
 
         def remove_listener() -> None:
             for state_types in self._listeners.values():
@@ -121,7 +118,7 @@ class EnvisalinkController:
         state_info[state_key].append((remove_listener, update_callback))
         return remove_listener
 
-    def _process_state_change(self, update_type: str, update_keys : list):
+    def _process_state_change(self, update_type: str, update_keys: list):
         state_info = self._listeners[update_type]
         for key in update_keys:
             if key in state_info:
@@ -147,15 +144,22 @@ class EnvisalinkController:
             mac = format_mac(self.controller.mac_address)
             if mac != self._unique_id:
                 LOGGER.warn(
-                    "MAC address (%s) of EVL device (%s) does not match unique ID (%s).",
+                    (
+                        "MAC address (%s) of EVL device (%s) does not match "
+                        "unique ID (%s)."
+                    ),
                     mac,
                     self.alarm_name,
-                    self._unique_id
+                    self._unique_id,
                 )
 
         result = await self.controller.start()
         if result != self.controller.ConnectionResult.SUCCESS:
-            raise ConfigEntryNotReady(self.get_exception_message(result, f"{self.controller.host}:{self.controller.port}"))
+            raise ConfigEntryNotReady(
+                self.get_exception_message(
+                    result, f"{self.controller.host}:{self.controller.port}"
+                )
+            )
 
         return True
 
@@ -212,25 +216,39 @@ class EnvisalinkController:
     @callback
     def async_zones_updated_callback(self, data):
         """Handle zone state updates."""
-        LOGGER.debug("Envisalink sent a '%s' zone update event. Updating zones: %r", self.alarm_name, data)
+        LOGGER.debug(
+            "Envisalink sent a '%s' zone update event. Updating zones: %r",
+            self.alarm_name,
+            data,
+        )
         self._process_state_change(STATE_CHANGE_ZONE, data)
 
     @callback
     def async_keypad_updated_callback(self, data):
         """Handle non-alarm based info updates."""
-        LOGGER.debug("Envisalink sent '%s' new alarm info. Updating alarms: %r", self.alarm_name, data)
+        LOGGER.debug(
+            "Envisalink sent '%s' new alarm info. Updating alarms: %r",
+            self.alarm_name,
+            data,
+        )
         self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
     def async_partition_updated_callback(self, data):
         """Handle partition changes thrown by evl (including alarms)."""
-        LOGGER.debug("The envisalink '%s' sent a partition update event: %r", self.alarm_name, data)
+        LOGGER.debug(
+            "The envisalink '%s' sent a partition update event: %r",
+            self.alarm_name,
+            data,
+        )
         self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
     def async_zone_bypass_update(self, data):
         """Handle zone bypass status updates."""
-        LOGGER.debug("Envisalink '%s' sent a zone bypass update event. Updating zones: %r", self.alarm_name, data)
+        LOGGER.debug(
+            "Envisalink '%s' sent a zone bypass update event. Updating zones: %r",
+            self.alarm_name,
+            data,
+        )
         self._process_state_change(STATE_CHANGE_ZONE_BYPASS, data)
-
-

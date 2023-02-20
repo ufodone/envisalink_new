@@ -1,4 +1,3 @@
-
 def find_yaml_info(entry_number: int, info: map) -> map:
     if info is None:
         return None
@@ -8,19 +7,20 @@ def find_yaml_info(entry_number: int, info: map) -> map:
             return entry
     return None
 
+
 def parse_range_string(sequence: str, min_val: int, max_val: int) -> set:
     # Empty strings are not valid
     if sequence is None or len(sequence) == 0:
         return None
 
     # Make sure there are only valid characters
-    valid_chars = '1234567890,- '
+    valid_chars = "1234567890,- "
     v = sequence.strip(valid_chars)
     if len(v) != 0:
         return None
 
     # Strip whitespace
-    sequence = sequence.strip(' ')
+    sequence = sequence.strip(" ")
 
     r = []
     for seg in sequence.split(","):
@@ -44,17 +44,18 @@ def parse_range_string(sequence: str, min_val: int, max_val: int) -> set:
 
     return sorted(set(r))
 
+
 def generate_range_string(seq: set) -> str:
     if len(seq) == 0:
         return None
-    l = list(seq)
+    lst = list(seq)
     if len(seq) == 1:
-        return str(l[0])
+        return str(lst[0])
 
     result = ""
-    l.sort()
-    end = start = l[0]
-    for i in l[1:]:
+    lst.sort()
+    end = start = lst[0]
+    for i in lst[1:]:
         if i == (end + 1):
             end = i
         else:

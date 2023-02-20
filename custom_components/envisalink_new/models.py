@@ -2,11 +2,10 @@
 from homeassistant.helpers.entity import DeviceInfo, Entity
 
 from .const import DOMAIN, LOGGER
-from .controller import EnvisalinkController
+
 
 class EnvisalinkDevice(Entity):
     """Representation of an Envisalink device."""
-
 
     def __init__(self, name, controller, state_update_type, state_update_key):
         """Initialize the device."""
@@ -23,9 +22,7 @@ class EnvisalinkDevice(Entity):
 
         self.async_on_remove(
             self._controller.add_state_change_listener(
-                self._state_update_type,
-                self._state_update_key,
-                state_updated
+                self._state_update_type, self._state_update_key, state_updated
             )
         )
 
@@ -35,8 +32,11 @@ class EnvisalinkDevice(Entity):
         return DeviceInfo(
             identifiers={(DOMAIN, self._controller.unique_id)},
             name=self._controller.alarm_name,
-            manufacturer='eyezon',
-            model=f'Envisalink {self._controller.controller.envisalink_version}: {self._controller.controller.panel_type}',
+            manufacturer="eyezon",
+            model=(
+                f"Envisalink {self._controller.controller.envisalink_version}: "
+                "{self._controller.controller.panel_type}"
+            ),
             sw_version=self._controller.controller.firmware_version,
             hw_version=self._controller.controller.envisalink_version,
             configuration_url=f"http://{self._controller.controller.host}",

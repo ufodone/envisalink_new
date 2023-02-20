@@ -20,7 +20,8 @@ invoke_custom_function:
   name: Invoke custom function
   description: >
     Allows users with DSC panels to trigger a PGM output (1-4).
-    Note that you need to specify the alarm panel's "code" parameter for this to work.
+    Note that you need to specify the alarm panel's "code" parameter for
+    this to work.
   target:
     entity:
       integration: envisalink_new
@@ -39,4 +40,4 @@ invoke_custom_function:
       description: The alarm code for the selected partition
       required: false
       selector:
-          text:
+        text:

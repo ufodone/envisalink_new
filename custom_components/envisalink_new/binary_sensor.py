@@ -2,39 +2,39 @@
 from __future__ import annotations
 
 import datetime
-import logging
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_LAST_TRIP_TIME
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .pyenvisalink.const import STATE_CHANGE_ZONE
-
-from .helpers import find_yaml_info, parse_range_string
-from .models import EnvisalinkDevice
 from .const import (
+    CONF_ZONE_SET,
     CONF_ZONENAME,
     CONF_ZONES,
     CONF_ZONETYPE,
-    CONF_ZONE_SET,
     DEFAULT_ZONETYPE,
     DOMAIN,
     LOGGER,
 )
+from .helpers import find_yaml_info, parse_range_string
+from .models import EnvisalinkDevice
+from .pyenvisalink.const import STATE_CHANGE_ZONE
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-
     controller = hass.data[DOMAIN][entry.entry_id]
 
     zone_spec = entry.data.get(CONF_ZONE_SET)
-    zone_set = parse_range_string(zone_spec, min_val=1, max_val=controller.controller.max_zones)
+    zone_set = parse_range_string(
+        zone_spec, min_val=1, max_val=controller.controller.max_zones
+    )
 
     zone_info = entry.data.get(CONF_ZONES)
     entities = []
@@ -120,4 +120,3 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
     def device_class(self):
         """Return the class of this sensor, from DEVICE_CLASSES."""
         return self._zone_type
-

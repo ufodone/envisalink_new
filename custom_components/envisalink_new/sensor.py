@@ -1,27 +1,21 @@
 """Support for Envisalink sensors (shows panel info)."""
 from __future__ import annotations
 
-import logging
-
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-
-from .pyenvisalink.const import STATE_CHANGE_PARTITION
 
 from .const import (
-    DOMAIN,
-    LOGGER,
+    CONF_PARTITION_SET,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
-    CONF_PARTITION_SET,
-    DEFAULT_PARTITION_SET,
+    DOMAIN,
+    LOGGER,
 )
-
-from .models import EnvisalinkDevice
 from .helpers import find_yaml_info, parse_range_string
+from .models import EnvisalinkDevice
+from .pyenvisalink.const import STATE_CHANGE_PARTITION
 
 
 async def async_setup_entry(
@@ -29,11 +23,12 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-
     controller = hass.data[DOMAIN][entry.entry_id]
 
     partition_spec = entry.data.get(CONF_PARTITION_SET)
-    partition_set = parse_range_string(partition_spec, min_val=1, max_val=controller.controller.max_partitions)
+    partition_set = parse_range_string(
+        partition_spec, min_val=1, max_val=controller.controller.max_partitions
+    )
     partition_info = entry.data.get(CONF_PARTITIONS)
     if partition_set is not None:
         entities = []
@@ -49,8 +44,6 @@ async def async_setup_entry(
             entities.append(entity)
 
         async_add_entities(entities)
-
-
 
 
 class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
@@ -75,7 +68,9 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][self._partition_number]
+        return self._controller.controller.alarm_state["partition"][
+            self._partition_number
+        ]
 
     @property
     def icon(self):
@@ -91,4 +86,3 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         return self._info["status"]
-
