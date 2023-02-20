@@ -24,8 +24,8 @@ _LOGGER = logging.getLogger(__name__)
 class HoneywellClient(EnvisalinkClient):
     """Represents a honeywell alarm client."""
 
-    def __init__(self, panel, loop):
-        super().__init__(panel, loop)
+    def __init__(self, panel):
+        super().__init__(panel)
         self._zoneTimers = {}
 
     def detect(prompt):
