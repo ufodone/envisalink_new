@@ -253,7 +253,7 @@ class EnvisalinkAlarmPanel:
                 self._port,
             )
         )
-        self._syncConnect: asyncio.Future[ConnectionResult] = asyncio.Future()
+        self._syncConnect: asyncio.Future[self.ConnectionResult] = asyncio.Future()
         if self._panelType == PANEL_TYPE_HONEYWELL:
             self._client = HoneywellClient(self)
             self._client.start()
