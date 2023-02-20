@@ -68,7 +68,6 @@ class EnvisalinkController:
         connection_timeout = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
         self.hass = hass
-        self.sync_connect: asyncio.Future[EnvisalinkAlarmPanel.ConnectionResult] = asyncio.Future()
 
         self.controller = EnvisalinkAlarmPanel(
             host,
@@ -77,7 +76,6 @@ class EnvisalinkController:
             password,
             zone_dump,
             keep_alive,
-            hass.loop,
             connection_timeout,
             create_zone_bypass_switches,
             httpPort=discovery_port,
@@ -123,18 +121,12 @@ class EnvisalinkController:
         state_info[state_key].append((remove_listener, update_callback))
         return remove_listener
 
-    def _process_state_change(self, update_type: str, update_keys : list = None):
+    def _process_state_change(self, update_type: str, update_keys : list):
         state_info = self._listeners[update_type]
-        if update_keys is None:
-            # No specific zone/partition provided so update all the listeners
-            for key_list in state_info.values():
-                for listener in key_list:
+        for key in update_keys:
+            if key in state_info:
+                for listener in state_info[key]:
                     listener[1]()
-        else:
-            for key in update_keys:
-                if key in state_info:
-                    for listener in state_info[key]:
-                        listener[1]()
 
     def _update_entity_states(self):
         """Trigger a state update for all entities"""
@@ -165,16 +157,6 @@ class EnvisalinkController:
         if result != self.controller.ConnectionResult.SUCCESS:
             raise ConfigEntryNotReady(self.get_exception_message(result, f"{self.controller.host}:{self.controller.port}"))
 
-        result = await self.sync_connect
-        if result != self.controller.ConnectionResult.SUCCESS:
-            await self.stop()
-            raise ConfigEntryNotReady(
-                self.get_exception_message(
-                    result,
-                    f"{self.controller.host}:{self.controller.port}"
-                )
-            )
-
         return True
 
     async def stop(self):
@@ -198,41 +180,30 @@ class EnvisalinkController:
 
     @property
     def available(self) -> bool:
-        if not self.controller:
-            return False
         return self.controller.is_online()
 
     @callback
     def async_login_fail_callback(self):
         """Handle when the evl rejects our login."""
         LOGGER.error("The Envisalink rejected your credentials")
-        if not self.sync_connect.done():
-            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION)
         self._update_entity_states()
 
     @callback
     def async_login_timeout_callback(self):
         """Timed out trying to login"""
         LOGGER.error("Timed out trying to login to the Envisalink- retrying")
-        if not self.sync_connect.done():
-            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION)
         self._update_entity_states()
 
     @callback
     def async_login_success_callback(self):
         """Handle a successful login."""
         LOGGER.info("Established a connection and logged into the Envisalink")
-        if not self.sync_connect.done():
-            self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.SUCCESS)
         self._update_entity_states()
 
     @callback
     def async_connection_status_callback(self, connected):
         """Handle when the evl rejects our login."""
         if not connected:
-            if not self.sync_connect.done():
-                self.sync_connect.set_result(EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED)
-
             # Trigger a state update for all the entities so they appear as unavailable
             self._update_entity_states()
         else:
@@ -248,7 +219,7 @@ class EnvisalinkController:
     def async_keypad_updated_callback(self, data):
         """Handle non-alarm based info updates."""
         LOGGER.debug("Envisalink sent '%s' new alarm info. Updating alarms: %r", self.alarm_name, data)
-        self._process_state_change(STATE_CHANGE_PARTITION)
+        self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
     def async_partition_updated_callback(self, data):

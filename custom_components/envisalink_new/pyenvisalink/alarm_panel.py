@@ -32,6 +32,7 @@ class EnvisalinkAlarmPanel:
         INVALID_PANEL_TYPE = "invalid_panel_type"
         INVALID_EVL_VERSION = "invalid_evl_version"
         DISCOVERY_NOT_COMPLETE = "discovery_not_complete"
+        TIMEOUT = "timeout"
 
     def __init__(
         self,
@@ -41,7 +42,6 @@ class EnvisalinkAlarmPanel:
         password="user",
         zoneTimerInterval=20,
         keepAliveInterval=30,
-        eventLoop=None,
         connectionTimeout=10,
         zoneBypassEnabled=False,
         commandTimeout=5.0,
@@ -62,7 +62,6 @@ class EnvisalinkAlarmPanel:
         self._maxPartitions = EnvisalinkAlarmPanel.get_max_partitions()
         self._alarmState = None
         self._client = None
-        self._eventLoop = eventLoop
         self._zoneBypassEnabled = zoneBypassEnabled
         self._commandTimeout = commandTimeout
 
@@ -254,17 +253,26 @@ class EnvisalinkAlarmPanel:
                 self._port,
             )
         )
+        self._syncConnect: asyncio.Future[self.ConnectionResult] = asyncio.Future()
         if self._panelType == PANEL_TYPE_HONEYWELL:
-            self._client = HoneywellClient(self, self._eventLoop)
+            self._client = HoneywellClient(self)
             self._client.start()
         elif self._panelType == PANEL_TYPE_DSC:
-            self._client = DSCClient(self, self._eventLoop)
+            self._client = DSCClient(self)
             self._client.start()
         else:
             _LOGGER.error("Unexpected panel type: '%s'", self._panelType)
             return self.ConnectionResult.INVALID_PANEL_TYPE
 
-        return self.ConnectionResult.SUCCESS
+        # Wait until we are successfully connected and authenticated
+        try:
+            result = await asyncio.wait_for(self._syncConnect, self.connection_timeout)
+        except asyncio.exceptions.TimeoutError:
+            result = self.ConnectionResult.TIMEOUT
+
+        if result != self.ConnectionResult.SUCCESS:
+            await self.stop()
+        return result
 
     async def stop(self):
         """Shut down and close our connection to the envisalink."""
@@ -501,3 +509,24 @@ class EnvisalinkAlarmPanel:
         if not self._client:
             return False
         return self._client.is_online()
+
+    def handle_connection_status(self, status):
+        if not status and not self._syncConnect.done():
+            self._syncConnect.set_result(self.ConnectionResult.CONNECTION_FAILED)
+
+        self.callback_connection_status(status)
+
+    def handle_login_success(self):
+        if not self._syncConnect.done():
+            self._syncConnect.set_result(self.ConnectionResult.SUCCESS)
+        self.callback_login_success()
+
+    def handle_login_failure(self):
+        if not self._syncConnect.done():
+            self._syncConnect.set_result(self.ConnectionResult.INVALID_AUTHORIZATION)
+        self.callback_login_failure()
+
+    def handle_login_timeout(self):
+        if not self._syncConnect.done():
+            self._syncConnect.set_result(self.ConnectionResult.INVALID_AUTHORIZATION)
+        self.callback_login_timeout()

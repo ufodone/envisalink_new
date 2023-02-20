@@ -47,7 +47,6 @@ def async_partition_state_change(data):
 
 async def main():
     global testpanel
-    loop = asyncio.get_running_loop()
 
     action = sys.argv[1]
     host = sys.argv[2]
@@ -65,7 +64,6 @@ async def main():
         pw,
         zoneTimerInterval=30,
         zoneBypassEnabled=True,
-        eventLoop=loop,
         httpPort=httpPort,
         keepAliveInterval=60,
     )

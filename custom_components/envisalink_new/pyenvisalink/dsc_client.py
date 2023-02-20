@@ -34,8 +34,8 @@ class DSCClient(EnvisalinkClient):
         login = code + data + DSCClient.get_checksum(code, data)
         return prompt == login
 
-    def __init__(self, panel, loop):
-        super().__init__(panel, loop)
+    def __init__(self, panel):
+        super().__init__(panel)
         self._loginEvent = asyncio.Event()
 
     def to_chars(string):

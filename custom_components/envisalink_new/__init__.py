@@ -178,17 +178,10 @@ def choose_alarm_name(partitions) -> str:
     # If there is only a single partition defined, then use it
     name = DEFAULT_ALARM_NAME
 
-    if not partitions:
-        return DEFAULT_ALARM_NAME
-
     if partitions:
-        if len(partitions) == 1:
-            # Only a single partition defined so use it
-            part_info = next(iter(partitions.values()))
-        else:
-            # Multiple partitions so choose the smallest value
-            part_num = min(partitions, key=int)
-            part_info = partitions[part_num]
+        # Multiple partitions so choose the smallest value
+        part_num = min(partitions, key=int)
+        part_info = partitions[part_num]
 
         name = part_info.get(CONF_PARTITIONNAME, DEFAULT_ALARM_NAME)
 
