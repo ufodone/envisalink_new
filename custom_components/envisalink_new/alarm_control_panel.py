@@ -58,11 +58,12 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up the alarm panel based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.data.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC)
     partition_info = entry.data.get(CONF_PARTITIONS)
-    partition_spec = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+    partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(
         partition_spec, min_val=1, max_val=controller.controller.max_partitions
     )
@@ -157,9 +158,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][
-            self._partition_number
-        ]
+        return self._controller.controller.alarm_state["partition"][self._partition_number]
 
     @property
     def state(self) -> str:
@@ -238,6 +237,4 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         """Send custom/PGM to EVL."""
         if not code:
             code = self._code
-        await self._controller.controller.command_output(
-            code, self._partition_number, pgm
-        )
+        await self._controller.controller.command_output(code, self._partition_number, pgm)

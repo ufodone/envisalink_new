@@ -1,4 +1,4 @@
-"""The Envisalink_new integration."""
+"""The Envisalink integration."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -129,10 +129,8 @@ def _async_find_matching_config_entry(
     return None
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: config_entries.ConfigEntry
-) -> bool:
-    """Set up Envisalink_new from a config entry."""
+async def async_setup_entry(hass: HomeAssistant, entry: config_entries.ConfigEntry) -> bool:
+    """Set up Envisalink from a config entry."""
 
     # As there currently is no way to import options from yaml
     # when setting up a config entry, we fallback to adding
@@ -175,8 +173,9 @@ async def async_reload_entry(
 
 
 def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
-    """The yaml config schema is different than the ConfigEntry schema so transform it
-    before sending it along to the config import flow."""
+    # The yaml config schema is different than the ConfigEntry schema so transform it
+    # before sending it along to the config import flow.
+
     config_data = {}
     for key in (
         CONF_CODE,
@@ -239,6 +238,8 @@ def _transform_yaml_to_config_entry(yaml: dict[str, Any]) -> dict[str, Any]:
 
 
 def choose_alarm_name(partitions) -> str:
+    """Choose the alarm name based on what partitions are present in configuration.yaml."""
+
     # If there is only a single partition defined, then use it
     name = DEFAULT_ALARM_NAME
 

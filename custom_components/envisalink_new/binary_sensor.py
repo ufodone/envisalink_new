@@ -29,9 +29,10 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up the zone binary sensors based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
 
-    zone_spec = entry.data.get(CONF_ZONE_SET)
+    zone_spec: str = entry.data.get(CONF_ZONE_SET, "")
     zone_set = parse_range_string(
         zone_spec, min_val=1, max_val=controller.controller.max_zones
     )

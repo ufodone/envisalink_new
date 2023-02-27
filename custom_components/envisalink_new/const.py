@@ -1,4 +1,4 @@
-"""Constants for the Envisalink_new integration."""
+"""Constants for the Envisalink integration."""
 
 import logging
 

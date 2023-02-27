@@ -1,4 +1,8 @@
-def find_yaml_info(entry_number: int, info: map) -> map:
+"""Helper functions for the Envisalink integration."""
+
+
+def find_yaml_info(entry_number: int, info) -> map | None:
+    """Locate the given entry from a dict whose keys may be strings."""
     if info is None:
         return None
 
@@ -8,44 +12,47 @@ def find_yaml_info(entry_number: int, info: map) -> map:
     return None
 
 
-def parse_range_string(sequence: str, min_val: int, max_val: int) -> set:
+def parse_range_string(sequence: str, min_val: int, max_val: int) -> list | None:
+    """Parse a string into a set of zones/partitions."""
+
     # Empty strings are not valid
     if sequence is None or len(sequence) == 0:
         return None
 
     # Make sure there are only valid characters
     valid_chars = "1234567890,- "
-    v = sequence.strip(valid_chars)
-    if len(v) != 0:
+    stripped = sequence.strip(valid_chars)
+    if len(stripped) != 0:
         return None
 
     # Strip whitespace
     sequence = sequence.strip(" ")
 
-    r = []
+    range_list = []
     for seg in sequence.split(","):
         nums = seg.split("-")
-        for v in nums:
-            if len(v) == 0:
+        for num_str in nums:
+            if len(num_str) == 0:
                 return None
-            v = int(v)
-            if v < min_val or v > max_val:
+            value = int(num_str)
+            if value < min_val or value > max_val:
                 return None
         if len(nums) == 1:
-            r.append(int(nums[0]))
+            range_list.append(int(nums[0]))
         elif len(nums) == 2:
             for i in range(int(nums[0]), int(nums[1]) + 1):
-                r.append(i)
+                range_list.append(i)
         else:
             return None
 
-    if len(r) == 0:
+    if len(range_list) == 0:
         return None
 
-    return sorted(set(r))
+    return sorted(set(range_list))
 
 
-def generate_range_string(seq: set) -> str:
+def generate_range_string(seq: set) -> str | None:
+    """Generate a string representation of a range of zones/partitions."""
     if len(seq) == 0:
         return None
     lst = list(seq)
@@ -69,5 +76,4 @@ def generate_range_string(seq: set) -> str:
         result += f"{start}"
     else:
         result += f"{start}-{end}"
-    start = end = i
     return result

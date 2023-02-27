@@ -23,9 +23,10 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up the alarm keypad entity based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
 
-    partition_spec = entry.data.get(CONF_PARTITION_SET)
+    partition_spec: str = entry.data.get(CONF_PARTITION_SET, "")
     partition_set = parse_range_string(
         partition_spec, min_val=1, max_val=controller.controller.max_partitions
     )
@@ -68,9 +69,7 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][
-            self._partition_number
-        ]
+        return self._controller.controller.alarm_state["partition"][self._partition_number]
 
     @property
     def icon(self):

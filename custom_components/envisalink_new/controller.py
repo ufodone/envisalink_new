@@ -32,11 +32,14 @@ from .pyenvisalink.const import (
 
 
 class EnvisalinkController:
+    """Controller class for managing interactions with the underlying Envisalink device."""
+
     def __init__(
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
     ) -> None:
+        """Initialize the controller for the Envisalink device."""
         self._unique_id = entry.unique_id
 
         # Config
@@ -69,24 +72,20 @@ class EnvisalinkController:
             httpPort=discovery_port,
         )
 
-        self._listeners = {
+        self._listeners: dict[str, dict] = {
             STATE_CHANGE_PARTITION: {},
             STATE_CHANGE_ZONE: {},
             STATE_CHANGE_ZONE_BYPASS: {},
         }
 
-        self.controller.callback_connection_status = (
-            self.async_connection_status_callback
-        )
+        self.controller.callback_connection_status = self.async_connection_status_callback
         self.controller.callback_login_failure = self.async_login_fail_callback
         self.controller.callback_login_timeout = self.async_login_timeout_callback
         self.controller.callback_login_success = self.async_login_success_callback
 
         self.controller.callback_keypad_update = self.async_keypad_updated_callback
         self.controller.callback_zone_state_change = self.async_zones_updated_callback
-        self.controller.callback_zone_bypass_state_change = (
-            self.async_zone_bypass_update
-        )
+        self.controller.callback_zone_bypass_state_change = self.async_zone_bypass_update
         self.controller.callback_partition_state_change = (
             self.async_partition_updated_callback
         )
@@ -101,13 +100,13 @@ class EnvisalinkController:
     def add_state_change_listener(
         self, state_type, state_key, update_callback
     ) -> Callable[[], None]:
-        """Register an entity to have a state update triggered when it's underlying
-        data is changed."""
+        """Register an entity to have a state update triggered when it's underlying data is changed."""
 
         def remove_listener() -> None:
             for state_types in self._listeners.values():
                 for key_list in state_types.values():
                     for idx, listener in enumerate(key_list):
+                        # pylint: disable-next=comparison-with-callable
                         if listener[0] == remove_listener:
                             key_list.pop(idx)
                             break
@@ -126,7 +125,7 @@ class EnvisalinkController:
                     listener[1]()
 
     def _update_entity_states(self):
-        """Trigger a state update for all entities"""
+        """Trigger a state update for all entities."""
         for state_info in self._listeners.values():
             for key_list in state_info.values():
                 for listener in key_list:
@@ -134,19 +133,21 @@ class EnvisalinkController:
 
     @property
     def unique_id(self):
+        """Return the unique ID of the underlying device."""
         return self._unique_id
 
     async def start(self) -> bool:
+        """Start and connection to the underlying Envisalink alarm panel device."""
         LOGGER.info("Start envisalink")
         await self.controller.discover()
 
         if self.controller.mac_address:
             mac = format_mac(self.controller.mac_address)
             if mac != self._unique_id:
-                LOGGER.warn(
+                LOGGER.warning(
                     (
                         "MAC address (%s) of EVL device (%s) does not match "
-                        "unique ID (%s)."
+                        "unique ID (%s)"
                     ),
                     mac,
                     self.alarm_name,
@@ -156,7 +157,7 @@ class EnvisalinkController:
         result = await self.controller.start()
         if result != self.controller.ConnectionResult.SUCCESS:
             raise ConfigEntryNotReady(
-                self.get_exception_message(
+                self._get_exception_message(
                     result, f"{self.controller.host}:{self.controller.port}"
                 )
             )
@@ -164,10 +165,12 @@ class EnvisalinkController:
         return True
 
     async def stop(self):
+        """Stop the underlying Envisalink alarm panel."""
+
         if self.controller:
             await self.controller.stop()
 
-    def get_exception_message(self, error, location) -> str:
+    def _get_exception_message(self, error, location) -> str:
         if error == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
             msg = "Unable to authenticate with Envisalink"
         elif error == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
@@ -184,6 +187,7 @@ class EnvisalinkController:
 
     @property
     def available(self) -> bool:
+        """Return if the Envisalink device is available or not."""
         return self.controller.is_online()
 
     @callback
@@ -194,7 +198,7 @@ class EnvisalinkController:
 
     @callback
     def async_login_timeout_callback(self):
-        """Timed out trying to login"""
+        """Handle a login timeout."""
         LOGGER.error("Timed out trying to login to the Envisalink- retrying")
         self._update_entity_states()
 
@@ -211,10 +215,10 @@ class EnvisalinkController:
             # Trigger a state update for all the entities so they appear as unavailable
             self._update_entity_states()
         else:
-            LOGGER.info("Connected to the envisalink device.")
+            LOGGER.info("Connected to the envisalink device")
 
     @callback
-    def async_zones_updated_callback(self, data):
+    def async_zones_updated_callback(self, data: list):
         """Handle zone state updates."""
         LOGGER.debug(
             "Envisalink sent a '%s' zone update event. Updating zones: %r",
@@ -224,7 +228,7 @@ class EnvisalinkController:
         self._process_state_change(STATE_CHANGE_ZONE, data)
 
     @callback
-    def async_keypad_updated_callback(self, data):
+    def async_keypad_updated_callback(self, data: list):
         """Handle non-alarm based info updates."""
         LOGGER.debug(
             "Envisalink sent '%s' new alarm info. Updating alarms: %r",
@@ -234,7 +238,7 @@ class EnvisalinkController:
         self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
-    def async_partition_updated_callback(self, data):
+    def async_partition_updated_callback(self, data: list):
         """Handle partition changes thrown by evl (including alarms)."""
         LOGGER.debug(
             "The envisalink '%s' sent a partition update event: %r",
@@ -244,7 +248,7 @@ class EnvisalinkController:
         self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
-    def async_zone_bypass_update(self, data):
+    def async_zone_bypass_update(self, data: list):
         """Handle zone bypass status updates."""
         LOGGER.debug(
             "Envisalink '%s' sent a zone bypass update event. Updating zones: %r",

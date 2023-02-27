@@ -1,4 +1,4 @@
-"""Config flow for Envisalink_new integration."""
+"""Config flow for Envisalink integration."""
 from __future__ import annotations
 
 from typing import Any
@@ -52,21 +52,19 @@ from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Envisalink_new."""
+    """Handle a config flow for Envisalink."""
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
         errors = {}
 
-        config_defaults = get_user_data_defaults()
+        config_defaults = _get_user_data_defaults()
 
         if user_input is not None:
             try:
-                panel = await validate_input(self.hass, user_input, is_creation=True)
+                panel = await _validate_input(self.hass, user_input, is_creation=True)
 
                 unique_id = format_mac(panel.mac_address)
                 await self.async_set_unique_id(unique_id)
@@ -75,7 +73,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title = user_input[CONF_ALARM_NAME]
                 user_input.pop(CONF_ALARM_NAME)
             except HomeAssistantError as err:
-                errors["base"] = err.reason
+                errors["base"] = str(err)
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.exception("Unexpected exception: %r", ex)
                 errors["base"] = "unknown"
@@ -84,11 +82,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Validation errors so update the form defaults with what the user
             # has entered.
-            for key in config_defaults.keys():
+            config_keys = config_defaults.keys()
+            for key in config_keys:
                 if key in user_input:
                     config_defaults[key] = user_input[key]
 
-        user_data_schema = get_user_data_schema(config_defaults, is_creation=True)
+        user_data_schema = _get_user_data_schema(config_defaults, is_creation=True)
 
         return self.async_show_form(
             step_id="user", data_schema=user_data_schema, errors=errors
@@ -108,13 +107,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Envisalink options."""
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
 
         return self.async_show_menu(
@@ -131,7 +130,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the options."""
         errors = {}
 
-        config_defaults = get_user_data_defaults(self.config_entry.data)
+        config_defaults = _get_user_data_defaults(self.config_entry.data)
 
         if user_input is not None:
             # This flow is for the main config items so update the config_entry with the
@@ -143,20 +142,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             try:
                 # Validate that the new settings are okay
-                await validate_input(self.hass, data)
+                await _validate_input(self.hass, data)
             except HomeAssistantError as err:
-                errors["base"] = err.reason
+                errors["base"] = str(err)
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.exception("Unexpected exception: %r", ex)
                 errors["base"] = "unknown"
             else:
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=data
-                )
+                self.hass.config_entries.async_update_entry(self.config_entry, data=data)
 
                 return self.async_create_entry(title="", data=self.config_entry.options)
 
-        user_data_schema = get_user_data_schema(config_defaults)
+        user_data_schema = _get_user_data_schema(config_defaults)
 
         return self.async_show_form(
             step_id="basic",
@@ -168,7 +165,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Make sure all the options are here
@@ -213,7 +210,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Add Honeywell-only options
         if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
             # Allow selection of which keypress to use for Arm Night mode
-            ARM_MODES = [
+            arm_modes = [
                 selector.SelectOptionDict(
                     value=HONEYWELL_ARM_MODE_NIGHT_VALUE,
                     label=HONEYWELL_ARM_MODE_NIGHT_LABEL,
@@ -230,9 +227,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_HONEYWELL_ARM_NIGHT_MODE, DEFAULT_HONEYWELL_ARM_NIGHT_MODE
                     ),
                 )
-            ] = selector.SelectSelector(
-                selector.SelectSelectorConfig(options=ARM_MODES)
-            )
+            ] = selector.SelectSelector(selector.SelectSelectorConfig(options=arm_modes))
 
         return self.async_show_form(
             step_id="advanced",
@@ -245,23 +240,26 @@ class DiscoveryError(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
     def __init__(self, result):
+        """Initialize the exception with the provided reason."""
+        msg = "unknown"
         if result == EnvisalinkAlarmPanel.ConnectionResult.CONNECTION_FAILED:
-            self.reason = "cannot_connect"
+            msg = "cannot_connect"
         elif result == EnvisalinkAlarmPanel.ConnectionResult.INVALID_AUTHORIZATION:
-            self.reason = "invalid_auth"
+            msg = "invalid_auth"
         else:
             LOGGER.error("Unexpected error: %s", result)
-            self.reason = "unknown"
+        super().__init__(msg)
 
 
 class PanelError(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
     def __init__(self, reason):
-        self.reason = reason
+        """Initialize the exception with the provided reason."""
+        super().__init__(reason)
 
 
-async def validate_input(
+async def _validate_input(
     hass: HomeAssistant, data: dict[str, Any], is_creation: bool = False
 ) -> EnvisalinkAlarmPanel:
     """Validate the user input allows us to connect."""
@@ -294,19 +292,17 @@ async def validate_input(
 
     max_zones = EnvisalinkAlarmPanel.get_max_zones_by_version(panel.envisalink_version)
 
-    zone_set = data.get(CONF_ZONE_SET)
-    partition_set = data.get(CONF_PARTITION_SET)
+    zone_set: str = data.get(CONF_ZONE_SET, "")
+    partition_set: str = data.get(CONF_PARTITION_SET, "")
     if not parse_range_string(zone_set, 1, max_zones):
         raise PanelError("invalid_zone_spec")
-    if not parse_range_string(
-        partition_set, 1, EnvisalinkAlarmPanel.get_max_partitions()
-    ):
+    if not parse_range_string(partition_set, 1, EnvisalinkAlarmPanel.get_max_partitions()):
         raise PanelError("invalid_partition_spec")
 
     return panel
 
 
-def get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
+def _get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
     schema = {}
     if is_creation:
         schema = {
@@ -317,9 +313,7 @@ def get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
         vol.Required(CONF_HOST, default=defaults[CONF_HOST]): cv.string,
         vol.Required(CONF_USERNAME, default=defaults[CONF_USERNAME]): cv.string,
         vol.Required(CONF_PASS, default=defaults[CONF_PASS]): cv.string,
-        vol.Required(
-            CONF_PARTITION_SET, default=defaults[CONF_PARTITION_SET]
-        ): cv.string,
+        vol.Required(CONF_PARTITION_SET, default=defaults[CONF_PARTITION_SET]): cv.string,
         vol.Required(CONF_ZONE_SET, default=defaults[CONF_ZONE_SET]): cv.string,
         vol.Optional(
             CONF_CODE, description={"suggested_value": defaults[CONF_CODE]}
@@ -332,7 +326,7 @@ def get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
     return vol.Schema(schema)
 
 
-def get_user_data_defaults(data: dict[str, Any] = None):
+def _get_user_data_defaults(data=None):
     if not data:
         data = {}
 
@@ -345,8 +339,6 @@ def get_user_data_defaults(data: dict[str, Any] = None):
         CONF_PARTITION_SET: data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET),
         CONF_CODE: data.get(CONF_CODE, ""),
         CONF_EVL_PORT: data.get(CONF_EVL_PORT, DEFAULT_PORT),
-        CONF_EVL_DISCOVERY_PORT: data.get(
-            CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT
-        ),
+        CONF_EVL_DISCOVERY_PORT: data.get(CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT),
     }
     return config_defaults

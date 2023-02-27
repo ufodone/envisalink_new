@@ -24,11 +24,12 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up the zone bypass switches based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
-        zone_spec = entry.data.get(CONF_ZONE_SET)
+        zone_spec: str = entry.data.get(CONF_ZONE_SET, "")
         zone_set = parse_range_string(
             zone_spec, min_val=1, max_val=controller.controller.max_zones
         )
