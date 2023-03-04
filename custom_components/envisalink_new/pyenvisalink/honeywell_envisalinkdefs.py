@@ -27,6 +27,10 @@ class IconLED_Bitfield(ctypes.LittleEndianStructure):
         ("armed_stay", c_uint16, 1),
     ]
 
+    def __str__(self) -> str:
+        b = bytes(self)
+        return f"{int((b[1] << 8) | b[0]):04x}"
+
 
 class IconLED_Flags(ctypes.Union):
     _fields_ = [("b", IconLED_Bitfield), ("asShort", c_uint16)]

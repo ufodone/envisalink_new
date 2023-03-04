@@ -358,8 +358,25 @@ class DSCClient(EnvisalinkClient):
         the *1# keypresses are sent instead.  It appears that limitations in the envisalink
         API (or perhaps the panel itself) makes it impossible for this feature
         to work if the alarm panel is setup to require a code to bypass zones."""
-        await self.keypresses_to_partition(1, "*1#")
+
+        # The panel won't respond if this command is issued while armed.
+        if not self.is_any_partition_armed():
+            await self.keypresses_to_partition(1, "*1#")
 
     def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
         # DSC seems to report accurately to 0 means open, anything else means closed
         return ticks == 0
+
+    def is_any_partition_armed(self) -> bool:
+        """Check if any partition is either armed or arming/disarming"""
+        for partition, state in self._alarmPanel.alarm_state["partition"].items():
+            status = state["status"]
+            away = status.get("armed_away", False)
+            stay = status.get("armed_stay", False)
+            exit_delay = status.get("exit_delay", False)
+            entry_delay = status.get("entry_delay", False)
+            if away or stay or exit_delay or entry_delay:
+                _LOGGER.debug("is_any_partition_armed: partition %s status=%s", partition, status)
+                return True
+        _LOGGER.debug("is_any_partition_armed: no partitions are armed")
+        return False
