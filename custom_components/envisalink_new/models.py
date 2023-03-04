@@ -16,7 +16,7 @@ class EnvisalinkDevice(Entity):
         self._state_update_key = state_update_key
 
     async def async_added_to_hass(self) -> None:
-        """Register this entity to receive state change updates from the underly device."""
+        """Register this entity to receive state change updates from the underlying device."""
 
         def state_updated():
             LOGGER.debug("state_updated for '%s'", self._attr_name)

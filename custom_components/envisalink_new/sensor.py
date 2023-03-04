@@ -1,6 +1,8 @@
 """Support for Envisalink sensors (shows panel info)."""
 from __future__ import annotations
 
+from .pyenvisalink.const import STATE_CHANGE_PARTITION
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -15,7 +17,6 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import STATE_CHANGE_PARTITION
 
 
 async def async_setup_entry(
@@ -69,7 +70,9 @@ class EnvisalinkSensor(EnvisalinkDevice, SensorEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][self._partition_number]
+        return self._controller.controller.alarm_state["partition"][
+            self._partition_number
+        ]
 
     @property
     def icon(self):

@@ -36,14 +36,14 @@
       },
       "basic": {
         "data": {
-          "host": "[%key:component:envisalink_new:config:step:user:host%]",
-          "port": "[%key:component:envisalink_new:config:step:user:port%]",
-          "user_name": "[%key:component:envisalink_new:config:step:user:user_name%]",
-          "password": "[%key:component:envisalink_new:config:step:user:password%]",
-          "partition_set": "[%key:component:envisalink_new:config:step:user:partition_set%]",
-          "zone_set": "[%key:component:envisalink_new:config:step:user:zone_set%]",
-          "zone_set": "[%key:component:envisalink_new:config:step:user:code%]",
-          "discovery_port": "[%key:component:envisalink_new:config:step:user:discovery_port%]"
+          "host": "[%key:common::config_flow::data::host%]",
+          "port": "[%key:common::config_flow::data::port%]",
+          "user_name": "[%key:common::config_flow::data::username%]",
+          "password": "[%key:common::config_flow::data::password%]",
+          "partition_set": "[%key:component::envisalink::config::step::user::data::partition_set%]",
+          "zone_set": "[%key:component::envisalink::config::step::user::data::zone_set%]",
+          "code": "[%key:component::envisalink::config::step::user::data::code%]",
+          "discovery_port": "[%key:component::envisalink::config::step::user::data::discovery_port%]"
         }
       },
       "advanced": {

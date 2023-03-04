@@ -1,8 +1,9 @@
 """Support for Envisalink-based alarm control panels (Honeywell/DSC)."""
 from __future__ import annotations
 
-import homeassistant.helpers.config_validation as cv
+from .pyenvisalink.const import PANEL_TYPE_HONEYWELL, STATE_CHANGE_PARTITION
 import voluptuous as vol
+
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
@@ -21,6 +22,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -36,7 +38,6 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import PANEL_TYPE_HONEYWELL, STATE_CHANGE_PARTITION
 
 SERVICE_ALARM_KEYPRESS = "alarm_keypress"
 ATTR_KEYPRESS = "keypress"
@@ -158,7 +159,9 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][self._partition_number]
+        return self._controller.controller.alarm_state["partition"][
+            self._partition_number
+        ]
 
     @property
     def state(self) -> str:
@@ -237,4 +240,6 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         """Send custom/PGM to EVL."""
         if not code:
             code = self._code
-        await self._controller.controller.command_output(code, self._partition_number, pgm)
+        await self._controller.controller.command_output(
+            code, self._partition_number, pgm
+        )

@@ -1,6 +1,8 @@
 """Support for Envisalink zone bypass switches."""
 from __future__ import annotations
 
+from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS
+
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -16,7 +18,6 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS
 
 
 async def async_setup_entry(

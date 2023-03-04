@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import datetime
 
+from .pyenvisalink.const import STATE_CHANGE_ZONE
+
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_LAST_TRIP_TIME
@@ -21,7 +23,6 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import STATE_CHANGE_ZONE
 
 
 async def async_setup_entry(

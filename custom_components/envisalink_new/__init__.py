@@ -4,11 +4,13 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-import homeassistant.helpers.config_validation as cv
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 import voluptuous as vol
+
 from homeassistant import config_entries
 from homeassistant.const import CONF_CODE, CONF_HOST, CONF_TIMEOUT, Platform
 from homeassistant.core import HomeAssistant, callback
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -42,7 +44,6 @@ from .const import (
 )
 from .controller import EnvisalinkController
 from .helpers import generate_range_string
-from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 
 PLATFORMS: list[Platform] = [
     Platform.ALARM_CONTROL_PANEL,
@@ -129,7 +130,9 @@ def _async_find_matching_config_entry(
     return None
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: config_entries.ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: config_entries.ConfigEntry
+) -> bool:
     """Set up Envisalink from a config entry."""
 
     # As there currently is no way to import options from yaml
