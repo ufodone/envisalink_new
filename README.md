@@ -16,6 +16,15 @@ Temporary HACS version of envisalink integration while undergoing a refactor.
   - Ability to query EVL firmware version and MAC address
   - Update of asyncio network handling to use Streams rather than low-level APIs
 
+## Installation
+
+### Install using [HACS](https://hacs.xyz/docs/setup/prerequisites)
+
+You need to add this repository to the custom repository page in HACS before you can install this integration.
+To do so first go to the HACS Integrations page. From there click the menu in the top right with the 3 dots.
+Use this URL for the repository `https://github.com/ufodone/envisalink_new` and select `integration` for the category. After you add the custom repository, just search for `Envisalink Refactored` in HACS and install it. Installation will complete after you reboot Home Assistant.
+
+
 ## Configuration
 
 ### Config flow
