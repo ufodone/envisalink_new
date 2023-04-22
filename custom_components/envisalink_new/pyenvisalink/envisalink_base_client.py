@@ -620,3 +620,11 @@ class EnvisalinkClient:
     def is_online(self) -> bool:
         """Indicate whether we are connected and successfully logged into the EVL"""
         return self._loggedin
+
+    def clear_zone_bypass_state(self) -> list:
+        cleared_zones = []
+        for zone_number, zone_info in enumerate(self._alarmPanel.alarm_state["zone"], start=1):
+            if zone_info["bypassed"]:
+                cleared_zones.append(zone_number)
+            zone_info["bypassed"] = False
+        return cleared_zones

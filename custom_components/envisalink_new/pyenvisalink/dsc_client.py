@@ -12,6 +12,7 @@ from .const import (
     STATE_CHANGE_ZONE_BYPASS,
 )
 from .dsc_envisalinkdefs import (
+    KeypadLED_Flags,
     evl_ArmModes,
     evl_Commands,
     evl_PanicTypes,
@@ -37,6 +38,7 @@ class DSCClient(EnvisalinkClient):
     def __init__(self, panel):
         super().__init__(panel)
         self._loginEvent = asyncio.Event()
+        self._bypassStateInitialized = False
 
     def to_chars(string):
         chars = []
@@ -173,10 +175,6 @@ class DSCClient(EnvisalinkClient):
         await self.queue_command(evl_Commands["SetTime"], dt)
         await self.queue_command(evl_Commands["StatusReport"], "")
 
-        if self._alarmPanel._zoneBypassEnabled:
-            """Initiate request for zone bypass information"""
-            await self.dump_zone_bypass_status()
-
     def handle_command_response(self, code, data):
         """Handle the envisalink's initial response to our commands."""
         if code == "500":
@@ -270,14 +268,14 @@ class DSCClient(EnvisalinkClient):
                         lastDisarmedBy
                     )
 
+                result = {STATE_CHANGE_PARTITION: [partitionNumber]}
                 if code == "655" and self._alarmPanel._zoneBypassEnabled:
-                    """Partition was disarmed which means the bypassed zones have likley been
-                    reset so force a zone bypass refresh"""
-                    self.create_internal_task(
-                        self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
-                    )
+                    """Partition was disarmed so any zone bypasses will have been reset"""
+                    cleared_zones = self.clear_zone_bypass_state()
+                    if len(cleared_zones) != 0:
+                        result[STATE_CHANGE_ZONE_BYPASS] = cleared_zones
 
-                return {STATE_CHANGE_PARTITION: [partitionNumber]}
+                return result
             else:
                 _LOGGER.error("Invalid data has been passed in the partition update.")
 
@@ -359,24 +357,37 @@ class DSCClient(EnvisalinkClient):
         API (or perhaps the panel itself) makes it impossible for this feature
         to work if the alarm panel is setup to require a code to bypass zones."""
 
-        # The panel won't respond if this command is issued while armed.
-        if not self.is_any_partition_armed():
-            await self.keypresses_to_partition(1, "*1#")
+        await self.keypresses_to_partition(1, "*1#")
 
     def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
         # DSC seems to report accurately to 0 means open, anything else means closed
         return ticks == 0
 
-    def is_any_partition_armed(self) -> bool:
-        """Check if any partition is either armed or arming/disarming"""
-        for partition, state in self._alarmPanel.alarm_state["partition"].items():
-            status = state["status"]
-            away = status.get("armed_away", False)
-            stay = status.get("armed_stay", False)
-            exit_delay = status.get("exit_delay", False)
-            entry_delay = status.get("entry_delay", False)
-            if away or stay or exit_delay or entry_delay:
-                _LOGGER.debug("is_any_partition_armed: partition %s status=%s", partition, status)
-                return True
-        _LOGGER.debug("is_any_partition_armed: no partitions are armed")
-        return False
+    def handle_keypad_led_state_update(self, code, data):
+        if len(data) == 2:
+            flags = KeypadLED_Flags()
+            flags.asByte = int(data, 16)
+
+            _LOGGER.debug(f"Keypad LED state update: {flags}")
+
+            if (
+                self._alarmPanel._zoneBypassEnabled
+                and not self._bypassStateInitialized
+                and flags.ready
+                and flags.bypass
+            ):
+                # We've just started up and the LEDs indicate that there are zones bypassed
+                # so request a zone bypass dump.  This is only necessary on startup
+                # to get the initial state.  Zones bypassed after startup will automatically
+                # trigger a 616 update.
+                self._bypassStateInitialized = True
+                self.create_internal_task(
+                    self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
+                )
+
+    def handle_keypad_led_flash_state_update(self, code, data):
+        if len(data) == 2:
+            flags = KeypadLED_Flags()
+            flags.asByte = int(data, 16)
+
+            _LOGGER.debug(f"Keypad LED FLASH state update: {flags}")
