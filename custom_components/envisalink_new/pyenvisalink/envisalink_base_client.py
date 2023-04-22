@@ -421,6 +421,7 @@ class EnvisalinkClient:
     def handle_zone_timer_dump(self, code, data):
         """Handle the zone timer data."""
         results = []
+        now = time.time()
         zoneInfoArray = self.convertZoneDump(data)
         for zoneNumber, zoneInfo in enumerate(zoneInfoArray, start=1):
             currentStatus = self._alarmPanel.alarm_state["zone"][zoneNumber]["status"]
@@ -433,7 +434,9 @@ class EnvisalinkClient:
             self._alarmPanel.alarm_state["zone"][zoneNumber]["status"].update(
                 {"open": newOpen, "fault": newFault}
             )
-            self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = zoneInfo["seconds"]
+            self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = (
+                now - zoneInfo["seconds"]
+            )
             _LOGGER.debug("(zone %i) %s", zoneNumber, zoneInfo["status"])
         return {STATE_CHANGE_ZONE: results}
 

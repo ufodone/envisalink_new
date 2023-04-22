@@ -209,6 +209,10 @@ class DSCClient(EnvisalinkClient):
                 evl_ResponseTypes[code]["status"]
             )
             self._alarmPanel.alarm_state["zone"][zoneNumber]["updated"] = now
+
+            if evl_ResponseTypes[code]["is_fault"]:
+                self._alarmPanel.alarm_state["zone"][zoneNumber]["last_fault"] = now
+
             _LOGGER.debug(
                 str.format(
                     "(zone {0}) state has updated: {1}",

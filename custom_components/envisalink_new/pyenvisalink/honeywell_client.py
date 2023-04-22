@@ -172,6 +172,8 @@ class HoneywellClient(EnvisalinkClient):
         zone_updates = []
         bypass_updates = []
 
+        now = time.time()
+
         dataList = data.split(",")
         # Custom messages and alpha fields might contain unescaped commas, so we'll recombine them:
         if len(dataList) > 5:
@@ -277,8 +279,13 @@ class HoneywellClient(EnvisalinkClient):
                 bypass_updates.append(user_zone_field)
             elif zone_code in ["alarm", "alarmcleared", "notready"]:
                 # Zone is open
-                # TODO There is a "last_tripped_time" attribute that was previously populated
-                # based on zone timer dumps. Does that add enough value to merit reproducing?
+
+                # Only update the last_fault time if the zone transitioned to a faulted state
+                current_status = self._alarmPanel.alarm_state["zone"][user_zone_field]["status"]
+                if not current_status["open"] and not current_status["fault"]:
+                    _LOGGER.debug(f"Setting last fault for {user_zone_field}: {now}")
+                    self._alarmPanel.alarm_state["zone"][user_zone_field]["last_fault"] = now
+
                 self._alarmPanel.alarm_state["zone"][user_zone_field]["status"].update(
                     {"open": True, "fault": True}
                 )

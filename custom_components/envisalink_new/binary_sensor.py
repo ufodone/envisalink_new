@@ -86,25 +86,11 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
         """Return the state attributes."""
         attr = {}
 
-        # The Envisalink library returns a "last_fault" value that's the
-        # number of seconds since the last fault, up to a maximum of 327680
-        # seconds (65536 5-second ticks).
-        #
-        # We don't want the HA event log to fill up with a bunch of no-op
-        # "state changes" that are just that number ticking up once per poll
-        # interval, so we subtract it from the current second-accurate time
-        # unless it is already at the maximum value, in which case we set it
-        # to None since we can't determine the actual value.
-
-        seconds_ago = self._info["last_fault"]
-        if seconds_ago < 65536 * 5:
-            now = dt_util.now().replace(microsecond=0)
-            delta = datetime.timedelta(seconds=seconds_ago)
-            last_trip_time = (now - delta).isoformat()
+        last_fault = self._info["last_fault"]
+        if not last_fault:
+            attr[ATTR_LAST_TRIP_TIME] = None
         else:
-            last_trip_time = None
-
-        attr[ATTR_LAST_TRIP_TIME] = last_trip_time
+            attr[ATTR_LAST_TRIP_TIME] = datetime.datetime.fromtimestamp(last_fault).isoformat()
 
         # Expose the zone number as an attribute to allow
         # for easier entity to zone mapping (e.g. to bypass
