@@ -117,9 +117,9 @@ class HoneywellClient(EnvisalinkClient):
         """Public method to toggle a zone's bypass state."""
         await self.keypresses_to_partition(1, '%s6%s*' % (code, zone))
         
-    async def toggle_chime(self, code):
-        """Public method to toggle a zone's bypass state."""
-        await self.keypresses_to_partition(1, code + "9")
+
+
+
 
     def parseHandler(self, rawInput):
         """When the envisalink contacts us- parse out which command and data."""
