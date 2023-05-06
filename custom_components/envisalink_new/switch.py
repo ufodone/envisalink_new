@@ -40,7 +40,7 @@ async def async_setup_entry(
             for zone_num in zone_set:
                 zone_entry = find_yaml_info(zone_num, zone_info)
 
-                entity = EnvisalinkSwitch(
+                entity = EnvisalinkBypassSwitch(
                     hass,
                     zone_num,
                     zone_entry,
@@ -51,7 +51,7 @@ async def async_setup_entry(
             async_add_entities(entities)
 
 
-class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
+class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink switch."""
 
     def __init__(self, hass, zone_number, zone_info, controller):
