@@ -197,7 +197,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_CREATE_ZONE_BYPASS_SWITCHES,
                     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
                 ),
-            ) = selector.BooleanSelector()
+            ): selector.BooleanSelector()
         }
         # Add Honeywell-only options
         if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
