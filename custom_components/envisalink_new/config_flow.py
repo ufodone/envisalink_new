@@ -193,7 +193,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
 
         # Add DSC-only options
-        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_DSC:
+        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
             # Zone bypass switches are only available on DSC panels
             options_schema[
                 vol.Optional(
