@@ -190,21 +190,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 CONF_TIMEOUT,
                 default=self.config_entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             ): vol.Coerce(int),
-        }
-
-        # Add DSC-only options
-        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
-            # Zone bypass switches are only available on DSC panels
-            options_schema[
-                vol.Optional(
+            # Zone bypass switches
+            vol.Optional(
+                CONF_CREATE_ZONE_BYPASS_SWITCHES,
+                default=self.config_entry.options.get(
                     CONF_CREATE_ZONE_BYPASS_SWITCHES,
-                    default=self.config_entry.options.get(
-                        CONF_CREATE_ZONE_BYPASS_SWITCHES,
-                        DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
-                    ),
-                )
-            ] = selector.BooleanSelector()
-
+                    DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
+                ),
+            ) = selector.BooleanSelector()
+        }
         # Add Honeywell-only options
         if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
             # Allow selection of which keypress to use for Arm Night mode
