@@ -11,6 +11,7 @@ Temporary HACS version of envisalink integration while undergoing a refactor.
 - Entities now have unique IDs allowing configuration/customization via the UI
 - Zone bypass switch support for DSC panels
 - Auto-discovery of EVL version and panel type (DSC/HONEYWELL)
+- New algorithm on for Honeywell systems to better handle zone open/close status
 - Refactoring of the underlying pyenvisalink package including
   - Sequential queueing of commands to the EVL including retry on errors (which applicable) and timeouts
   - Ability to query EVL firmware version and MAC address
