@@ -32,6 +32,7 @@ from .const import (
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
     DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
+    DEFAULT_PANIC,
     DEFAULT_PARTITION_SET,
     DOMAIN,
     LOGGER,
@@ -62,7 +63,7 @@ async def async_setup_entry(
     """Set up the alarm panel based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.data.get(CONF_CODE)
-    panic_type = entry.options.get(CONF_PANIC)
+    panic_type = entry.options.get(CONF_PANIC, DEFAULT_PANIC)
     partition_info = entry.data.get(CONF_PARTITIONS)
     partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(

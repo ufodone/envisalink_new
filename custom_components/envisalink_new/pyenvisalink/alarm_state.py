@@ -24,6 +24,7 @@ class AlarmState:
                     "bat_trouble": False,
                     "trouble": False,
                     "fire": False,
+                    "panic": False,
                     "alarm": False,
                     "alarm_fire_zone": False,
                     "alarm_in_memory": False,

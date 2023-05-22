@@ -249,9 +249,8 @@ class DSCClient(EnvisalinkClient):
             parse = re.match("^[0-9]+$", data)
             if parse:
                 partitionNumber = int(data[0])
-                self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
-                    evl_ResponseTypes[code]["status"]
-                )
+                status = self._alarmPanel.alarm_state["partition"][partitionNumber]["status"]
+                status.update(evl_ResponseTypes[code]["status"])
                 _LOGGER.debug(
                     str.format(
                         "(partition {0}) state has updated: {1}",
@@ -263,22 +262,27 @@ class DSCClient(EnvisalinkClient):
                 """Log the user who last armed or disarmed the alarm"""
                 if code == "700":
                     lastArmedBy = {"last_armed_by_user": int(data[1:5])}
-                    self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
-                        lastArmedBy
-                    )
+                    status.update(lastArmedBy)
                 elif code == "750":
                     lastDisarmedBy = {"last_disarmed_by_user": int(data[1:5])}
-                    self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
-                        lastDisarmedBy
-                    )
+                    status.update(lastDisarmedBy)
+                elif code == "654":
+                    # Update the alpha based on whether fire/panic are set
+                    self.set_in_alarm_alpha(partitionNumber)
 
                 result = {STATE_CHANGE_PARTITION: [partitionNumber]}
-                if code == "655" and self._alarmPanel._zoneBypassEnabled:
-                    """Partition was disarmed so any zone bypasses will have been reset"""
-                    cleared_zones = self.clear_zone_bypass_state()
-                    if len(cleared_zones) != 0:
-                        result[STATE_CHANGE_ZONE_BYPASS] = cleared_zones
+                if code == "655":
+                    # Clear any fire or panic status
+                    status["fire"] = False
+                    status["panic"] = False
 
+                    if self._alarmPanel._zoneBypassEnabled:
+                        """Partition was disarmed so any zone bypasses will have been reset"""
+                        cleared_zones = self.clear_zone_bypass_state()
+                        if len(cleared_zones) != 0:
+                            result[STATE_CHANGE_ZONE_BYPASS] = cleared_zones
+
+                _LOGGER.debug("New status for partition %d: %r", partitionNumber, status)
                 return result
             else:
                 _LOGGER.error("Invalid data has been passed in the partition update.")
@@ -395,3 +399,15 @@ class DSCClient(EnvisalinkClient):
             flags.asByte = int(data, 16)
 
             _LOGGER.debug(f"Keypad LED FLASH state update: {flags}")
+
+    def set_in_alarm_alpha(self, partition_number):
+        status = self._alarmPanel.alarm_state["partition"][partition_number]["status"]
+        alpha = "Alarm"
+        if status["fire"]:
+            alpha = "Fire Alarm"
+        elif status["panic"]:
+            alpha = "Panic Alarm"
+
+        status["alpha"] = alpha
+
+
