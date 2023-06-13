@@ -384,10 +384,11 @@ class DSCClient(EnvisalinkClient):
                 # so request a zone bypass dump.  This is only necessary on startup
                 # to get the initial state.  Zones bypassed after startup will automatically
                 # trigger a 616 update.
-                self._bypassStateInitialized = True
                 self.create_internal_task(
                     self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
                 )
+
+            self._bypassStateInitialized = True
 
     def handle_keypad_led_flash_state_update(self, code, data):
         if len(data) == 2:
