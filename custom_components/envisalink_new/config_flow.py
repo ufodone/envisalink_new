@@ -320,7 +320,7 @@ def _get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
         ): cv.string,
         vol.Required(CONF_ZONE_SET, default=defaults[CONF_ZONE_SET]): cv.string,
         vol.Optional(
-            CONF_CODE, description={"suggested_value": defaults[CONF_CODE]}
+            CONF_CODE, description={"suggested_value": defaults[CONF_CODE]}, default=""
         ): cv.string,
         vol.Required(CONF_EVL_PORT, default=defaults[CONF_EVL_PORT]): cv.port,
         vol.Required(
