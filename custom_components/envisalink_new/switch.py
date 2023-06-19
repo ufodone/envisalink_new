@@ -102,12 +102,12 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
     @property
     def is_on(self):
         """Return the boolean response if the zone is bypassed."""
-        return self._info["bypassed"]
+        return self._info["chime"]
 
     async def async_turn_on(self, **kwargs):
-        """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        """Send the keypress sequence to toggle the chime."""
+        await self._controller.controller.toggle_chime(self._code)
 
     async def async_turn_off(self, **kwargs):
-        """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        """Send the keypress sequence to toggle the chime."""
+        await self._controller.controller.toggle_chime(self._code)
