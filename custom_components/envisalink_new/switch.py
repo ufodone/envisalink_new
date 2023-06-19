@@ -25,7 +25,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the zone bypass switches based on a config entry."""
+    """Set up the switches based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
@@ -47,8 +47,9 @@ async def async_setup_entry(
                     controller,
                 )
                 entities.append(entity)
+        entities.append(EnvisalinkChimeSwitch(hass, code, controller))
 
-            async_add_entities(entities)
+        async_add_entities(entities)
 
 
 class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
