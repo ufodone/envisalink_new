@@ -40,7 +40,7 @@ async def async_setup_entry(
             for zone_num in zone_set:
                 zone_entry = find_yaml_info(zone_num, zone_info)
 
-                entity = EnvisalinkSwitch(
+                entity = EnvisalinkBypassSwitch(
                     hass,
                     zone_num,
                     zone_entry,
@@ -51,8 +51,8 @@ async def async_setup_entry(
             async_add_entities(entities)
 
 
-class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
-    """Representation of an Envisalink switch."""
+class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
+    """Representation of an Envisalink bypass switch."""
 
     def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the switch."""
@@ -73,6 +73,31 @@ class EnvisalinkSwitch(EnvisalinkDevice, SwitchEntity):
     @property
     def _info(self):
         return self._controller.controller.alarm_state["zone"][self._zone_number]
+
+    @property
+    def is_on(self):
+        """Return the boolean response if the zone is bypassed."""
+        return self._info["bypassed"]
+
+    async def async_turn_on(self, **kwargs):
+        """Send the bypass keypress sequence to toggle the zone bypass."""
+        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+
+    async def async_turn_off(self, **kwargs):
+        """Send the bypass keypress sequence to toggle the zone bypass."""
+        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+
+
+class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
+    """Representation of an Envisalink chime switch."""
+
+    def __init__(self, hass, code, controller):
+        """Initialize the switch."""
+        name = "Chime"
+        self._attr_unique_id = f"{controller.unique_id}_{name}"
+        self._attr_has_entity_name = True
+
+        super().__init__(name, controller, STATE_CHANGE_ZONE_BYPASS, zone_number)
 
     @property
     def is_on(self):
