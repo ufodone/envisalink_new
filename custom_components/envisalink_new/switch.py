@@ -1,7 +1,7 @@
 """Support for Envisalink zone bypass switches."""
 from __future__ import annotations
 
-from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS
+from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS, STATE_CHANGE_CHIME
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -98,7 +98,7 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
 
-        super().__init__(name, controller, STATE_CHANGE_ZONE_BYPASS, zone_number)
+        super().__init__(name, controller, STATE_CHANGE_CHIME, 1)
 
     @property
     def is_on(self):
