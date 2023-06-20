@@ -114,8 +114,8 @@ class HoneywellClient(EnvisalinkClient):
         await self.keypresses_to_partition(1, evl_PanicTypes[panicType])
 
     async def toggle_chime(self, code, partitionNumber):
-         """Public method to toggle a zone's bypass state."""
-         await self.keypresses_to_partition(partitionNumber, '%s9' % (code))
+        """Public method to toggle a zone's bypass state."""
+        await self.keypresses_to_partition(partitionNumber, '%s9' % (code))
 
     def parseHandler(self, rawInput):
         """When the envisalink contacts us- parse out which command and data."""
