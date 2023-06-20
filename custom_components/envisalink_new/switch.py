@@ -92,12 +92,13 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink chime switch."""
 
-    def __init__(self, hass, partition_number, controller):
+    def __init__(self, hass, partition_number, code, controller):
         """Initialize the switch."""
         name = "Chime"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
         self._partition_number = partition_number
+        self._code = code
 
         super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
 
@@ -114,8 +115,8 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send the keypress sequence to toggle the chime."""
-        await self._controller.controller.toggle_chime(self._code)
+        await self._controller.controller.toggle_chime(self._code, self._partition_number)
 
     async def async_turn_off(self, **kwargs):
         """Send the keypress sequence to toggle the chime."""
-        await self._controller.controller.toggle_chime(self._code)
+        await self._controller.controller.toggle_chime(self._code, self._partition_number)
