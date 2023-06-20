@@ -361,6 +361,13 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
+    async def toggle_chime (self, code)
+        """Public method to toggle chime."""
+        if self._client:
+            await self._client.toggle_chime(code)
+        else:
+            _LOGGER.error(COMMAND_ERR)
+
     async def command_output(self, code, partitionNumber, outputNumber):
         """Public method to activate an output"""
         if self._client:
