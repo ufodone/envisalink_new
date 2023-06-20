@@ -6,7 +6,6 @@ from .pyenvisalink.const import (
     STATE_CHANGE_PARTITION,
     STATE_CHANGE_ZONE,
     STATE_CHANGE_ZONE_BYPASS,
-    STATE_CHANGE_CHIME,
 )
 
 from homeassistant.config_entries import ConfigEntry
@@ -75,7 +74,6 @@ class EnvisalinkController:
             STATE_CHANGE_PARTITION: {},
             STATE_CHANGE_ZONE: {},
             STATE_CHANGE_ZONE_BYPASS: {},
-            STATE_CHANGE_CHIME: {},
         }
 
         self.controller.callback_connection_status = (
