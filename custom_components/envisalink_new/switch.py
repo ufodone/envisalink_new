@@ -1,7 +1,7 @@
 """Support for Envisalink zone bypass switches."""
 from __future__ import annotations
 
-from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS, STATE_CHANGE_CHIME
+from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS, STATE_CHANGE_PARTITION
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -48,7 +48,7 @@ async def async_setup_entry(
                 )
                 entities.append(entity)
 
-    entities.append(EnvisalinkChimeSwitch(hass, 1, controller))
+    entities.append(EnvisalinkChimeSwitch(hass, controller))
     async_add_entities(entities)
 
 
@@ -92,14 +92,14 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink chime switch."""
 
-    def __init__(self, hass, partition, controller):
+    def __init__(self, hass, controller):
         """Initialize the switch."""
         name = "Chime"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
-        self._partition_number = partition
 
-        super().__init__(name, controller, STATE_CHANGE_CHIME, 1)
+        super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
+
     @property
     def _info(self):
         return self._controller.controller.alarm_state["partition"][
