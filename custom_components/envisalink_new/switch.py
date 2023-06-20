@@ -48,7 +48,7 @@ async def async_setup_entry(
                 )
                 entities.append(entity)
 
-    entities.append(EnvisalinkChimeSwitch(hass, controller))
+    entities.append(EnvisalinkChimeSwitch(hass, 1, controller))
     async_add_entities(entities)
 
 
@@ -92,11 +92,12 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink chime switch."""
 
-    def __init__(self, hass, controller):
+    def __init__(self, hass, partition_number, controller):
         """Initialize the switch."""
         name = "Chime"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
+        self._partition_number = partition_number
 
         super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
 
