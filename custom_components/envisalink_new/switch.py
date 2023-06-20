@@ -37,11 +37,9 @@ async def async_setup_entry(
     if partition_set is not None:
         entities = []
         for part_num in partition_set:
-            part_entry = find_yaml_info(part_num, partition_info)
             entity = EnvisalinkChimeSwitch(
                 hass,
                 part_num,
-                part_entry,
                 code,
                 controller,
             )
@@ -110,7 +108,7 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink chime switch."""
 
-    def __init__(self, hass, partition_number, partition_info, code, controller):
+    def __init__(self, hass, partition_number, code, controller):
         """Initialize the switch."""
         name = "Chime"
         name = f"Partition {partition_number} Chime"
