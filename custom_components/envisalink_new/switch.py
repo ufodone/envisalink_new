@@ -14,6 +14,9 @@ from .const import (
     CONF_ZONE_SET,
     CONF_ZONENAME,
     CONF_ZONES,
+    CONF_PARTITION_SET,
+    CONF_PARTITIONS,
+    DEFAULT_PARTITION_SET,
     DOMAIN,
     LOGGER,
 )
