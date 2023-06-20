@@ -7,6 +7,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import CONF_CODE
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -27,6 +28,24 @@ async def async_setup_entry(
 ) -> None:
     """Set up the switches based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
+    code = entry.data.get(CONF_CODE)
+    partition_info = entry.data.get(CONF_PARTITIONS)
+    partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
+    partition_set = parse_range_string(
+        partition_spec, min_val=1, max_val=controller.controller.max_partitions
+    )
+    if partition_set is not None:
+        entities = []
+        for part_num in partition_set:
+            part_entry = find_yaml_info(part_num, partition_info)
+            entity = EnvisalinkChimeSwitch(
+                hass,
+                part_num,
+                part_entry,
+                code,
+                controller,
+            )
+            entities.append(entity)
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
@@ -48,13 +67,12 @@ async def async_setup_entry(
                 )
                 entities.append(entity)
 
-    entities.append(EnvisalinkChimeSwitch(hass, 1, 4112, controller))
     async_add_entities(entities)
 
 
 class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink bypass switch."""
-
+    
     def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the switch."""
         self._zone_number = zone_number
@@ -92,9 +110,10 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink chime switch."""
 
-    def __init__(self, hass, partition_number, code, controller):
+    def __init__(self, hass, partition_number, partition_info, code, controller):
         """Initialize the switch."""
         name = "Chime"
+        name = f"Partition {partition_number} Chime"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
         self._partition_number = partition_number
