@@ -33,20 +33,6 @@ async def async_setup_entry(
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.data.get(CONF_CODE)
     entities = []
-    partition_info = entry.data.get(CONF_PARTITIONS)
-    partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
-    partition_set = parse_range_string(
-        partition_spec, min_val=1, max_val=controller.controller.max_partitions
-    )
-    if partition_set is not None:
-        for part_num in partition_set:
-            entity = EnvisalinkChimeSwitch(
-                hass,
-                part_num,
-                code,
-                controller,
-            )
-            entities.append(entity)
     entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
@@ -113,8 +99,7 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
 
     def __init__(self, hass, partition_number, code, controller):
         """Initialize the switch."""
-        name = "Chime"
-        name = f"Partition {partition_number} Chime"
+        name = "Panel Chime"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
         self._partition_number = partition_number
@@ -135,8 +120,8 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send the keypress sequence to toggle the chime."""
-        await self._controller.controller.toggle_chime(self._code, self._partition_number)
+        await self._controller.controller.toggle_chime(self._code)
 
     async def async_turn_off(self, **kwargs):
         """Send the keypress sequence to toggle the chime."""
-        await self._controller.controller.toggle_chime(self._code, self._partition_number)
+        await self._controller.controller.toggle_chime(self._code)
