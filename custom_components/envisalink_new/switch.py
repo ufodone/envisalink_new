@@ -32,13 +32,13 @@ async def async_setup_entry(
     """Set up the switches based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.data.get(CONF_CODE)
+    entities = []
     partition_info = entry.data.get(CONF_PARTITIONS)
     partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(
         partition_spec, min_val=1, max_val=controller.controller.max_partitions
     )
     if partition_set is not None:
-        entities = []
         for part_num in partition_set:
             entity = EnvisalinkChimeSwitch(
                 hass,
@@ -47,6 +47,7 @@ async def async_setup_entry(
                 controller,
             )
             entities.append(entity)
+    entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
@@ -56,7 +57,6 @@ async def async_setup_entry(
         )
         zone_info = entry.data.get(CONF_ZONES)
         if zone_set is not None:
-            entities = []
             for zone_num in zone_set:
                 zone_entry = find_yaml_info(zone_num, zone_info)
 
