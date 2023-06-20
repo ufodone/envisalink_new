@@ -48,7 +48,7 @@ async def async_setup_entry(
                 )
                 entities.append(entity)
 
-    entities.append(EnvisalinkChimeSwitch(hass, 1, controller))
+    entities.append(EnvisalinkChimeSwitch(hass, 1, 4112, controller))
     async_add_entities(entities)
 
 
