@@ -113,7 +113,7 @@ class HoneywellClient(EnvisalinkClient):
         """Public method to raise a panic alarm."""
         await self.keypresses_to_partition(1, evl_PanicTypes[panicType])
 
-    async def toggle_chime(self, code="4112"):
+    async def toggle_chime(self, code):
          """Public method to toggle a zone's bypass state."""
          await self.keypresses_to_partition(1, '%s9' % (code))
 
