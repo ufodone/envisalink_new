@@ -99,11 +99,16 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
         self._attr_has_entity_name = True
 
         super().__init__(name, controller, STATE_CHANGE_CHIME, 1)
+    @property
+    def _info(self):
+        return self._controller.controller.alarm_state["partition"][
+            self._partition_number
+        ]
 
     @property
     def is_on(self):
         """Return the boolean response if the zone is bypassed."""
-        return self._info["chime"]
+        return self._info["status"]["chime"]
 
     async def async_turn_on(self, **kwargs):
         """Send the keypress sequence to toggle the chime."""
