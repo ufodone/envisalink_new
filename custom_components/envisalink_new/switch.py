@@ -56,7 +56,7 @@ async def async_setup_entry(
 
 class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink bypass switch."""
-    
+
     def __init__(self, hass, zone_number, zone_info, controller):
         """Initialize the switch."""
         self._zone_number = zone_number
