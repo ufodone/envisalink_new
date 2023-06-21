@@ -1,6 +1,8 @@
 """Support for Envisalink zone bypass switches."""
 from __future__ import annotations
 
+from typing import Any
+
 from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS, STATE_CHANGE_PARTITION
 
 from homeassistant.components.switch import SwitchEntity
@@ -115,6 +117,10 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
         """Return the boolean response if the zone is bypassed."""
         return self._info["status"]["chime"]
 
-    async def async_toggle(self, **kwargs):
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Send the keypress sequence to toggle the chime."""
+        await self._controller.controller.toggle_chime(self._code)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
         await self._controller.controller.toggle_chime(self._code)
