@@ -15,7 +15,6 @@ class AlarmState:
                     "ac_present": True,
                     "beep": False,
                     "armed_bypass": False,
-                    "chime": False,
                     "entry_delay": False,
                     "exit_delay": False,
                     "last_armed_by_user": "",

@@ -98,6 +98,10 @@ class DSCClient(EnvisalinkClient):
         """Public method to toggle a zone's bypass state."""
         await self.keypresses_to_partition(1, "*1%02d#" % zone)
 
+    async def toggle_chime(self, code):
+        """Public method to toggle a zone's bypass state."""
+        await self.keypresses_to_partition(1, '*4')
+
     async def command_output(self, code, partitionNumber, outputNumber):
         """Used to activate the selected command output"""
         await self.queue_command(
@@ -388,10 +392,11 @@ class DSCClient(EnvisalinkClient):
                 # so request a zone bypass dump.  This is only necessary on startup
                 # to get the initial state.  Zones bypassed after startup will automatically
                 # trigger a 616 update.
-                self._bypassStateInitialized = True
                 self.create_internal_task(
                     self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
                 )
+
+            self._bypassStateInitialized = True
 
     def handle_keypad_led_flash_state_update(self, code, data):
         if len(data) == 2:
