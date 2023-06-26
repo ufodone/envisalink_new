@@ -287,7 +287,7 @@ class EnvisalinkClient:
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 
-    async def toggle_chime(self):
+    async def toggle_chime(self, code):
          """Public method to toggle chime mode."""
          raise NotImplementedError()
 

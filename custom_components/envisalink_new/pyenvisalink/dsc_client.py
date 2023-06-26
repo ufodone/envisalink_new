@@ -98,6 +98,10 @@ class DSCClient(EnvisalinkClient):
         """Public method to toggle a zone's bypass state."""
         await self.keypresses_to_partition(1, "*1%02d#" % zone)
 
+    async def toggle_chime(self, code):
+        """Public method to toggle a zone's bypass state."""
+        await self.keypresses_to_partition(1, '*4')
+
     async def command_output(self, code, partitionNumber, outputNumber):
         """Used to activate the selected command output"""
         await self.queue_command(

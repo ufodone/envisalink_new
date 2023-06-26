@@ -3,13 +3,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from .pyenvisalink.const import STATE_CHANGE_ZONE_BYPASS, STATE_CHANGE_PARTITION
-
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_CODE, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.const import CONF_CODE
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -21,6 +20,7 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
+from .pyenvisalink.const import STATE_CHANGE_PARTITION, STATE_CHANGE_ZONE_BYPASS
 
 
 async def async_setup_entry(
@@ -93,7 +93,7 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
         await self._controller.controller.toggle_zone_bypass(self._zone_number)
 
 
-class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
+class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
     """Representation of an Envisalink chime switch."""
 
     def __init__(self, hass, partition_number, code, controller):
@@ -108,14 +108,21 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][
-            self._partition_number
-        ]
+        return self._controller.controller.alarm_state["partition"][self._partition_number]
+
+    async def async_added_to_hass(self) -> None:
+        """Restore previous state on restart to avoid blocking startup."""
+        await super().async_added_to_hass()
+        self.last_state = await self.async_get_last_state()
 
     @property
     def is_on(self):
-        """Return the boolean response if the zone is bypassed."""
-        return self._info["status"]["chime"]
+        """Return the boolean response if the chime is enabled."""
+        status = self._info["status"]
+        if not status or status.get("chime", None) == None:
+            # No status from the panel yet so use HA's last saved state
+            return self.last_state.state == STATE_ON
+        return status["chime"]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
