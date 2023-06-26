@@ -121,7 +121,7 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
         status = self._info["status"]
         if not status or status.get("chime", None) == None:
             # No status from the panel yet so use HA's last saved state
-            return self.last_state.state == STATE_ON
+            return self.last_state.state == STATE_ON if self.last_state else False
         return status["chime"]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
