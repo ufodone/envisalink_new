@@ -54,7 +54,7 @@ class EnvisalinkAlarmPanel:
         self._httpPort = httpPort
         self._connectionTimeout = connectionTimeout
         self._panelType = None
-        self._evlVersion = 0
+        self._evlVersion = "3"
         self._username = userName
         self._password = password
         self._keepAliveInterval = keepAliveInterval
@@ -151,7 +151,9 @@ class EnvisalinkAlarmPanel:
         return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
 
     def get_max_zones_by_version(version) -> int:
-        return EVL3_MAX_ZONES if version < 4 else EVL4_MAX_ZONES
+        if version == '4' or version == '4MAX':
+            return EVL4_MAX_ZONES
+        return EVL3_MAX_ZONES
 
     def get_max_partitions() -> int:
         return MAX_PARTITIONS
@@ -395,13 +397,13 @@ class EnvisalinkAlarmPanel:
 
                 # Try and scrape the HTML for the EVL version and panel type
                 html = await resp.text()
-                version_regex = r"<TITLE>Envisalink ([0-9])<\/TITLE>"
+                version_regex = r"<TITLE>Envisalink ([^<]+)<\/TITLE>"
 
                 m = re.search(version_regex, html)
                 if m is None or m.lastindex != 1:
                     _LOGGER.warn("Unable to determine version: raw HTML: %s", html)
                 else:
-                    self._evlVersion = int(m.group(1))
+                    self._evlVersion = m.group(1)
 
                 panel_regex = ">Security Subsystem - ([^<]*)<"
                 m = re.search(panel_regex, html)
