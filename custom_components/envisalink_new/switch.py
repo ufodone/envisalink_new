@@ -32,7 +32,9 @@ async def async_setup_entry(
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.data.get(CONF_CODE)
     entities = []
-    entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
+
+    if code:
+        entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
