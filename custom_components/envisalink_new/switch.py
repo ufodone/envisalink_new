@@ -12,6 +12,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
+    CONF_PANEL_TYPE,
     CONF_ZONE_SET,
     CONF_ZONENAME,
     CONF_ZONES,
@@ -20,7 +21,11 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import STATE_CHANGE_PARTITION, STATE_CHANGE_ZONE_BYPASS
+from .pyenvisalink.const import (
+    PANEL_TYPE_DSC,
+    STATE_CHANGE_PARTITION,
+    STATE_CHANGE_ZONE_BYPASS,
+)
 
 
 async def async_setup_entry(
@@ -33,7 +38,9 @@ async def async_setup_entry(
     code = entry.data.get(CONF_CODE)
     entities = []
 
-    if code:
+    # Only create the chime switch if the alarm code is provided or it is a DSC
+    # panel (which does not require a code to toggle the chime).
+    if code or (entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_DSC):
         entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
