@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import datetime
 
-from .pyenvisalink.const import STATE_CHANGE_ZONE
-
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_LAST_TRIP_TIME
@@ -23,6 +21,7 @@ from .const import (
 )
 from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
+from .pyenvisalink.const import STATE_CHANGE_ZONE
 
 
 async def async_setup_entry(
@@ -90,12 +89,17 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
         if not last_fault:
             attr[ATTR_LAST_TRIP_TIME] = None
         else:
-            attr[ATTR_LAST_TRIP_TIME] = datetime.datetime.fromtimestamp(last_fault).isoformat()
+            attr[ATTR_LAST_TRIP_TIME] = datetime.datetime.fromtimestamp(
+                last_fault
+            ).isoformat()
 
         # Expose the zone number as an attribute to allow
         # for easier entity to zone mapping (e.g. to bypass
         # the zone).
         attr["zone"] = self._zone_number
+
+        # Expose whether the zone is currently bypassed
+        attr["bypassed"] = self._info["bypassed"]
 
         return attr
 

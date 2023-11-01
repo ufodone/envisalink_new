@@ -1,13 +1,6 @@
 """Support for Envisalink devices."""
 from collections.abc import Callable
 
-from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
-from .pyenvisalink.const import (
-    STATE_CHANGE_PARTITION,
-    STATE_CHANGE_ZONE,
-    STATE_CHANGE_ZONE_BYPASS,
-)
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_TIMEOUT
 from homeassistant.core import HomeAssistant, callback
@@ -27,6 +20,12 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
     LOGGER,
+)
+from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
+from .pyenvisalink.const import (
+    STATE_CHANGE_PARTITION,
+    STATE_CHANGE_ZONE,
+    STATE_CHANGE_ZONE_BYPASS,
 )
 
 
@@ -76,18 +75,14 @@ class EnvisalinkController:
             STATE_CHANGE_ZONE_BYPASS: {},
         }
 
-        self.controller.callback_connection_status = (
-            self.async_connection_status_callback
-        )
+        self.controller.callback_connection_status = self.async_connection_status_callback
         self.controller.callback_login_failure = self.async_login_fail_callback
         self.controller.callback_login_timeout = self.async_login_timeout_callback
         self.controller.callback_login_success = self.async_login_success_callback
 
         self.controller.callback_keypad_update = self.async_keypad_updated_callback
         self.controller.callback_zone_state_change = self.async_zones_updated_callback
-        self.controller.callback_zone_bypass_state_change = (
-            self.async_zone_bypass_update
-        )
+        self.controller.callback_zone_bypass_state_change = self.async_zone_bypass_update
         self.controller.callback_partition_state_change = (
             self.async_partition_updated_callback
         )
@@ -258,3 +253,4 @@ class EnvisalinkController:
             data,
         )
         self._process_state_change(STATE_CHANGE_ZONE_BYPASS, data)
+        self._process_state_change(STATE_CHANGE_ZONE, data)
