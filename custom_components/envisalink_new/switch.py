@@ -125,18 +125,28 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
         self.last_state = await self.async_get_last_state()
 
     @property
+    def _chime_status(self):
+        """Returns the chime status as pyenvisalink knows. May be out of sync on DSC panels"""
+        status = self._info["status"]
+        if status:
+            return status.get("chime", None)
+        return None
+
+    @property
     def is_on(self):
         """Return the boolean response if the chime is enabled."""
-        status = self._info["status"]
-        if not status or status.get("chime", None) == None:
-            # No status from the panel yet so use HA's last saved state
-            return self.last_state.state == STATE_ON if self.last_state else False
-        return status["chime"]
-
+        chime_status = self._chime_status
+        if chime_status is not None:
+            return chime_status
+        # No status from the panel yet so use HA's last saved state
+        return self.last_state.state == STATE_ON if self.last_state else False
+        
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
-        await self._controller.controller.toggle_chime(self._code)
+        if self._chime_status != True:
+            await self._controller.controller.toggle_chime(self._code)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
-        await self._controller.controller.toggle_chime(self._code)
+        if self._chime_status != False:
+            await self._controller.controller.toggle_chime(self._code)
