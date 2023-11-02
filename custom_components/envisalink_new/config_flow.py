@@ -3,16 +3,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
-from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.const import CONF_CODE, CONF_HOST, CONF_TIMEOUT
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, selector
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import selector
 from homeassistant.helpers.device_registry import format_mac
 
 from .const import (
@@ -47,6 +45,8 @@ from .const import (
     LOGGER,
 )
 from .helpers import parse_range_string
+from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -54,9 +54,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
         errors = {}
 
@@ -113,13 +111,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
 
         return self.async_show_menu(
-            step_id="user",
+            step_id="init",
             menu_options={
                 "basic": "Basic",
                 "advanced": "Advanced",
@@ -151,9 +147,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 LOGGER.exception("Unexpected exception: %r", ex)
                 errors["base"] = "unknown"
             else:
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=data
-                )
+                self.hass.config_entries.async_update_entry(self.config_entry, data=data)
 
                 return self.async_create_entry(title="", data=self.config_entry.options)
 
@@ -225,9 +219,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_HONEYWELL_ARM_NIGHT_MODE, DEFAULT_HONEYWELL_ARM_NIGHT_MODE
                     ),
                 )
-            ] = selector.SelectSelector(
-                selector.SelectSelectorConfig(options=arm_modes)
-            )
+            ] = selector.SelectSelector(selector.SelectSelectorConfig(options=arm_modes))
 
         return self.async_show_form(
             step_id="advanced",
@@ -296,9 +288,7 @@ async def _validate_input(
     partition_set: str = data.get(CONF_PARTITION_SET, "")
     if not parse_range_string(zone_set, 1, max_zones):
         raise PanelError("invalid_zone_spec")
-    if not parse_range_string(
-        partition_set, 1, EnvisalinkAlarmPanel.get_max_partitions()
-    ):
+    if not parse_range_string(partition_set, 1, EnvisalinkAlarmPanel.get_max_partitions()):
         raise PanelError("invalid_partition_spec")
 
     return panel
@@ -315,9 +305,7 @@ def _get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
         vol.Required(CONF_HOST, default=defaults[CONF_HOST]): cv.string,
         vol.Required(CONF_USERNAME, default=defaults[CONF_USERNAME]): cv.string,
         vol.Required(CONF_PASS, default=defaults[CONF_PASS]): cv.string,
-        vol.Required(
-            CONF_PARTITION_SET, default=defaults[CONF_PARTITION_SET]
-        ): cv.string,
+        vol.Required(CONF_PARTITION_SET, default=defaults[CONF_PARTITION_SET]): cv.string,
         vol.Required(CONF_ZONE_SET, default=defaults[CONF_ZONE_SET]): cv.string,
         vol.Optional(
             CONF_CODE, description={"suggested_value": defaults[CONF_CODE]}, default=""
@@ -343,8 +331,6 @@ def _get_user_data_defaults(data=None):
         CONF_PARTITION_SET: data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET),
         CONF_CODE: data.get(CONF_CODE, ""),
         CONF_EVL_PORT: data.get(CONF_EVL_PORT, DEFAULT_PORT),
-        CONF_EVL_DISCOVERY_PORT: data.get(
-            CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT
-        ),
+        CONF_EVL_DISCOVERY_PORT: data.get(CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT),
     }
     return config_defaults
