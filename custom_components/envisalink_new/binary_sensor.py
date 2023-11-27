@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_LAST_TRIP_TIME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -54,7 +55,7 @@ async def async_setup_entry(
         async_add_entities(entities)
 
 
-class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
+class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity):
     """Representation of an Envisalink binary sensor."""
 
     def __init__(self, hass, zone_number, zone_info, controller):
@@ -76,6 +77,11 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
         LOGGER.debug("Setting up zone: %s", name)
         super().__init__(name, controller, STATE_CHANGE_ZONE, zone_number)
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+
+        self.last_state = await self.async_get_last_state()
+
     @property
     def _info(self):
         return self._controller.controller.alarm_state["zone"][self._zone_number]
@@ -87,7 +93,10 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity):
 
         last_fault = self._info["last_fault"]
         if not last_fault:
-            attr[ATTR_LAST_TRIP_TIME] = None
+            # Since the EVL does not keep track of the last fault time, use the HA restored
+            # value if no zone fault has been detected since HA was last restarted.
+            last_fault = self.last_state.attributes.get(ATTR_LAST_TRIP_TIME)
+            attr[ATTR_LAST_TRIP_TIME] = last_fault
         else:
             attr[ATTR_LAST_TRIP_TIME] = datetime.datetime.fromtimestamp(
                 last_fault
