@@ -95,8 +95,12 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity
         if not last_fault:
             # Since the EVL does not keep track of the last fault time, use the HA restored
             # value if no zone fault has been detected since HA was last restarted.
-            last_fault = self.last_state.attributes.get(ATTR_LAST_TRIP_TIME)
-            attr[ATTR_LAST_TRIP_TIME] = last_fault
+            if self.last_state:
+                attr[ATTR_LAST_TRIP_TIME] = self.last_state.attributes.get(
+                    ATTR_LAST_TRIP_TIME
+                )
+            else:
+                attr[ATTR_LAST_TRIP_TIME] = None
         else:
             attr[ATTR_LAST_TRIP_TIME] = datetime.datetime.fromtimestamp(
                 last_fault
