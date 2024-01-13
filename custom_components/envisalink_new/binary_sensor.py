@@ -114,6 +114,9 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity
         # Expose whether the zone is currently bypassed
         attr["bypassed"] = self._info["bypassed"]
 
+        for key, value in self._info["status"].items():
+            attr[key] = value
+
         return attr
 
     @property

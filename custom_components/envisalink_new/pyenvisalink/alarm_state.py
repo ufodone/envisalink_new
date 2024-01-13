@@ -39,6 +39,7 @@ class AlarmState:
                     "fault": False,
                     "alarm": False,
                     "tamper": False,
+                    "low_battery": False,
                 },
                 "last_fault": 0,
                 "bypassed": False,

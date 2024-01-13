@@ -400,6 +400,20 @@ evl_ResponseTypes = {
         "state_change": True,
         "status": {"alpha": "System tamper Restored"},
     },
+    "832": {
+        "name": "WirelessZoneLowBat",
+        "handler": "zone_state_change",
+        "state_change": True,
+        "status": {"low_battery": True},
+        "is_fault": False,
+    },
+    "833": {
+        "name": "WirelessZoneLowBat-Restore",
+        "handler": "zone_state_change",
+        "state_change": True,
+        "status": {"low_battery": False},
+        "is_fault": False,
+    },
     "849": {
         "name": "TroubleVerbose",
         "handler": "keypad_update",
