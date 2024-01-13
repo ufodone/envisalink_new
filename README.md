@@ -1,8 +1,8 @@
 # envisalink_new
 
-**WORK IN PROGRESS**
+A modernized version of the Home Assistant `envisalink` integration.
 
-Temporary HACS version of envisalink integration while undergoing a refactor.
+My original intent was to submit these changes back HA core to update the aging `envisalink` integration. However, the scope of the changes got large which meant that the effort to them back into HA core would to be very time consuming. I don't expect to be able to commit the time required to get these changes back into HA core so this integration will unfortunately remain only available through HACS for the foreseeable future.
 
 ## Current changes include:
 
@@ -16,6 +16,7 @@ Temporary HACS version of envisalink integration while undergoing a refactor.
   - Sequential queueing of commands to the EVL including retry on errors (which applicable) and timeouts
   - Ability to query EVL firmware version and MAC address
   - Update of asyncio network handling to use Streams rather than low-level APIs
+- Many other small feature additions and bug fixes.
 
 ## Installation
 
@@ -24,7 +25,6 @@ Temporary HACS version of envisalink integration while undergoing a refactor.
 You need to add this repository to the custom repository page in HACS before you can install this integration.
 To do so first go to the HACS Integrations page. From there click the menu in the top right with the 3 dots.
 Use this URL for the repository `https://github.com/ufodone/envisalink_new` and select `integration` for the category. After you add the custom repository, just search for `Envisalink Refactored` in HACS and install it. Installation will complete after you reboot Home Assistant.
-
 
 ## Configuration
 
@@ -45,15 +45,3 @@ Unlike the old configuration.yaml approach, the integration will create its own 
 This method of configuring the integration is still available but is meant primarily to allow for easy upgrades for people using the original integration. On startup, the integration will look for the presence of the configuration and import it into a config entity. The intent here is that once setup, all your entity names, etc. If you subsequently change the configuration.yaml, the next HA restart will re-sync your changes into the config entity. However, it is recommended that once the initial import has been done and confirmed working that the entries in configuration.yaml are removed.
 
 Because the name of the integration has been changed (for now) to avoid conflict with the official packaged version, you will need to change your `envisalink` heading to `envisalink_new` so that this HACS integration will pick it up.
-
-## Testing Help
-
-These are fairly substantial changes and I only have my own system (EVL4/DSC) and configuration to test against. Key things I'd like to get more testing on are:
-
-- Does it import your configuration.yaml correctly?
-- If you don't have any configuration.yaml entries, are you able to successfully add the EVL via the UI?
-- Does it auto-detect your EVL version and panel type correctly?
-- Do you see your firmware version listed in the device settings?
-- Do you see any errors or warnings in the log files?
-- If you have any automations, etc. connected to your envisalink, do they still work correctly?
-- Generally speaking, does anything look wrong or broken?
