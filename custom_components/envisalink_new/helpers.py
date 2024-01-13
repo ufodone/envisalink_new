@@ -77,3 +77,12 @@ def generate_range_string(seq: set) -> str | None:
     else:
         result += f"{start}-{end}"
     return result
+
+
+def extract_discovery_endpoint(discovery_port) -> tuple:
+    discovery_port = str(discovery_port)
+    hostAndPort = discovery_port.split(":")
+    if len(hostAndPort) == 1:
+        return (None, int(hostAndPort[0]))
+
+    return (":".join(hostAndPort[0:-1]), int(hostAndPort[-1]))

@@ -46,12 +46,14 @@ class EnvisalinkAlarmPanel:
         zoneBypassEnabled=False,
         commandTimeout=5.0,
         httpPort=8080,
+        httpHost=None,
     ):
         self._macAddress = None
         self._firmwareVersion = None
         self._host = host
         self._port = port
         self._httpPort = httpPort
+        self._httpHost = httpHost if httpHost else host
         self._connectionTimeout = connectionTimeout
         self._panelType = None
         self._evlVersion = "3"
@@ -93,6 +95,10 @@ class EnvisalinkAlarmPanel:
     @property
     def httpPort(self):
         return self._httpPort
+
+    @property
+    def httpHost(self):
+        return self._httpHost
 
     @property
     def connection_timeout(self):
@@ -151,7 +157,7 @@ class EnvisalinkAlarmPanel:
         return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
 
     def get_max_zones_by_version(version) -> int:
-        if version == '4' or version == '4MAX':
+        if version == "4" or version == "4MAX":
             return EVL4_MAX_ZONES
         return EVL3_MAX_ZONES
 
@@ -363,7 +369,7 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def toggle_chime (self, code):
+    async def toggle_chime(self, code):
         """Public method to toggle chime."""
         if self._client:
             await self._client.toggle_chime(code)
@@ -386,7 +392,7 @@ class EnvisalinkAlarmPanel:
                 auth=aiohttp.BasicAuth(self._username, self._password),
                 timeout=aiohttp.ClientTimeout(total=self.connection_timeout),
             ) as client:
-                url = f"http://{self._host}:{self._httpPort}/2"
+                url = f"http://{self._httpHost}:{self._httpPort}/2"
                 resp = await client.get(url)
                 if resp.status != 200:
                     _LOGGER.warn(
@@ -429,7 +435,7 @@ class EnvisalinkAlarmPanel:
                 auth=aiohttp.BasicAuth(self._username, self._password),
                 timeout=aiohttp.ClientTimeout(total=self.connection_timeout),
             ) as client:
-                url = f"http://{self._host}:{self._httpPort}/3"
+                url = f"http://{self._httpHost}:{self._httpPort}/3"
                 resp = await client.get(url)
                 if resp.status == 401:
                     _LOGGER.error("Unable to validate connection: invalid authorization.")

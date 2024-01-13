@@ -44,7 +44,7 @@ from .const import (
     HONEYWELL_ARM_MODE_NIGHT_VALUE,
     LOGGER,
 )
-from .helpers import parse_range_string
+from .helpers import extract_discovery_endpoint, parse_range_string
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 
@@ -257,12 +257,17 @@ async def _validate_input(
     """Validate the user input allows us to connect."""
 
     # Check that we're able to successfully connect and auth with the envisalink
+    hostAndPort = extract_discovery_endpoint(
+        data.get(CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT)
+    )
+
     panel = EnvisalinkAlarmPanel(
         data[CONF_HOST],
         port=data.get(CONF_EVL_PORT, DEFAULT_PORT),
         userName=data[CONF_USERNAME],
         password=data[CONF_PASS],
-        httpPort=data.get(CONF_EVL_DISCOVERY_PORT, DEFAULT_DISCOVERY_PORT),
+        httpHost=hostAndPort[0],
+        httpPort=hostAndPort[1],
     )
 
     result = await panel.discover()
@@ -313,7 +318,7 @@ def _get_user_data_schema(defaults: dict[str, Any], is_creation: bool = False):
         vol.Required(CONF_EVL_PORT, default=defaults[CONF_EVL_PORT]): cv.port,
         vol.Required(
             CONF_EVL_DISCOVERY_PORT, default=defaults[CONF_EVL_DISCOVERY_PORT]
-        ): cv.port,
+        ): cv.string,
     }
     return vol.Schema(schema)
 

@@ -21,6 +21,7 @@ from .const import (
     DEFAULT_TIMEOUT,
     LOGGER,
 )
+from .helpers import extract_discovery_endpoint, parse_range_string
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 from .pyenvisalink.const import (
     STATE_CHANGE_PARTITION,
@@ -57,6 +58,7 @@ class EnvisalinkController:
 
         self.hass = hass
 
+        hostAndPort = extract_discovery_endpoint(discovery_port)
         self.controller = EnvisalinkAlarmPanel(
             host,
             port,
@@ -66,7 +68,8 @@ class EnvisalinkController:
             keep_alive,
             connection_timeout,
             create_zone_bypass_switches,
-            httpPort=discovery_port,
+            httpHost=hostAndPort[0],
+            httpPort=hostAndPort[1],
         )
 
         self._listeners: dict[str, dict] = {
@@ -88,10 +91,11 @@ class EnvisalinkController:
         )
 
         LOGGER.debug(
-            "Created EnvisalinkController for %s (host=%s port=%r)",
+            "Created EnvisalinkController for %s (host=%s port=%r discovery=%r)",
             self.alarm_name,
             host,
             port,
+            hostAndPort,
         )
 
     def add_state_change_listener(
