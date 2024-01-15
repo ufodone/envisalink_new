@@ -19,7 +19,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, parse_range_string
+from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
@@ -68,20 +68,20 @@ async def async_setup_entry(
 class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink bypass switch."""
 
-    def __init__(self, hass, zone_number, zone_info, controller):
+    def __init__(self, hass, zone_number, zone_conf, controller):
         """Initialize the switch."""
         self._zone_number = zone_number
-        name = f"Zone {self._zone_number} Bypass"
-        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        self._attr_has_entity_name = True
-        if zone_info:
-            # Override the name if there is info from the YAML configuration
-            if CONF_ZONENAME in zone_info:
-                name = f"{zone_info[CONF_ZONENAME]}_bypass"
-                self._attr_has_entity_name = False
+        setup_info = generate_entity_setup_info(
+            controller, "zone", zone_number, "Bypass", zone_conf
+        )
 
-        LOGGER.debug("Setting up zone: %s", name)
+        name = setup_info["name"]
+        self._attr_unique_id = setup_info["unique_id"]
+        self._zone_type = setup_info["zone_type"]
+        self._attr_has_entity_name = setup_info["has_entity_name"]
+
+        LOGGER.debug("Setting up zone bypass switch: %s", name)
         super().__init__(name, controller, STATE_CHANGE_ZONE_BYPASS, zone_number)
 
     @property
@@ -140,7 +140,7 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
             return chime_status
         # No status from the panel yet so use HA's last saved state
         return self.last_state.state == STATE_ON if self.last_state else False
-        
+
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
         if self._chime_status != True:

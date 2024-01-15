@@ -20,7 +20,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, parse_range_string
+from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import STATE_CHANGE_ZONE
 
@@ -58,21 +58,18 @@ async def async_setup_entry(
 class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity):
     """Representation of an Envisalink binary sensor."""
 
-    def __init__(self, hass, zone_number, zone_info, controller):
+    def __init__(self, hass, zone_number, zone_conf, controller):
         """Initialize the binary_sensor."""
         self._zone_number = zone_number
-        name = f"Zone {self._zone_number}"
-        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        self._zone_type = DEFAULT_ZONETYPE
+        setup_info = generate_entity_setup_info(
+            controller, "zone", zone_number, None, zone_conf
+        )
 
-        self._attr_has_entity_name = True
-        if zone_info:
-            # Override the name and type if there is info from the YAML configuration
-            self._zone_type = zone_info.get(CONF_ZONETYPE, DEFAULT_ZONETYPE)
-            if CONF_ZONENAME in zone_info:
-                name = zone_info[CONF_ZONENAME]
-                self._attr_has_entity_name = False
+        name = setup_info["name"]
+        self._attr_unique_id = setup_info["unique_id"]
+        self._zone_type = setup_info["zone_type"]
+        self._attr_has_entity_name = setup_info["has_entity_name"]
 
         LOGGER.debug("Setting up zone: %s", name)
         super().__init__(name, controller, STATE_CHANGE_ZONE, zone_number)

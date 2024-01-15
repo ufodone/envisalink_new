@@ -1,5 +1,7 @@
 """Helper functions for the Envisalink integration."""
 
+from .const import CONF_PARTITIONNAME, CONF_ZONENAME, CONF_ZONETYPE, DEFAULT_ZONETYPE
+
 
 def find_yaml_info(entry_number: int, info) -> map | None:
     """Locate the given entry from a dict whose keys may be strings."""
@@ -86,3 +88,33 @@ def extract_discovery_endpoint(discovery_port) -> tuple:
         return (None, int(hostAndPort[0]))
 
     return (":".join(hostAndPort[0:-1]), int(hostAndPort[-1]))
+
+
+def generate_entity_setup_info(
+    controller, entity_type: str, index: int, suffix: str, extra_yaml_conf: dict
+) -> dict:
+    if not suffix:
+        suffix = ""
+    else:
+        suffix = " " + suffix
+
+    name = f"{entity_type.title()} {index}{suffix}"
+    unique_id = f"{controller.unique_id}_{name}"
+
+    zone_type = DEFAULT_ZONETYPE
+    has_entity_name = True
+    if extra_yaml_conf:
+        # Override the name if there is info from the YAML configuration
+        name_key = CONF_ZONENAME if entity_type == "zone" else CONF_PARTITIONNAME
+        if name_key in extra_yaml_conf:
+            name = f"{extra_yaml_conf[name_key]}{suffix}"
+            has_entity_name = False
+
+        zone_type = extra_yaml_conf.get(CONF_ZONETYPE, DEFAULT_ZONETYPE)
+
+    return {
+        "name": name,
+        "unique_id": unique_id,
+        "has_entity_name": has_entity_name,
+        "zone_type": zone_type,
+    }
