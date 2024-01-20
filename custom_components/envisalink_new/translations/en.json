@@ -7,7 +7,8 @@
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication",
       "invalid_partition_spec": "Invalid partition specification",
-      "invalid_zone_spec": "invalid zone specification",
+      "invalid_zone_spec": "Invalid zone specification",
+      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
       "unknown": "Unexpected error"
     },
     "step": {
@@ -32,6 +33,7 @@
       "invalid_auth": "Invalid authentication",
       "invalid_partition_spec": "Invalid partition specification",
       "invalid_zone_spec": "Invalid zone specification",
+      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
       "unknown": "Unexpected error"
     },
     "step": {
@@ -42,7 +44,8 @@
           "keepalive_interval": "Keep-alive interval",
           "panic_type": "Panic type",
           "timeout": "Connection timeout",
-          "zonedump_interval": "Zone dump interval"
+          "zonedump_interval": "Zone dump interval",
+          "wireless_zone_set": "Wireless Zones"
         }
       },
       "basic": {

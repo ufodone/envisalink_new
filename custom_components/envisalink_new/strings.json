@@ -53,7 +53,8 @@
           "zonedump_interval": "Zone dump interval",
           "timeout": "Connection timeout",
           "create_zone_bypass_switches": "Create zone bypass switches",
-          "honeywell_arm_night_mode": "Arm Night Mode"
+          "honeywell_arm_night_mode": "Arm Night Mode",
+          "wireless_zone_set": "Wireless Zones"
         }
       }
     },
@@ -62,6 +63,7 @@
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "invalid_zone_spec": "Invalid zone specification",
       "invalid_partition_spec": "Invalid partition specification",
+      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   }

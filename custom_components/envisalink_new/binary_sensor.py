@@ -18,6 +18,7 @@ from .const import (
     CONF_PARTITION_SET,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
+    CONF_WIRELESS_ZONE_SET,
     CONF_ZONE_SET,
     CONF_ZONENAME,
     CONF_ZONES,
@@ -80,6 +81,7 @@ _attribute_sensor_info = {
             "panels": [PANEL_TYPE_DSC],
             "icon": "mdi:battery-alert",
             "device_class": BinarySensorDeviceClass.BATTERY,
+            "zone_set": CONF_WIRELESS_ZONE_SET,
         },
     },
 }
@@ -115,15 +117,20 @@ async def async_setup_entry(
 
             for attr, info in _attribute_sensor_info["zone"].items():
                 if controller.controller.panel_type in info["panels"]:
-                    entity = EnvisalinkAttributeBinarySensor(
-                        hass,
-                        "zone",
-                        attr,
-                        zone_num,
-                        zone_entry,
-                        controller,
+                    enable_spec: str = entry.options.get(info.get("zone_set"), "")
+                    enabled_zones = parse_range_string(
+                        enable_spec, min_val=1, max_val=controller.controller.max_zones
                     )
-                    entities.append(entity)
+                    if enabled_zones and zone_num in enabled_zones:
+                        entity = EnvisalinkAttributeBinarySensor(
+                            hass,
+                            "zone",
+                            attr,
+                            zone_num,
+                            zone_entry,
+                            controller,
+                        )
+                        entities.append(entity)
 
     # Setup partition sensors
     partition_spec: str = entry.data.get(CONF_PARTITION_SET, "")
