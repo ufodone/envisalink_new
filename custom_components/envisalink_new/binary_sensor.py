@@ -83,6 +83,12 @@ _attribute_sensor_info = {
             "device_class": BinarySensorDeviceClass.BATTERY,
             "zone_set": CONF_WIRELESS_ZONE_SET,
         },
+        "fault": {
+            "name": "Fault",
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],
+            "icon": "mdi:alarm-light",
+            "device_class": BinarySensorDeviceClass.GAS,
+        },
     },
 }
 
@@ -117,11 +123,16 @@ async def async_setup_entry(
 
             for attr, info in _attribute_sensor_info["zone"].items():
                 if controller.controller.panel_type in info["panels"]:
-                    enable_spec: str = entry.options.get(info.get("zone_set"), "")
-                    enabled_zones = parse_range_string(
-                        enable_spec, min_val=1, max_val=controller.controller.max_zones
-                    )
-                    if enabled_zones and zone_num in enabled_zones:
+                    should_create = True
+                    zone_set_option = info.get("zone_set")
+                    if zone_set_option:
+                        enable_spec: str = entry.options.get(zone_set_option, "")
+                        enabled_zones = parse_range_string(
+                            enable_spec, min_val=1, max_val=controller.controller.max_zones
+                        )
+                        should_create = enabled_zones and zone_num in enabled_zones
+
+                    if should_create:
                         entity = EnvisalinkAttributeBinarySensor(
                             hass,
                             "zone",
