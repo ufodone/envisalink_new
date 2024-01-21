@@ -1,9 +1,8 @@
 """Support for Envisalink-based alarm control panels (Honeywell/DSC)."""
 from __future__ import annotations
 
-from .pyenvisalink.const import PANEL_TYPE_HONEYWELL, STATE_CHANGE_PARTITION
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
@@ -22,7 +21,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -37,8 +35,9 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, parse_range_string
+from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
 from .models import EnvisalinkDevice
+from .pyenvisalink.const import PANEL_TYPE_HONEYWELL, STATE_CHANGE_PARTITION
 
 SERVICE_ALARM_KEYPRESS = "alarm_keypress"
 ATTR_KEYPRESS = "keypress"
@@ -127,7 +126,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self,
         hass,
         partition_number,
-        partition_info,
+        extra_yaml_conf,
         code,
         panic_type,
         arm_night_mode,
@@ -138,15 +137,14 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self._code = code
         self._panic_type = panic_type
         self._arm_night_mode = arm_night_mode
-        name = f"Partition {partition_number}"
-        self._attr_unique_id = f"{controller.unique_id}_{name}"
 
-        self._attr_has_entity_name = True
-        if partition_info:
-            # Override the name if there is info from the YAML configuration
-            if CONF_PARTITIONNAME in partition_info:
-                name = f"{partition_info[CONF_PARTITIONNAME]}"
-                self._attr_has_entity_name = False
+        setup_info = generate_entity_setup_info(
+            controller, "partition", partition_number, None, extra_yaml_conf
+        )
+
+        name = setup_info["name"]
+        self._attr_unique_id = setup_info["unique_id"]
+        self._attr_has_entity_name = setup_info["has_entity_name"]
 
         LOGGER.debug("Setting up alarm: %s", name)
         super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
@@ -160,9 +158,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     @property
     def _info(self):
-        return self._controller.controller.alarm_state["partition"][
-            self._partition_number
-        ]
+        return self._controller.controller.alarm_state["partition"][self._partition_number]
 
     @property
     def state(self) -> str:
@@ -241,6 +237,4 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         """Send custom/PGM to EVL."""
         if not code:
             code = self._code
-        await self._controller.controller.command_output(
-            code, self._partition_number, pgm
-        )
+        await self._controller.controller.command_output(code, self._partition_number, pgm)

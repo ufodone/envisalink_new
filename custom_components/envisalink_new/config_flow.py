@@ -26,10 +26,12 @@ from .const import (
     CONF_PARTITION_SET,
     CONF_PASS,
     CONF_USERNAME,
+    CONF_WIRELESS_ZONE_SET,
     CONF_ZONE_SET,
     DEFAULT_ALARM_NAME,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_DISCOVERY_PORT,
+    DEFAULT_EVL_VERSION,
     DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
     DEFAULT_KEEPALIVE,
     DEFAULT_PANIC,
@@ -164,10 +166,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         errors: dict[str, str] = {}
+        default_wireless_zones = self.config_entry.options.get(CONF_WIRELESS_ZONE_SET)
 
         if user_input is not None:
             # Make sure all the options are here
-            return self.async_create_entry(title="", data=user_input)
+            try:
+                # Validate that the new settings are okay
+                self._validate_advanced_options(user_input)
+                return self.async_create_entry(title="", data=user_input)
+            except HomeAssistantError as err:
+                errors["base"] = str(err)
+            default_wireless_zones = user_input.get(CONF_WIRELESS_ZONE_SET)
 
         options_schema = {
             vol.Optional(
@@ -198,6 +207,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 )
             ] = selector.BooleanSelector()
+            options_schema[
+                vol.Optional(
+                    CONF_WIRELESS_ZONE_SET,
+                    description={"suggested_value": default_wireless_zones},
+                    default="",
+                )
+            ] = cv.string
 
         # Add Honeywell-only options
         if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
@@ -226,6 +242,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema(options_schema),
             errors=errors,
         )
+
+    def _validate_advanced_options(self, user_input):
+        """Ensure that the wireless zones specified are present in the main zone list."""
+        max_zones = EnvisalinkAlarmPanel.get_max_zones_by_version(
+            self.config_entry.options.get(CONF_EVL_VERSION, DEFAULT_EVL_VERSION)
+        )
+        wireless_zone_set: str = user_input.get(CONF_WIRELESS_ZONE_SET, "")
+        if not wireless_zone_set:
+            return
+
+        wireless_zones = parse_range_string(wireless_zone_set, 1, max_zones)
+        if not wireless_zones:
+            raise PanelError("invalid_zone_spec")
+
+        zone_set: str = self.config_entry.data.get(CONF_ZONE_SET, "")
+        zones = parse_range_string(zone_set, 1, max_zones)
+        for zone in wireless_zones:
+            if zone not in zones:
+                raise PanelError("bad_wireless_zone")
 
 
 class DiscoveryError(HomeAssistantError):

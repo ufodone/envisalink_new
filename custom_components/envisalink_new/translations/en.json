@@ -1,68 +1,71 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "invalid_partition_spec": "Invalid partition specification",
-            "invalid_zone_spec": "invalid zone specification",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "alarm_name": "Alarm Name",
-                    "code": "Alarm code",
-                    "discovery_port": "Discovery Port",
-                    "host": "Host",
-                    "partition_set": "Partition list",
-                    "password": "Password",
-                    "port": "Port",
-                    "user_name": "Username",
-                    "zone_set": "Zone list"
-                }
-            }
-        }
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
     },
-    "options": {
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "invalid_partition_spec": "Invalid partition specification",
-            "invalid_zone_spec": "Invalid zone specification",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "advanced": {
-                "data": {
-                    "create_zone_bypass_switches": "Create zone bypass switches",
-                    "honeywell_arm_night_mode": "Arm Night Mode",
-                    "keepalive_interval": "Keep-alive interval",
-                    "panic_type": "Panic type",
-                    "timeout": "Connection timeout",
-                    "zonedump_interval": "Zone dump interval"
-                }
-            },
-            "basic": {
-                "data": {
-                    "code": "Alarm code",
-                    "discovery_port": "Discovery Port",
-                    "host": "Host",
-                    "partition_set": "Partition list",
-                    "password": "Password",
-                    "port": "Port",
-                    "user_name": "Username",
-                    "zone_set": "Zone list"
-                }
-            },
-            "init": {
-                "data": {
-                    "Advanced": "Advanced",
-                    "Basic": "Basic"
-                }
-            }
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "invalid_partition_spec": "Invalid partition specification",
+      "invalid_zone_spec": "Invalid zone specification",
+      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "alarm_name": "Alarm Name",
+          "code": "Alarm code",
+          "discovery_port": "Discovery Port",
+          "host": "Host",
+          "partition_set": "Partition list",
+          "password": "Password",
+          "port": "Port",
+          "user_name": "Username",
+          "zone_set": "Zone list"
         }
+      }
     }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "invalid_partition_spec": "Invalid partition specification",
+      "invalid_zone_spec": "Invalid zone specification",
+      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "advanced": {
+        "data": {
+          "create_zone_bypass_switches": "Create zone bypass switches",
+          "honeywell_arm_night_mode": "Arm Night Mode",
+          "keepalive_interval": "Keep-alive interval",
+          "panic_type": "Panic type",
+          "timeout": "Connection timeout",
+          "zonedump_interval": "Zone dump interval",
+          "wireless_zone_set": "Wireless Zones"
+        }
+      },
+      "basic": {
+        "data": {
+          "code": "Alarm code",
+          "discovery_port": "Discovery Port",
+          "host": "Host",
+          "partition_set": "Partition list",
+          "password": "Password",
+          "port": "Port",
+          "user_name": "Username",
+          "zone_set": "Zone list"
+        }
+      },
+      "init": {
+        "data": {
+          "Advanced": "Advanced",
+          "Basic": "Basic"
+        }
+      }
+    }
+  }
 }

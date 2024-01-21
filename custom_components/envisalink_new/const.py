@@ -23,6 +23,7 @@ CONF_USERNAME = "user_name"
 CONF_ZONEDUMP_INTERVAL = "zonedump_interval"  # OPTION
 CONF_CREATE_ZONE_BYPASS_SWITCHES = "create_zone_bypass_switches"  # OPTION
 CONF_HONEYWELL_ARM_NIGHT_MODE = "honeywell_arm_night_mode"  # OPTION
+CONF_WIRELESS_ZONE_SET = "wireless_zone_set"
 
 
 # Config items used only in the YAML config
