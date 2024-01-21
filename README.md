@@ -12,6 +12,8 @@ My original intent was to submit these changes back HA core to update the aging 
 - Zone bypass switch support for DSC panels
 - Auto-discovery of EVL version and panel type (DSC/HONEYWELL)
 - New algorithm on for Honeywell systems to better handle zone open/close status
+- Several panel and zone attributes have been promoted to entities
+- Support for low battery warnings for wireless sensors on DSC systems.  Requires a [specific](https://github.com/ufodone/envisalink_new/issues/63#issuecomment-1888344880) firmware version.
 - Refactoring of the underlying pyenvisalink package including
   - Sequential queueing of commands to the EVL including retry on errors (which applicable) and timeouts
   - Ability to query EVL firmware version and MAC address
