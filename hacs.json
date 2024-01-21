@@ -1,5 +1,6 @@
 {
   "name": "Envisalink Refactored",
   "domains": ["envisalink_new"],
-  "iot_class": ["local_push"]
+  "iot_class": ["local_push"],
+  "render_readme": true
 }

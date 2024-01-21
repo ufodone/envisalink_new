@@ -1,4 +1,4 @@
-# envisalink_new
+# Envisalink Refactored
 
 A modernized version of the Home Assistant `envisalink` integration.
 
