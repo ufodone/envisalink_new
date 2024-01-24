@@ -85,9 +85,9 @@ _attribute_sensor_info = {
         },
         "fault": {
             "name": "Fault",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],
+            "panels": [PANEL_TYPE_DSC],
             "icon": "mdi:alarm-light",
-            "device_class": BinarySensorDeviceClass.GAS,
+            "device_class": None,
         },
     },
 }
