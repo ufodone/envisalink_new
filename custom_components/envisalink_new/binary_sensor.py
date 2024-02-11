@@ -8,7 +8,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_LAST_TRIP_TIME
+from homeassistant.const import ATTR_LAST_TRIP_TIME, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -43,6 +43,7 @@ _attribute_sensor_info = {
             "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],
             "icon": "mdi:power-plug",
             "device_class": BinarySensorDeviceClass.POWER,
+            "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "ready": {
             "name": "Ready",
@@ -55,12 +56,14 @@ _attribute_sensor_info = {
             "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],
             "icon": "mdi:battery-alert",
             "device_class": BinarySensorDeviceClass.PROBLEM,
+            "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "trouble": {
             "name": "Panel Health",
             "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],
             "icon": "mdi:alert",
             "device_class": BinarySensorDeviceClass.PROBLEM,
+            "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "fire": {
             "name": "Fire",
@@ -82,6 +85,7 @@ _attribute_sensor_info = {
             "icon": "mdi:battery-alert",
             "device_class": BinarySensorDeviceClass.BATTERY,
             "zone_set": CONF_WIRELESS_ZONE_SET,
+            "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "fault": {
             "name": "Fault",
@@ -251,6 +255,8 @@ class EnvisalinkAttributeBinarySensor(EnvisalinkDevice, BinarySensorEntity):
 
         self._icon = sensor_info[evl_attr_name]["icon"]
         self._attr_device_class = sensor_info[evl_attr_name]["device_class"]
+        if "entity_category" in sensor_info[evl_attr_name]:
+            self._attr_entity_category = sensor_info[evl_attr_name]["entity_category"]
         self._evl_attr_type = attr_type
         self._evl_attr_name = evl_attr_name
         self._index = index
