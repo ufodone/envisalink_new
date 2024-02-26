@@ -13,9 +13,11 @@ from .const import (
     MAX_PARTITIONS,
     PANEL_TYPE_DSC,
     PANEL_TYPE_HONEYWELL,
+    PANEL_TYPE_UNO,
 )
 from .dsc_client import DSCClient
 from .honeywell_client import HoneywellClient
+from .uno_client import UnoClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -262,7 +264,10 @@ class EnvisalinkAlarmPanel:
             )
         )
         self._syncConnect: asyncio.Future[self.ConnectionResult] = asyncio.Future()
-        if self._panelType == PANEL_TYPE_HONEYWELL:
+        if self._panelType == PANEL_TYPE_UNO:
+            self._client = UnoClient(self)
+            self._client.start()
+        elif self._panelType == PANEL_TYPE_HONEYWELL:
             self._client = HoneywellClient(self)
             self._client.start()
         elif self._panelType == PANEL_TYPE_DSC:
@@ -417,8 +422,14 @@ class EnvisalinkAlarmPanel:
                     _LOGGER.warn("Unable to determine panel type: raw HTML: %s", html)
                 else:
                     self._panelType = m.group(1).upper()
-                    if self._panelType not in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL]:
+                    if self._panelType not in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO]:
                         _LOGGER.warn("Unrecognized panel type: %s", self._panelType)
+
+                    #TODO: Force this to be an Uno panel for now until it's
+                    #      possible to detect correctly.
+                    if self._panelType == PANEL_TYPE_HONEYWELL:
+                        self._panelType = PANEL_TYPE_UNO;
+
         except Exception as ex:
             _LOGGER.error("Unable to fetch panel information: %s", ex)
             return self.ConnectionResult.CONNECTION_FAILED
@@ -495,7 +506,11 @@ class EnvisalinkAlarmPanel:
             )
             if data:
                 data = data.decode("ascii").strip()
-                if HoneywellClient.detect(data):
+                if UnoClient.detect(data):
+                    self._panelType = PANEL_TYPE_UNO
+                    _LOGGER.info("Panel type: %s", self._panelType)
+                    return self.ConnectionResult.SUCCESS
+                elif HoneywellClient.detect(data):
                     self._panelType = PANEL_TYPE_HONEYWELL
                     _LOGGER.info("Panel type: %s", self._panelType)
                     return self.ConnectionResult.SUCCESS
