@@ -408,27 +408,31 @@ class EnvisalinkAlarmPanel:
 
                 # Try and scrape the HTML for the EVL version and panel type
                 html = await resp.text()
-                version_regex = r"<TITLE>Envisalink ([^<]+)<\/TITLE>"
+                success = True
 
-                m = re.search(version_regex, html)
+                m = re.search(r"<TITLE>([^<]+)<\/TITLE>", html)
                 if m is None or m.lastindex != 1:
-                    _LOGGER.warn("Unable to determine version: raw HTML: %s", html)
+                    success = False
+                elif m.group(1).upper() == PANEL_TYPE_UNO:
+                    self._evlVersion = 0
+                    self._panelType = PANEL_TYPE_UNO
                 else:
-                    self._evlVersion = m.group(1)
+                    m = re.search(r"Envisalink (.+)", m.group(1))
+                    if m and m.lastindex == 1:
+                        self._evlVersion = m.group(1)
 
-                panel_regex = ">Security Subsystem - ([^<]*)<"
-                m = re.search(panel_regex, html)
-                if m is None or m.lastindex != 1:
-                    _LOGGER.warn("Unable to determine panel type: raw HTML: %s", html)
-                else:
-                    self._panelType = m.group(1).upper()
+                    panel_regex = ">Security Subsystem - ([^<]*)<"
+                    m = re.search(panel_regex, html)
+                    if m and m.lastindex == 1:
+                        self._panelType = m.group(1).upper()
+                    else:
+                        success = False
+
+                if success:
                     if self._panelType not in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO]:
                         _LOGGER.warn("Unrecognized panel type: %s", self._panelType)
-
-                    #TODO: Force this to be an Uno panel for now until it's
-                    #      possible to detect correctly.
-                    if self._panelType == PANEL_TYPE_HONEYWELL:
-                        self._panelType = PANEL_TYPE_UNO;
+                else:
+                    _LOGGER.warn("Unable to parse panel info: raw HTML: %s", html)
 
         except Exception as ex:
             _LOGGER.error("Unable to fetch panel information: %s", ex)

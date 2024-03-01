@@ -36,38 +36,25 @@ class UnoClient(HoneywellClient):
     def handle_zone_state_change(self, code, data):
         """Handle when the envisalink sends us a zone change."""
         zone_updates = []
-        # Envisalink TPI is inconsistent at generating these
-        bigEndianHexString = ''
-        # every four characters
-        inputItems = re.findall('....', data)
-        for inputItem in inputItems:
-            # Swap the couples of every four bytes
-            # (little endian to big endian)
-            swapedBytes = []
-            swapedBytes.insert(0, inputItem[0:2])
-            swapedBytes.insert(0, inputItem[2:4])
+        now = time.time()
 
-            # add swapped set of four bytes to our return items,
-            # converting from hex to int
-            bigEndianHexString += ''.join(swapedBytes)
+        zoneNumber = 0
+        num_bytes = len(data)
+        idx = 0
+        while (idx < num_bytes):
+            byte = int(data[idx:idx+2], 16)
+            idx += 2
+            for bit in range(8):
+                faulted = byte & (1 << bit) != 0
+                zoneNumber += 1
 
-        # convert hex string to bitstring
-        bitfieldString = str(bin(int(bigEndianHexString, 16))[2:].zfill(self._alarmPanel.max_zones))
+                self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update({'open': faulted, 'fault': faulted})
+                if faulted:
+                    self._alarmPanel.alarm_state['zone'][zoneNumber]['last_fault'] = now
 
-        # reverse every 16 bits so "lowest" zone is on the left
-        zonefieldString = ''
-        inputItems = re.findall('.' * 16, bitfieldString)
+                _LOGGER.debug("(zone %i) is %s", zoneNumber, "Open/Faulted" if faulted else "Closed/Not Faulted")
+                zone_updates.append(zoneNumber)
 
-        for inputItem in inputItems:
-            zonefieldString += inputItem[::-1]
-
-        for zoneNumber, zoneBit in enumerate(zonefieldString, start=1):
-            self._alarmPanel.alarm_state['zone'][zoneNumber]['status'].update({'open': zoneBit == '1', 'fault': zoneBit == '1'})
-            if zoneBit == '1':
-                self._alarmPanel.alarm_state['zone'][zoneNumber]['last_fault'] = 0
-
-            _LOGGER.debug("(zone %i) is %s", zoneNumber, "Open/Faulted" if zoneBit == '1' else "Closed/Not Faulted")
-            zone_updates.append(zoneNumber)
         return { STATE_CHANGE_ZONE: zone_updates }
 
 
