@@ -23,6 +23,7 @@ from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_str
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
+    PANEL_TYPE_HONEYWELL,
     STATE_CHANGE_PARTITION,
     STATE_CHANGE_ZONE_BYPASS,
 )
@@ -38,9 +39,10 @@ async def async_setup_entry(
     code = entry.data.get(CONF_CODE)
     entities = []
 
-    # Only create the chime switch if the alarm code is provided or it is a DSC
-    # panel (which does not require a code to toggle the chime).
-    if code or (entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_DSC):
+    # Only create the chime switch if the alarm code is provided for a Honeywell panel
+    # or it is a DSC panel (which does not require a code to toggle the chime).
+    panel_type = entry.data.get(CONF_PANEL_TYPE)
+    if (panel_type == PANEL_TYPE_DSC) or (panel_type == PANEL_TYPE_HONEYWELL and code):
         entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
