@@ -247,9 +247,10 @@ class EnvisalinkAlarmPanel:
         _LOGGER.debug("Callback has not been set by client.")
 
     async def start(self):
-        result = await self.discover_panel_type()
-        if result != self.ConnectionResult.SUCCESS:
-            return result
+        if self._panelType == None:
+            result = await self.discover_panel_type()
+            if result != self.ConnectionResult.SUCCESS:
+                return result
 
         self._alarmState = AlarmState.get_initial_alarm_state(
             max(EVL3_MAX_ZONES, EVL4_MAX_ZONES), MAX_PARTITIONS
@@ -510,18 +511,20 @@ class EnvisalinkAlarmPanel:
             )
             if data:
                 data = data.decode("ascii").strip()
-                if UnoClient.detect(data):
-                    self._panelType = PANEL_TYPE_UNO
-                    _LOGGER.info("Panel type: %s", self._panelType)
-                    return self.ConnectionResult.SUCCESS
-                elif HoneywellClient.detect(data):
-                    self._panelType = PANEL_TYPE_HONEYWELL
-                    _LOGGER.info("Panel type: %s", self._panelType)
-                    return self.ConnectionResult.SUCCESS
-                elif DSCClient.detect(data):
+                if DSCClient.detect(data):
                     self._panelType = PANEL_TYPE_DSC
                     _LOGGER.info("Panel type: %s", self._panelType)
                     return self.ConnectionResult.SUCCESS
+                elif HoneywellClient.detect(data):
+                    # This could be either a Honeywell or UNO panel so try and query the
+                    # web interface on the device to determine which one it is.
+                    if not await self.discover_device_details():
+                        # Unable to determine type so default to Honeywell
+                        self._panelType = PANEL_TYPE_HONEYWELL
+
+                    _LOGGER.info("Panel type: %s", self._panelType)
+                    return self.ConnectionResult.SUCCESS
+
             _LOGGER.error("Unable to determine panel type from connection data: '%s'", data)
         except ConnectionResetError:
             _LOGGER.error(

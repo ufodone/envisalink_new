@@ -25,11 +25,6 @@ _LOGGER = logging.getLogger(__name__)
 class UnoClient(HoneywellClient):
     """Represents an Uno alarm client."""
 
-    def detect(prompt):
-        """Given the initial connection data, determine if this is a Uno panel."""
-        #TODO
-        return prompt == "Login:"
-
     def handle_keypad_update(self, code, data):
         return None
 
