@@ -195,7 +195,16 @@ evl_ResponseTypes = {
         "name": "Not Ready",
         "handler": "partition_state_change",
         "state_change": True,
-        "status": {"ready": False, "alpha": "Not Ready"},
+        "status": {
+            "ready": False,
+            "alarm": False,
+            "armed_stay": False,
+            "armed_zero_entry_delay": False,
+            "armed_away": False,
+            "exit_delay": False,
+            "entry_delay": False,
+            "alpha": "Not Ready",
+        },
     },
     "652": {"name": "Armed", "handler": "partition_state_change", "state_change": True},
     "653": {
