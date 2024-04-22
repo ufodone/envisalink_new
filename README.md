@@ -4,6 +4,12 @@ A modernized version of the Home Assistant `envisalink` integration.
 
 My original intent was to submit these changes back HA core to update the aging `envisalink` integration. However, the scope of the changes got large which meant that the effort to them back into HA core would to be very time consuming. I don't expect to be able to commit the time required to get these changes back into HA core so this integration will unfortunately remain only available through HACS for the foreseeable future.
 
+## Supported devices
+
+* **Envisalink 3/4 for DSC and Honeywell panels**
+* **Uno IP Hybrid panels**
+  * Work in progress: currently supports partition and zone updates and basic arm/disarm functionality.  Additional features will be added when they are available in the firmware.
+
 ## Current changes include:
 
 - Full support for UI configuration flow (configuration.yaml to be deprecated)
