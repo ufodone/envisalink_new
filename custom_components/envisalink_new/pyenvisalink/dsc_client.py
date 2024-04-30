@@ -276,10 +276,6 @@ class DSCClient(EnvisalinkClient):
 
                 result = {STATE_CHANGE_PARTITION: [partitionNumber]}
                 if code == "655":
-                    # Clear any fire or panic status
-                    status["fire"] = False
-                    status["panic"] = False
-
                     if self._alarmPanel._zoneBypassEnabled:
                         """Partition was disarmed so any zone bypasses will have been reset"""
                         cleared_zones = self.clear_zone_bypass_state()
@@ -376,34 +372,44 @@ class DSCClient(EnvisalinkClient):
         return ticks == 0
 
     def handle_keypad_led_state_update(self, code, data):
-        if len(data) == 2:
-            flags = KeypadLED_Flags()
-            flags.asByte = int(data, 16)
+        if len(data) != 2:
+            return None
 
-            _LOGGER.debug(f"Keypad LED state update: {flags}")
+        flags = KeypadLED_Flags()
+        flags.asByte = int(data, 16)
 
-            if (
-                self._alarmPanel._zoneBypassEnabled
-                and not self._bypassStateInitialized
-                and flags.ready
-                and flags.bypass
-            ):
-                # We've just started up and the LEDs indicate that there are zones bypassed
-                # so request a zone bypass dump.  This is only necessary on startup
-                # to get the initial state.  Zones bypassed after startup will automatically
-                # trigger a 616 update.
-                self.create_internal_task(
-                    self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
-                )
+        _LOGGER.debug(f"Keypad LED state update: {flags}")
 
-            self._bypassStateInitialized = True
+        updatedPartitions = []
+        new_status = {
+            "alarm_fire_zone": bool(flags.fire),
+            "alarm_in_memory": bool(flags.memory),
+        }
+        for part in self._alarmPanel.alarm_state["partition"]:
+            self._alarmPanel.alarm_state["partition"][part]["status"].update(new_status)
+            updatedPartitions.append(part)
+
+        if (
+            self._alarmPanel._zoneBypassEnabled
+            and not self._bypassStateInitialized
+            and flags.ready
+            and flags.bypass
+        ):
+            # We've just started up and the LEDs indicate that there are zones bypassed
+            # so request a zone bypass dump.  This is only necessary on startup
+            # to get the initial state.  Zones bypassed after startup will automatically
+            # trigger a 616 update.
+            self.create_internal_task(
+                self.dump_zone_bypass_status(), name="dump_zone_bypass_status"
+            )
+
+        self._bypassStateInitialized = True
+        return {STATE_CHANGE_KEYPAD: updatedPartitions}
 
     def handle_keypad_led_flash_state_update(self, code, data):
-        if len(data) == 2:
-            flags = KeypadLED_Flags()
-            flags.asByte = int(data, 16)
+        _LOGGER.debug(f"Keypad LED FLASH state update: {flags}")
+        self.handle_keypad_led_state_update(code, data)
 
-            _LOGGER.debug(f"Keypad LED FLASH state update: {flags}")
 
     def set_in_alarm_alpha(self, partition_number):
         status = self._alarmPanel.alarm_state["partition"][partition_number]["status"]
