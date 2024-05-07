@@ -407,7 +407,7 @@ class DSCClient(EnvisalinkClient):
         return {STATE_CHANGE_KEYPAD: updatedPartitions}
 
     def handle_keypad_led_flash_state_update(self, code, data):
-        _LOGGER.debug(f"Keypad LED FLASH state update: {flags}")
+        _LOGGER.debug("Keypad LED FLASH state update")
         self.handle_keypad_led_state_update(code, data)
 
 
