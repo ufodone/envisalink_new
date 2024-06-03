@@ -41,7 +41,7 @@ async def async_setup_entry(
 
     # Only create the chime switch if the alarm code is provided for a Honeywell panel
     # or it is a DSC panel (which does not require a code to toggle the chime).
-    panel_type = entry.data.get(CONF_PANEL_TYPE)
+    panel_type = controller.controller.panel_type
     if (panel_type == PANEL_TYPE_DSC) or (panel_type == PANEL_TYPE_HONEYWELL and code):
         entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
 

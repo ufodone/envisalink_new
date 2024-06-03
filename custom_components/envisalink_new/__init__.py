@@ -39,9 +39,11 @@ from .const import (
     DEFAULT_ZONEDUMP_INTERVAL,
     DEFAULT_ZONETYPE,
     DOMAIN,
+    LOGGER,
 )
 from .controller import EnvisalinkController
 from .helpers import generate_range_string
+from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL
 
 PLATFORMS: list[Platform] = [
@@ -284,3 +286,41 @@ def _async_import_options_from_data_if_missing(
         data.pop(CONF_YAML_OPTIONS)
 
         hass.config_entries.async_update_entry(entry, options=options, data=data)
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate old entry."""
+
+    LOGGER.debug(
+        "Migrating from version %s.%s", config_entry.version, config_entry.minor_version
+    )
+
+    if config_entry.version == 1:
+        new_data = {**config_entry.data}
+        if config_entry.minor_version < 2:
+            if config_entry.data.get(CONF_PANEL_TYPE) == None:
+                # The panel type is missing so try and correct it by re-querying the EVL
+                controller = EnvisalinkController(hass, config_entry)
+                result = await controller.controller.discover_panel_type()
+                if (
+                    result != EnvisalinkAlarmPanel.ConnectionResult.SUCCESS
+                ) or controller.controller.panel_type == None:
+                    LOGGER.warn("Unable to correct panel type during migration.")
+                    return True
+
+                new_data[CONF_PANEL_TYPE] = controller.controller.panel_type
+
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data=new_data,
+            version=1,
+            minor_version=2,
+        )
+
+    LOGGER.info(
+        "Migration to version %s.%s successful",
+        config_entry.version,
+        config_entry.minor_version,
+    )
+
+    return True
