@@ -290,7 +290,7 @@ class DSCClient(EnvisalinkClient):
     def handle_send_code(self, code, data):
         """The DSC will, depending upon settings, challenge us with the code.  If the user
         passed it in, we'll send it."""
-        self.create_internal_task(self.foo(), name="send_code")
+        self.create_internal_task(self.send_code(), name="send_code")
 
     async def send_code(self):
         if self._cachedCode is None:
