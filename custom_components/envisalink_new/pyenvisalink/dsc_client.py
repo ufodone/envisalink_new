@@ -296,7 +296,7 @@ class DSCClient(EnvisalinkClient):
         if self._cachedCode is None:
             _LOGGER.error("The envisalink asked for a code, but we have no code in our cache.")
         else:
-            await self.send_command(evl_Commands["SendCode"], self._cachedCode)
+            await self.queue_command(evl_Commands["SendCode"], self._cachedCode)
             self._cachedCode = None
 
     def handle_keypad_update(self, code, data):
@@ -420,5 +420,21 @@ class DSCClient(EnvisalinkClient):
             alpha = "Panic Alarm"
 
         status["alpha"] = alpha
+
+    def handle_command_output_pressed(self, code, data):
+        """Handle PGM output triggered"""
+        parse = re.match("^[0-9]{2}$", data)
+        if parse:
+            partitionNumber = int(data[0])
+            pgm = int(data[1])
+
+            self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
+                { f"pgm_{pgm}_last_triggered": datetime.datetime.now().isoformat() }
+            )
+            #_LOGGER.debug(f"Command output pressed on partition {partitionNumber} for PGM {pgm}")
+            _LOGGER.debug("Command output pressed on partition %d for PGM %d", partitionNumber, pgm)
+            return {STATE_CHANGE_KEYPAD: [partitionNumber]}
+        else:
+            _LOGGER.error("Invalid data has been passed in the command output update.")
 
 

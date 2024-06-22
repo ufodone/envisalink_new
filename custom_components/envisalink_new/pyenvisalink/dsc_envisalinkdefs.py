@@ -117,7 +117,11 @@ evl_ResponseTypes = {
     "501": {"name": "Command Error", "handler": "command_response"},
     "502": {"name": "System Error", "handler": "command_response"},
     "900": {"name": "EnterCode", "handler": "send_code"},
-    "912": {"name": "PGMEnterCode", "handler": "send_code"},
+    "912": {
+        "name": "CommandOutputPressed",
+        "handler": "command_output_pressed",
+        "state_change": True,
+    },
     # ZONE UPDATES
     "601": {
         "name": "Zone Alarm",
@@ -390,12 +394,6 @@ evl_ResponseTypes = {
         "handler": "keypad_update",
         "state_change": True,
         "status": {"alarm": False, "alpha": "Smoke Alarm Cleared"},
-    },
-    "660": {
-        "name": "PGMrelay",
-        "handler": "keypad_update",
-        "state_change": True,
-        "status": {"PGMrelay": True, "alpha": "PGM output active"},
     },
     "800": {
         "name": "LowBatTrouble",

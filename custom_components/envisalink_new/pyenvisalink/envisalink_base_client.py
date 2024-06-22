@@ -317,7 +317,6 @@ class EnvisalinkClient:
 
         except (AttributeError, TypeError, KeyError) as err:
             _LOGGER.debug("No handler configured for evl command.")
-            _LOGGER.debug(str.format("KeyError: {0}", err))
 
         try:
             _LOGGER.debug("Invoking state change callbacks")
