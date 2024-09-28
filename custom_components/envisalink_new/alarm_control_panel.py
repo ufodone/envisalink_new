@@ -137,7 +137,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self._code = code
         self._panic_type = panic_type
         self._arm_night_mode = arm_night_mode
-        self._attr_code_arm_required = not code
+        self._attr_code_arm_required = False
 
         setup_info = generate_entity_setup_info(
             controller, "partition", partition_number, None, extra_yaml_conf
