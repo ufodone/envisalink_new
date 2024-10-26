@@ -1,0 +1,73 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "L'appareil a déjà été configuré"
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter",
+      "invalid_auth": "Authentification invalide",
+      "invalid_partition_spec": "Spécification de partition invalide",
+      "invalid_zone_spec": "Spécification de zone invalide",
+      "bad_wireless_zone": "La zone sans-fil n'exite pas dans la liste de zones principale",
+      "unknown": "Erreur inattendue"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "alarm_name": "Nom de l'alarme",
+          "code": "Code de l'alarme",
+          "code_arm_required": "Demander un code pour armer (désactive la sortie express)",
+          "discovery_port": "Port de découverte",
+          "host": "Nom de l'hôte",
+          "partition_set": "Liste de partitions",
+          "password": "Mot de passe",
+          "port": "Port",
+          "user_name": "Nom d'utilisateur",
+          "zone_set": "Liste de zones"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Impossible de se connecter",
+      "invalid_auth": "Authentification invalide",
+      "invalid_partition_spec": "Spécification de partitions invalide",
+      "invalid_zone_spec": "Spécification de zone invalide",
+      "bad_wireless_zone": "La zone sans-fil n'exite pas dans la liste de zones principale",
+      "unknown": "Erreur inattendue"
+    },
+    "step": {
+      "advanced": {
+        "data": {
+          "create_zone_bypass_switches": "Créer un interrupteur de bypass de zone",
+          "honeywell_arm_night_mode": "Armer en mode nuit",
+          "keepalive_interval": "Interval de keep-alive",
+          "panic_type": "Type de panique",
+          "timeout": "Délais d'attente pour connecter",
+          "zonedump_interval": "Interval de vidange de zone",
+          "wireless_zone_set": "Zones sans-fil"
+        }
+      },
+      "basic": {
+        "data": {
+          "code": "Code de l'alarme",
+          "code_arm_required": "Demander un code pour armer (désactive la sortie express)",
+          "discovery_port": "Port de découverte",
+          "host": "Nom de l'hôte",
+          "partition_set": "Liste de partitions",
+          "password": "Mot de passe",
+          "port": "Port",
+          "user_name": "Nom d'utilisateur",
+          "zone_set": "Liste de zones"
+        }
+      },
+      "init": {
+        "menu_options": {
+          "advanced": "Options avancées",
+          "basic": "Options de base"
+        }
+      }
+    }
+  }
+}
