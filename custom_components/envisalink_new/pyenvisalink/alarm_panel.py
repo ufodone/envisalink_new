@@ -79,13 +79,6 @@ class EnvisalinkAlarmPanel:
         self._zoneBypassStateChangeCallback = self._defaultCallback
         self._cidEventCallback = self._defaultCallback
 
-        loggingconfig = {
-            "level": "DEBUG",
-            "format": "%(asctime)s %(levelname)s <%(name)s %(module)s %(funcName)s> %(message)s",
-        }
-
-        logging.basicConfig(**loggingconfig)
-
     @property
     def host(self):
         return self._host
