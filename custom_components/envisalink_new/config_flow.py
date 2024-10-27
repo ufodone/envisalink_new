@@ -119,10 +119,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_menu(
             step_id="init",
-            menu_options={
-                "basic": "Basic",
-                "advanced": "Advanced",
-            },
+            menu_options=["basic", "advanced"],
         )
 
     async def async_step_basic(

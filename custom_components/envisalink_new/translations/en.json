@@ -61,9 +61,9 @@
         }
       },
       "init": {
-        "data": {
-          "Advanced": "Advanced",
-          "Basic": "Basic"
+        "menu_options": {
+          "advanced": "Basic",
+          "basic": "Advanced"
         }
       }
     }

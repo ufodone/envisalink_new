@@ -29,9 +29,9 @@
   "options": {
     "step": {
       "init": {
-        "data": {
-          "Basic": "Basic",
-          "Advanced": "Advanced"
+        "menu_options": {
+          "basic": "Basic",
+          "advanced": "Advanced"
         }
       },
       "basic": {
