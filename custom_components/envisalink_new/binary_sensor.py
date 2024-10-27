@@ -65,6 +65,13 @@ _attribute_sensor_info = {
             "device_class": BinarySensorDeviceClass.PROBLEM,
             "entity_category": EntityCategory.DIAGNOSTIC,
         },
+        "bell_trouble": {
+            "name": "System Bell",
+            "panels": [PANEL_TYPE_DSC],
+            "icon": "mdi:battery-alert",
+            "device_class": BinarySensorDeviceClass.PROBLEM,
+            "entity_category": EntityCategory.DIAGNOSTIC,
+        },
         "fire": {
             "name": "Fire",
             "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],

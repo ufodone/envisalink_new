@@ -419,6 +419,18 @@ evl_ResponseTypes = {
         "state_change": True,
         "status": {"ac_present": True, "alpha": "AC Power Restored"},
     },
+    "806": {
+        "name": "SystemBellTrouble",
+        "handler": "keypad_update",
+        "state_change": True,
+        "status": {"bell_trouble": True, "alpha": "Bell Trouble"},
+    },
+    "807": {
+        "name": "SystemBellTroubleOff",
+        "handler": "keypad_update",
+        "state_change": True,
+        "status": {"bell_trouble": False, "alpha": "Bell Trouble Cleared"},
+    },
     "829": {
         "name": "SystemTamper",
         "handler": "keypad_update",
