@@ -93,6 +93,12 @@ evl_ResponseTypes = {
         "description": "A system event has happened that is signaled to either the Envisalerts servers or the central monitoring station",  # noqa: E501
         "handler": "realtime_cid_event",
     },
+    "%20" : {
+        "type": "system",
+        "name": "Debug Message",
+        "description": "Debug message sent when EVL captures malformed messages from the panel.",  # noqa: E501
+        "handler": "debug_info"
+    },
     "%FF": {
         "name": "Envisalink Zone Timer Dump",
         "description": "This command contains the raw zone timers used inside the Envisalink. The dump is a 256 character packed HEX string representing 64 UINT16 (little endian) zone timers. Zone timers count down from 0xFFFF (zone is open) to 0x0000 (zone is closed too long ago to remember). Each 'tick' of the zone time is actually 5 seconds so a zone timer of 0xFFFE means '5 seconds ago'. Remember, the zone timers are LITTLE ENDIAN so the above example would be transmitted as FEFF.",  # noqa: E501

@@ -415,3 +415,8 @@ class HoneywellClient(EnvisalinkClient):
             return "notready"
         else:
             return "unknown"
+
+    def handle_debug_info(self, code, data):
+        """Handle when the envisalink sends a debug message indicating that it received
+        a malformed message from the panel."""
+        _LOGGER.debug(f'EVL received a malformed message from the panel; code={code} data={data}')
