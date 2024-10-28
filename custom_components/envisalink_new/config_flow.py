@@ -180,7 +180,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional(
                 CONF_PANIC,
                 default=self.config_entry.options.get(CONF_PANIC, DEFAULT_PANIC),
-            ): cv.string,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["Fire", "Ambulance", "Police"],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="panic_type",
+                ),
+            ),
             vol.Optional(
                 CONF_EVL_KEEPALIVE,
                 default=self.config_entry.options.get(
