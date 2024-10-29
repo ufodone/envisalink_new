@@ -62,8 +62,8 @@
       },
       "init": {
         "menu_options": {
-          "advanced": "Basic",
-          "basic": "Advanced"
+          "advanced": "Advanced",
+          "basic": "Basic"
         }
       }
     }
