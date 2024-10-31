@@ -10,6 +10,7 @@ from homeassistant.components.alarm_control_panel import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    ATTR_CODE,
     CONF_CODE,
     STATE_ALARM_ARMED_AWAY,
     STATE_ALARM_ARMED_HOME,
@@ -27,7 +28,6 @@ from .const import (
     CONF_HONEYWELL_ARM_NIGHT_MODE,
     CONF_PANIC,
     CONF_PARTITION_SET,
-    CONF_PARTITIONNAME,
     CONF_PARTITIONS,
     DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
     DEFAULT_PANIC,
@@ -44,14 +44,6 @@ ATTR_KEYPRESS = "keypress"
 
 SERVICE_CUSTOM_FUNCTION = "invoke_custom_function"
 ATTR_CUSTOM_FUNCTION = "pgm"
-ATTR_CODE = "code"
-
-SERVICE_SCHEMA = vol.Schema(
-    {
-        vol.Required(ATTR_CUSTOM_FUNCTION): cv.string,
-        vol.Optional(ATTR_CODE): cv.string,
-    }
-)
 
 
 async def async_setup_entry(
@@ -115,10 +107,9 @@ async def async_setup_entry(
 class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     """Representation of an Envisalink-based alarm panel."""
 
-    _attr_supported_features = (
+    _attr_supported_features: AlarmControlPanelEntityFeature = (
         AlarmControlPanelEntityFeature.ARM_HOME
         | AlarmControlPanelEntityFeature.ARM_AWAY
-        | AlarmControlPanelEntityFeature.ARM_NIGHT
         | AlarmControlPanelEntityFeature.TRIGGER
     )
 
@@ -137,7 +128,11 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self._code = code
         self._panic_type = panic_type
         self._arm_night_mode = arm_night_mode
-        self._attr_code_arm_required = False
+        if controller.controller.panel_type == PANEL_TYPE_HONEYWELL:
+            self._attr_code_arm_required = not code
+            self._attr_supported_features |= AlarmControlPanelEntityFeature.ARM_NIGHT
+        else:
+            self._attr_code_arm_required = False
 
         setup_info = generate_entity_setup_info(
             controller, "partition", partition_number, None, extra_yaml_conf
@@ -153,7 +148,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     @property
     def code_format(self) -> CodeFormat | None:
         """Regex for code format or None if no code is required."""
-        if self._code:
+        if not self._attr_code_arm_required:
             return None
         return CodeFormat.NUMBER
 
