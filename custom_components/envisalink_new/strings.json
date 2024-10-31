@@ -66,5 +66,14 @@
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     }
+  },
+  "selector": {
+    "panic_type": {
+      "options": {
+        "Fire": "Fire",
+        "Ambulance": "Ambulance",
+        "Police": "Police"
+      }
+    }
   }
 }
