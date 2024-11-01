@@ -1,4 +1,5 @@
 """Support for Envisalink-based alarm control panels (Honeywell/DSC)."""
+
 from __future__ import annotations
 
 import homeassistant.helpers.config_validation as cv
@@ -148,7 +149,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     @property
     def code_format(self) -> CodeFormat | None:
         """Regex for code format or None if no code is required."""
-        if not self._attr_code_arm_required:
+        if self.state == STATE_ALARM_DISARMED and not self._attr_code_arm_required:
             return None
         return CodeFormat.NUMBER
 
