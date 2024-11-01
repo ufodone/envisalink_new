@@ -91,7 +91,7 @@ def extract_discovery_endpoint(discovery_port) -> tuple:
 
 
 def generate_entity_setup_info(
-    controller, entity_type: str, index: int, suffix: str, extra_yaml_conf: dict
+    controller, entity_type: str, index: int, suffix: str | None, extra_yaml_conf: dict
 ) -> dict:
     if not suffix:
         suffix = ""
