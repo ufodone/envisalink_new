@@ -16,7 +16,6 @@
         "data": {
           "alarm_name": "Nom de l'alarme",
           "code": "Code de l'alarme",
-          "code_arm_required": "Demander un code pour armer (désactive la sortie express)",
           "discovery_port": "Port de découverte",
           "host": "Nom de l'hôte",
           "partition_set": "Liste de partitions",
@@ -52,7 +51,6 @@
       "basic": {
         "data": {
           "code": "Code de l'alarme",
-          "code_arm_required": "Demander un code pour armer (désactive la sortie express)",
           "discovery_port": "Port de découverte",
           "host": "Nom de l'hôte",
           "partition_set": "Liste de partitions",
