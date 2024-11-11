@@ -30,6 +30,7 @@ class AlarmState:
                     "armed_away": False,
                     "armed_stay": False,
                     "armed_zero_entry_delay": False,
+                    "armed_night": False,
                     "bell_trouble": False,
                 }
             }

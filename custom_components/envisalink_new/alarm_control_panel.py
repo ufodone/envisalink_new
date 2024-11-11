@@ -160,7 +160,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
         if self._info["status"]["alarm"]:
             state = AlarmControlPanelState.TRIGGERED
-        elif self._info["status"]["armed_zero_entry_delay"]:
+        elif self._info["status"]["armed_night"]:
             state = AlarmControlPanelState.ARMED_NIGHT
         elif self._info["status"]["armed_away"]:
             state = AlarmControlPanelState.ARMED_AWAY

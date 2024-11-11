@@ -4,6 +4,7 @@
 # This code is under the terms of the GPL v3 license.
 import ctypes
 
+c_uint8 = ctypes.c_uint8
 c_uint16 = ctypes.c_uint16
 
 
@@ -34,6 +35,21 @@ class IconLED_Bitfield(ctypes.LittleEndianStructure):
 
 class IconLED_Flags(ctypes.Union):
     _fields_ = [("b", IconLED_Bitfield), ("asShort", c_uint16)]
+    _anonymous_ = "b"
+
+class Beep_Bitfield(ctypes.LittleEndianStructure):
+    _fields_ = [
+        ("beeps", c_uint8, 4),
+        ("armed_night", c_uint8, 1),
+    ]
+
+    def __str__(self) -> str:
+        b = bytes(self)
+        return f"{b[0]:02x}"
+
+
+class Beep_Flags(ctypes.Union):
+    _fields_ = [("b", Beep_Bitfield), ("asByte", c_uint8)]
     _anonymous_ = "b"
 
 
@@ -292,12 +308,12 @@ evl_Partition_Status_Codes = {
 }
 
 evl_Virtual_Keypad_How_To_Beep = {
-    "00": "off",
-    "01": "beep 1 time",
-    "02": "beep 2 times",
-    "03": "beep 3 times",
-    "04": "continous fast beep",
-    "05": "continuous slow beep",
+    0: "off",
+    1: "beep 1 time",
+    2: "beep 2 times",
+    3: "beep 3 times",
+    4: "continous fast beep",
+    5: "continuous slow beep",
 }
 
 evl_CID_Qualifiers = {
