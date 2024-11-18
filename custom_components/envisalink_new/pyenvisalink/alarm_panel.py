@@ -418,7 +418,12 @@ class EnvisalinkAlarmPanel:
                     panel_regex = ">Security Subsystem - ([^<]*)<"
                     m = re.search(panel_regex, html)
                     if m and m.lastindex == 1:
-                        self._panelType = m.group(1).upper()
+                        panelType = m.group(1).upper()
+                        # Handle the UNO STANDALONE variant
+                        if PANEL_TYPE_UNO in panelType:
+                            self._panelType = PANEL_TYPE_UNO
+                        else:
+                            self._panelType = panelType
                     else:
                         success = False
 
