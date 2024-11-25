@@ -25,6 +25,7 @@ from .const import (
     DEFAULT_PANIC,
     DEFAULT_PARTITION_SET,
     DOMAIN,
+    HONEYWELL_ARM_MODE_INSTANT_VALUE,
     LOGGER,
 )
 from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
@@ -160,7 +161,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
         if self._info["status"]["alarm"]:
             state = AlarmControlPanelState.TRIGGERED
-        elif self._info["status"]["armed_night"]:
+        elif self._is_night_mode():
             state = AlarmControlPanelState.ARMED_NIGHT
         elif self._info["status"]["armed_away"]:
             state = AlarmControlPanelState.ARMED_AWAY
@@ -231,3 +232,10 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         if not code:
             code = self._code
         await self._controller.controller.command_output(code, self._partition_number, pgm)
+
+    def _is_night_mode(self) -> bool:
+        if self._controller.controller.panel_type == PANEL_TYPE_HONEYWELL:
+            if self._arm_night_mode == HONEYWELL_ARM_MODE_INSTANT_VALUE:
+                return self._info["status"]["armed_zero_entry_delay"]
+
+        return self._info["status"]["armed_night"]
