@@ -11,7 +11,7 @@ from homeassistant.components.alarm_control_panel import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_CODE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -143,10 +143,40 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         LOGGER.debug("Setting up alarm: %s", name)
         super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._fixup_default_code()
+
+    @callback
+    def async_registry_entry_updated(self) -> None:
+        """Run when the entity registry entry has been updated."""
+        super().async_registry_entry_updated()
+
+        self._fixup_default_code()
+
+    def _fixup_default_code(self):
+        """Reconcile alarm control panel default code with the one configured in this integration"""
+        if not self._code:
+            return
+
+        if not self._alarm_control_panel_option_default_code:
+            LOGGER.warn(
+                "No default code set for AlarmControlPanel so using %s one. Please remove the %s code and set it on the AlarmControlPanel entity instead.",
+                DOMAIN,
+                DOMAIN,
+            )
+            self._alarm_control_panel_option_default_code = self._code
+        elif self._code:
+            LOGGER.warn(
+                "Both the AlarmControlPanel and %s have a default code set. The AlarmControlPanel one will be used. Please remove the 'code' value from your %s configuration to remove this warning.",
+                DOMAIN,
+                DOMAIN,
+            )  # noqa: E501
+
     @property
     def code_format(self) -> CodeFormat | None:
         """Regex for code format or None if no code is required."""
-        if self._code:
+        if self._alarm_control_panel_option_default_code:
             return None
         return CodeFormat.NUMBER
 
@@ -168,7 +198,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         elif self._info["status"]["armed_stay"]:
             state = AlarmControlPanelState.ARMED_HOME
         elif self._info["status"]["exit_delay"]:
-            state = AlarmControlPanelState.PENDING
+            state = AlarmControlPanelState.ARMING
         elif self._info["status"]["entry_delay"]:
             state = AlarmControlPanelState.PENDING
         elif self._info["status"]["alpha"]:
@@ -177,36 +207,21 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send disarm command."""
-        if code:
-            await self._controller.controller.disarm_partition(
-                str(code), self._partition_number
-            )
-        else:
-            await self._controller.controller.disarm_partition(
-                str(self._code), self._partition_number
-            )
+        await self._controller.controller.disarm_partition(
+            str(code), self._partition_number
+        )
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
-        if code:
-            await self._controller.controller.arm_stay_partition(
-                str(code), self._partition_number
-            )
-        else:
-            await self._controller.controller.arm_stay_partition(
-                str(self._code), self._partition_number
-            )
+        await self._controller.controller.arm_stay_partition(
+            str(code), self._partition_number
+        )
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
-        if code:
-            await self._controller.controller.arm_away_partition(
-                str(code), self._partition_number
-            )
-        else:
-            await self._controller.controller.arm_away_partition(
-                str(self._code), self._partition_number
-            )
+        await self._controller.controller.arm_away_partition(
+            str(code), self._partition_number
+        )
 
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         """Alarm trigger command. Will be used to trigger a panic alarm."""
@@ -215,7 +230,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     async def async_alarm_arm_night(self, code: str | None = None) -> None:
         """Send arm night command."""
         await self._controller.controller.arm_night_partition(
-            str(code) if code else str(self._code),
+            str(code),
             self._partition_number,
             self._arm_night_mode,
         )
@@ -229,9 +244,9 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     async def invoke_custom_function(self, pgm, code=None):
         """Send custom/PGM to EVL."""
-        if not code:
-            code = self._code
-        await self._controller.controller.command_output(code, self._partition_number, pgm)
+        await self._controller.controller.command_output(
+            self.code_or_default_code(code), self._partition_number, pgm
+        )
 
     def _is_night_mode(self) -> bool:
         if self._controller.controller.panel_type == PANEL_TYPE_HONEYWELL:
