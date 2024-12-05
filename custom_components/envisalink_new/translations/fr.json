@@ -46,7 +46,8 @@
           "panic_type": "Type de panique",
           "timeout": "Délais d'attente pour connecter",
           "zonedump_interval": "Interval de vidange de zone",
-          "wireless_zone_set": "Zones sans-fil"
+          "wireless_zone_set": "Zones sans-fil",
+          "show_keypad": "Afficher le clavier"
         }
       },
       "basic": {
@@ -67,6 +68,21 @@
           "advanced": "Options avancées",
           "basic": "Options de base"
         }
+      }
+    }
+  },
+  "selector": {
+    "show_keypad": {
+      "options": {
+        "never": "Jamais",
+        "disarm": "Seulement pour désarmer",
+        "always": "Toujours"
+      }
+    },
+    "honeywell_arm_night_mode": {
+      "options": {
+        "7": "Instant",
+        "33": "Night Stay"
       }
     }
   }

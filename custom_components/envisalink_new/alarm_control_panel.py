@@ -21,12 +21,17 @@ from .const import (
     CONF_PARTITION_SET,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
+    CONF_SHOW_KEYPAD,
     DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
     DEFAULT_PANIC,
     DEFAULT_PARTITION_SET,
+    DEFAULT_SHOW_KEYPAD,
     DOMAIN,
     HONEYWELL_ARM_MODE_INSTANT_VALUE,
     LOGGER,
+    SHOW_KEYPAD_ALWAYS_VALUE,
+    SHOW_KEYPAD_DISARM_VALUE,
+    SHOW_KEYPAD_NEVER_VALUE,
 )
 from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
 from .models import EnvisalinkDevice
@@ -56,6 +61,7 @@ async def async_setup_entry(
     controller = hass.data[DOMAIN][entry.entry_id]
     code = entry.data.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC, DEFAULT_PANIC)
+    show_keypad = entry.options.get(CONF_SHOW_KEYPAD, DEFAULT_SHOW_KEYPAD)
     partition_info = entry.data.get(CONF_PARTITIONS)
     partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(
@@ -79,6 +85,7 @@ async def async_setup_entry(
                 code,
                 panic_type,
                 arm_night_mode,
+                show_keypad,
                 controller,
             )
             entities.append(entity)
@@ -123,6 +130,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         code,
         panic_type,
         arm_night_mode,
+        show_keypad,
         controller,
     ):
         """Initialize the alarm panel."""
@@ -131,6 +139,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self._panic_type = panic_type
         self._arm_night_mode = arm_night_mode
         self._attr_code_arm_required = not code
+        self._show_keypad = show_keypad
 
         setup_info = generate_entity_setup_info(
             controller, "partition", partition_number, None, extra_yaml_conf
@@ -176,6 +185,21 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     @property
     def code_format(self) -> CodeFormat | None:
         """Regex for code format or None if no code is required."""
+
+        if self._show_keypad == SHOW_KEYPAD_DISARM_VALUE:
+            return (
+                None
+                if self.alarm_state == AlarmControlPanelState.DISARMED
+                else CodeFormat.NUMBER
+            )
+
+        if self._show_keypad == SHOW_KEYPAD_NEVER_VALUE:
+            return None
+
+        if self._show_keypad == SHOW_KEYPAD_ALWAYS_VALUE:
+            return CodeFormat.NUMBER
+        return CodeFormat.NUMBER
+
         if self._alarm_control_panel_option_default_code:
             return None
         return CodeFormat.NUMBER
