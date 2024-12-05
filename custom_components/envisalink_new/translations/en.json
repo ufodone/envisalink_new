@@ -46,7 +46,8 @@
           "timeout": "Connection timeout",
           "zonedump_interval": "Zone dump interval",
           "wireless_zone_set": "Wireless Zones",
-          "show_keypad": "Show keypad"
+          "show_keypad": "Show keypad",
+          "code_arm_required": "Code required to arm"
         }
       },
       "basic": {

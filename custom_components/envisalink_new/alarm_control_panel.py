@@ -16,12 +16,14 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_CODE_ARM_REQUIRED,
     CONF_HONEYWELL_ARM_NIGHT_MODE,
     CONF_PANIC,
     CONF_PARTITION_SET,
     CONF_PARTITIONNAME,
     CONF_PARTITIONS,
     CONF_SHOW_KEYPAD,
+    DEFAULT_CODE_ARM_REQUIRED,
     DEFAULT_HONEYWELL_ARM_NIGHT_MODE,
     DEFAULT_PANIC,
     DEFAULT_PARTITION_SET,
@@ -62,6 +64,10 @@ async def async_setup_entry(
     code = entry.data.get(CONF_CODE)
     panic_type = entry.options.get(CONF_PANIC, DEFAULT_PANIC)
     show_keypad = entry.options.get(CONF_SHOW_KEYPAD, DEFAULT_SHOW_KEYPAD)
+    code_arm_required = entry.options.get(
+        CONF_CODE_ARM_REQUIRED, DEFAULT_CODE_ARM_REQUIRED[controller.controller.panel_type]
+    )
+    LOGGER.warn(f"# code_arm_required: {code_arm_required}")
     partition_info = entry.data.get(CONF_PARTITIONS)
     partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(
@@ -86,6 +92,7 @@ async def async_setup_entry(
                 panic_type,
                 arm_night_mode,
                 show_keypad,
+                code_arm_required,
                 controller,
             )
             entities.append(entity)
@@ -131,6 +138,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         panic_type,
         arm_night_mode,
         show_keypad,
+        code_arm_required,
         controller,
     ):
         """Initialize the alarm panel."""
@@ -138,7 +146,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         self._code = code
         self._panic_type = panic_type
         self._arm_night_mode = arm_night_mode
-        self._attr_code_arm_required = not code
+        self._attr_code_arm_required = code_arm_required
         self._show_keypad = show_keypad
 
         setup_info = generate_entity_setup_info(

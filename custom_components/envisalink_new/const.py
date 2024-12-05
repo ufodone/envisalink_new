@@ -4,6 +4,8 @@ import logging
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO
+
 DOMAIN = "envisalink_new"
 
 LOGGER = logging.getLogger(__package__)
@@ -25,6 +27,7 @@ CONF_CREATE_ZONE_BYPASS_SWITCHES = "create_zone_bypass_switches"  # OPTION
 CONF_HONEYWELL_ARM_NIGHT_MODE = "honeywell_arm_night_mode"  # OPTION
 CONF_WIRELESS_ZONE_SET = "wireless_zone_set"
 CONF_SHOW_KEYPAD = "show_keypad"
+CONF_CODE_ARM_REQUIRED = "code_arm_required"
 
 
 # Config items used only in the YAML config
@@ -60,3 +63,10 @@ DEFAULT_ZONEDUMP_INTERVAL = 30
 DEFAULT_ZONETYPE = BinarySensorDeviceClass.OPENING
 DEFAULT_HONEYWELL_ARM_NIGHT_MODE = HONEYWELL_ARM_MODE_NIGHT_VALUE
 DEFAULT_SHOW_KEYPAD = SHOW_KEYPAD_ALWAYS_VALUE
+
+DEFAULT_CODE_ARM_REQUIRED = {
+    PANEL_TYPE_DSC: False,
+    PANEL_TYPE_HONEYWELL: True,
+    PANEL_TYPE_UNO: True,
+    None: True,
+}

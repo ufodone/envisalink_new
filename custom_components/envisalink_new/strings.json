@@ -55,7 +55,8 @@
           "create_zone_bypass_switches": "Create zone bypass switches",
           "honeywell_arm_night_mode": "Arm Night Mode",
           "wireless_zone_set": "Wireless Zones",
-          "show_keypad": "Show keypad"
+          "show_keypad": "Show keypad",
+          "code_arm_required": "Code required to arm"
         }
       }
     },

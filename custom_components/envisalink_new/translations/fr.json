@@ -47,7 +47,8 @@
           "timeout": "Délais d'attente pour connecter",
           "zonedump_interval": "Interval de vidange de zone",
           "wireless_zone_set": "Zones sans-fil",
-          "show_keypad": "Afficher le clavier"
+          "show_keypad": "Afficher le clavier",
+          "code_arm_required": "Demander un code pour armer"
         }
       },
       "basic": {

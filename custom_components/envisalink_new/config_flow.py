@@ -15,6 +15,7 @@ from homeassistant.helpers.device_registry import format_mac
 
 from .const import (
     CONF_ALARM_NAME,
+    CONF_CODE_ARM_REQUIRED,
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
     CONF_EVL_DISCOVERY_PORT,
     CONF_EVL_KEEPALIVE,
@@ -30,6 +31,7 @@ from .const import (
     CONF_WIRELESS_ZONE_SET,
     CONF_ZONE_SET,
     DEFAULT_ALARM_NAME,
+    DEFAULT_CODE_ARM_REQUIRED,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_DISCOVERY_PORT,
     DEFAULT_EVL_VERSION,
@@ -205,6 +207,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     default=self.config_entry.options.get(
                         CONF_CREATE_ZONE_BYPASS_SWITCHES,
                         DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
+                    ),
+                )
+            ] = selector.BooleanSelector()
+            options_schema[
+                vol.Optional(
+                    CONF_CODE_ARM_REQUIRED,
+                    default=self.config_entry.options.get(
+                        CONF_CODE_ARM_REQUIRED,
+                        DEFAULT_CODE_ARM_REQUIRED[PANEL_TYPE_DSC],
                     ),
                 )
             ] = selector.BooleanSelector()
