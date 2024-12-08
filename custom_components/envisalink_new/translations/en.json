@@ -67,5 +67,14 @@
         }
       }
     }
+  },
+  "selector": {
+    "panic_type": {
+      "options": {
+        "Fire": "Fire",
+        "Ambulance": "Ambulance",
+        "Police": "Police"
+      }
+    }
   }
 }
