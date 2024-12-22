@@ -67,7 +67,6 @@ async def async_setup_entry(
     code_arm_required = entry.options.get(
         CONF_CODE_ARM_REQUIRED, DEFAULT_CODE_ARM_REQUIRED[controller.controller.panel_type]
     )
-    LOGGER.warn(f"# code_arm_required: {code_arm_required}")
     partition_info = entry.data.get(CONF_PARTITIONS)
     partition_spec: str = entry.data.get(CONF_PARTITION_SET, DEFAULT_PARTITION_SET)
     partition_set = parse_range_string(
