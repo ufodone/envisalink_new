@@ -15,6 +15,7 @@ from homeassistant.helpers.device_registry import format_mac
 
 from .const import (
     CONF_ALARM_NAME,
+    CONF_CODE_ARM_REQUIRED,
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
     CONF_EVL_DISCOVERY_PORT,
     CONF_EVL_KEEPALIVE,
@@ -25,10 +26,12 @@ from .const import (
     CONF_PANIC,
     CONF_PARTITION_SET,
     CONF_PASS,
+    CONF_SHOW_KEYPAD,
     CONF_USERNAME,
     CONF_WIRELESS_ZONE_SET,
     CONF_ZONE_SET,
     DEFAULT_ALARM_NAME,
+    DEFAULT_CODE_ARM_REQUIRED,
     DEFAULT_CREATE_ZONE_BYPASS_SWITCHES,
     DEFAULT_DISCOVERY_PORT,
     DEFAULT_EVL_VERSION,
@@ -37,14 +40,16 @@ from .const import (
     DEFAULT_PANIC,
     DEFAULT_PARTITION_SET,
     DEFAULT_PORT,
+    DEFAULT_SHOW_KEYPAD,
     DEFAULT_TIMEOUT,
     DEFAULT_USERNAME,
     DOMAIN,
-    HONEYWELL_ARM_MODE_INSTANT_LABEL,
     HONEYWELL_ARM_MODE_INSTANT_VALUE,
-    HONEYWELL_ARM_MODE_NIGHT_LABEL,
     HONEYWELL_ARM_MODE_NIGHT_VALUE,
     LOGGER,
+    SHOW_KEYPAD_ALWAYS_VALUE,
+    SHOW_KEYPAD_DISARM_VALUE,
+    SHOW_KEYPAD_NEVER_VALUE,
 )
 from .helpers import extract_discovery_endpoint, parse_range_string
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
@@ -55,7 +60,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Envisalink."""
 
     VERSION = 1
-    MINOR_VERSION = 2
+    MINOR_VERSION = 3
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
@@ -207,6 +212,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ] = selector.BooleanSelector()
             options_schema[
                 vol.Optional(
+                    CONF_CODE_ARM_REQUIRED,
+                    default=self.config_entry.options.get(
+                        CONF_CODE_ARM_REQUIRED,
+                        DEFAULT_CODE_ARM_REQUIRED[PANEL_TYPE_DSC],
+                    ),
+                )
+            ] = selector.BooleanSelector()
+            options_schema[
+                vol.Optional(
                     CONF_WIRELESS_ZONE_SET,
                     description={"suggested_value": default_wireless_zones},
                     default="",
@@ -216,16 +230,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Add Honeywell-only options
         if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
             # Allow selection of which keypress to use for Arm Night mode
-            arm_modes = [
-                selector.SelectOptionDict(
-                    value=HONEYWELL_ARM_MODE_NIGHT_VALUE,
-                    label=HONEYWELL_ARM_MODE_NIGHT_LABEL,
-                ),
-                selector.SelectOptionDict(
-                    value=HONEYWELL_ARM_MODE_INSTANT_VALUE,
-                    label=HONEYWELL_ARM_MODE_INSTANT_LABEL,
-                ),
-            ]
             options_schema[
                 vol.Optional(
                     CONF_HONEYWELL_ARM_NIGHT_MODE,
@@ -233,7 +237,35 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_HONEYWELL_ARM_NIGHT_MODE, DEFAULT_HONEYWELL_ARM_NIGHT_MODE
                     ),
                 )
-            ] = selector.SelectSelector(selector.SelectSelectorConfig(options=arm_modes))
+            ] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        HONEYWELL_ARM_MODE_NIGHT_VALUE,
+                        HONEYWELL_ARM_MODE_INSTANT_VALUE,
+                    ],
+                    translation_key=CONF_HONEYWELL_ARM_NIGHT_MODE,
+                )
+            )
+
+        # Selection options for when the keypad should be displayed
+        options_schema[
+            vol.Optional(
+                CONF_SHOW_KEYPAD,
+                default=self.config_entry.options.get(
+                    CONF_SHOW_KEYPAD, DEFAULT_SHOW_KEYPAD
+                ),
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    SHOW_KEYPAD_NEVER_VALUE,
+                    SHOW_KEYPAD_DISARM_VALUE,
+                    SHOW_KEYPAD_ALWAYS_VALUE,
+                ],
+                translation_key=CONF_SHOW_KEYPAD,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
 
         return self.async_show_form(
             step_id="advanced",

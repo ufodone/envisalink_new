@@ -54,7 +54,9 @@
           "timeout": "Connection timeout",
           "create_zone_bypass_switches": "Create zone bypass switches",
           "honeywell_arm_night_mode": "Arm Night Mode",
-          "wireless_zone_set": "Wireless Zones"
+          "wireless_zone_set": "Wireless Zones",
+          "show_keypad": "Show keypad",
+          "code_arm_required": "Code required to arm"
         }
       }
     },
@@ -65,6 +67,21 @@
       "invalid_partition_spec": "Invalid partition specification",
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
       "unknown": "[%key:common::config_flow::error::unknown%]"
+    }
+  },
+  "selector": {
+    "show_keypad": {
+      "options": {
+        "never": "Never",
+        "disarm": "Only to disarm",
+        "always": "Always"
+      }
+    },
+    "honeywell_arm_night_mode": {
+      "options": {
+        "7": "Instant",
+        "33": "Night Stay"
+      }
     }
   }
 }
