@@ -3,6 +3,6 @@
   "domains": ["envisalink_new"],
   "iot_class": ["local_push"],
   "render_readme": true,
-  "homeassistant": "2024.11.0",
+  "homeassistant": "2024.12.0",
   "hide_default_branch": false
 }
