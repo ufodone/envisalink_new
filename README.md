@@ -1,4 +1,4 @@
-# Envisalink Refactored
+# EyezOn Integration for Home Assistant
 
 A modernized version of the Home Assistant `envisalink` integration.
 
@@ -6,9 +6,9 @@ My original intent was to submit these changes back HA core to update the aging 
 
 ## Supported devices
 
-* **Envisalink 3/4 for DSC and Honeywell panels**
-* **Uno IP Hybrid panels**
-  * Work in progress: currently supports partition and zone updates and basic arm/disarm functionality.  Additional features will be added when they are available in the firmware.
+- **Envisalink 3/4 for DSC and Honeywell panels**
+- **Uno IP Hybrid panels**
+  - Work in progress: currently supports partition and zone updates and basic arm/disarm functionality. Additional features will be added when they are available in the firmware.
 
 ## Current changes include:
 
@@ -19,7 +19,7 @@ My original intent was to submit these changes back HA core to update the aging 
 - Auto-discovery of EVL version and panel type (DSC/HONEYWELL)
 - New algorithm on for Honeywell systems to better handle zone open/close status
 - Several panel and zone attributes have been promoted to entities
-- Support for low battery warnings for wireless sensors on DSC systems.  Requires a [specific](https://github.com/ufodone/envisalink_new/issues/63#issuecomment-1888344880) firmware version.
+- Support for low battery warnings for wireless sensors on DSC systems. Requires a [specific](https://github.com/ufodone/envisalink_new/issues/63#issuecomment-1888344880) firmware version.
 - Refactoring of the underlying pyenvisalink package including
   - Sequential queueing of commands to the EVL including retry on errors (which applicable) and timeouts
   - Ability to query EVL firmware version and MAC address

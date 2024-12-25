@@ -1,6 +1,6 @@
 {
   "domain": "envisalink_new",
-  "name": "Envisalink_new",
+  "name": "EyezOn",
   "config_flow": true,
   "documentation": "https://github.com/ufodone/envisalink_new",
   "issue_tracker": "https://github.com/ufodone/envisalink_new/issues",
