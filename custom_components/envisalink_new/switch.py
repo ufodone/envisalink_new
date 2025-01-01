@@ -107,11 +107,15 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        await self._controller.controller.toggle_zone_bypass(
+            self._zone_number, self._partition
+        )
 
     async def async_turn_off(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        await self._controller.controller.toggle_zone_bypass(
+            self._zone_number, self._partition
+        )
 
     @property
     def extra_state_attributes(self):
