@@ -125,7 +125,7 @@ async def async_setup_entry(
     )
 
     zone_to_partition_map = build_zone_to_partition_map(
-        entry, controller.controller.max_zones
+        entry, controller.controller.max_zones, controller.controller.max_partitions
     )
 
     zone_info = entry.data.get(CONF_ZONES)

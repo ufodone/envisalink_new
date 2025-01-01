@@ -4,6 +4,7 @@ from homeassistant.config_entries import ConfigEntry
 
 from .const import (
     CONF_PARTITION_ASSIGNMENTS,
+    CONF_PARTITION_SET,
     CONF_PARTITIONNAME,
     CONF_ZONENAME,
     CONF_ZONETYPE,
@@ -128,16 +129,29 @@ def generate_entity_setup_info(
     }
 
 
-def build_zone_to_partition_map(config_entry: ConfigEntry, max_zones: int) -> dict:
+def build_zone_to_partition_map(
+    config_entry: ConfigEntry, max_zones: int, max_partitions: int
+) -> dict:
     zone_map = {}
 
-    # Default all zones to partition 1
+    partition_spec: str = config_entry.data.get(CONF_PARTITION_SET, "")
+    partition_set = parse_range_string(partition_spec, min_val=1, max_val=max_partitions)
+
+    # Default all zones to the first declared partition
+    # (or 1 if none exist)
+    if not partition_set:
+        partition_set.append(1)
+    default_partition = partition_set[0]
+
     for zone in range(max_zones):
-        zone_map[zone + 1] = 1
+        zone_map[zone + 1] = default_partition
 
     partition_assignments: str = config_entry.options.get(CONF_PARTITION_ASSIGNMENTS)
     if partition_assignments:
         for partition, zone_set in partition_assignments.items():
+            if int(partition) not in partition_set:
+                continue
+
             zone_list = parse_range_string(zone_set, 1, max_zones)
             if zone_list:
                 for z in zone_list:
