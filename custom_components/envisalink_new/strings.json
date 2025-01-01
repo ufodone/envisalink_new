@@ -99,9 +99,7 @@
         "7": "Instant",
         "33": "Night Stay"
       }
-    }
-  },
-  "selector": {
+    },
     "panic_type": {
       "options": {
         "Fire": "Fire",
