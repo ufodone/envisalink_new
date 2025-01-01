@@ -4,26 +4,26 @@
       "user": {
         "data": {
           "alarm_name": "Alarm Name",
-          "host": "[%key:common::config_flow::data::host%]",
-          "port": "[%key:common::config_flow::data::port%]",
-          "user_name": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]",
+          "host": "Host",
+          "port": "Port",
+          "user_name": "Username",
+          "password": "Password",
           "partition_set": "Partition list",
           "zone_set": "Zone list",
           "code": "Alarm code",
-          "discovery_port": "Discovery Port"
+          "discovery_port": "Discovery port"
         }
       }
     },
     "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "invalid_zone_spec": "invalid zone specification",
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "invalid_zone_spec": "Invalid zone specification",
       "invalid_partition_spec": "Invalid partition specification",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "Device is already configured"
     }
   },
   "options": {
@@ -37,14 +37,14 @@
       },
       "basic": {
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
-          "port": "[%key:common::config_flow::data::port%]",
-          "user_name": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]",
-          "partition_set": "[%key:component::envisalink::config::step::user::data::partition_set%]",
-          "zone_set": "[%key:component::envisalink::config::step::user::data::zone_set%]",
-          "code": "[%key:component::envisalink::config::step::user::data::code%]",
-          "discovery_port": "[%key:component::envisalink::config::step::user::data::discovery_port%]"
+          "host": "Host",
+          "port": "Port",
+          "user_name": "Username",
+          "password": "Password",
+          "partition_set": "Partition list",
+          "zone_set": "Zone list",
+          "code": "Alarm code",
+          "discovery_port": "Discovery port"
         }
       },
       "advanced": {
@@ -76,12 +76,12 @@
       }
     },
     "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
       "invalid_zone_spec": "Invalid zone specification",
       "invalid_partition_spec": "Invalid partition specification",
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
-      "unknown": "[%key:common::config_flow::error::unknown%]",
+      "unknown": "Unexpected error",
       "unknown_zones": "Zone(s) specified do not exist in main zone list"
     }
   },
