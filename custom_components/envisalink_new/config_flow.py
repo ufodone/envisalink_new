@@ -304,12 +304,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         partition_mapping_schema = {}
         for partition in partition_set:
-            LOGGER.error(f"# {partition}: {partition_assignments.get(str(partition), '-')}")
             partition_mapping_schema[
                 vol.Optional(
-                    f"{partition}", default=partition_assignments.get(str(partition), "")
+                    f"{partition}",
+                    description={
+                        "suggested_value": partition_assignments.get(str(partition), "")
+                    },
+                    default="",
                 )
             ] = cv.string
+
         return self.async_show_form(
             step_id="partition_assignments",
             data_schema=vol.Schema(partition_mapping_schema),
@@ -335,15 +339,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 if zone not in zones:
                     raise PanelError("bad_wireless_zone")
 
+        zones_mapped = set()
         partition_assignments: str = user_input.get(CONF_PARTITION_ASSIGNMENTS, "")
         if partition_assignments:
             for partition, zone_set in partition_assignments.items():
-                zone_list = parse_range_string(zone_set, 1, max_zones)
-                if not zone_list:
-                    raise PanelError("invalid_zone_spec")
-                for z in zone_list:
-                    if z not in zones:
-                        raise PanelError("unknown_zones")
+                if zone_set:
+                    zone_list = parse_range_string(zone_set, 1, max_zones)
+                    if not zone_list:
+                        raise PanelError("invalid_zone_spec")
+                    for z in zone_list:
+                        if z not in zones:
+                            raise PanelError("unknown_zones")
+                        if z in zones_mapped:
+                            raise PanelError("zone_already_in_partition")
+                        zones_mapped.add(z)
 
 
 class DiscoveryError(HomeAssistantError):

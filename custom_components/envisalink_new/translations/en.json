@@ -82,7 +82,8 @@
       "invalid_partition_spec": "Invalid partition specification",
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
       "unknown": "Unexpected error",
-      "unknown_zones": "Zone(s) specified do not exist in main zone list"
+      "unknown_zones": "Zone(s) specified do not exist in main zone list",
+      "zone_already_in_partition": "Zone assigned to multiple partitions"
     }
   },
   "selector": {

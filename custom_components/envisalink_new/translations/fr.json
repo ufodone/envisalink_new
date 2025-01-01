@@ -82,7 +82,8 @@
       "invalid_partition_spec": "Spécification de partitions invalide",
       "bad_wireless_zone": "La zone sans-fil n'exite pas dans la liste de zones principale",
       "unknown": "Erreur inattendue",
-      "unknown_zones": "La ou les zones spécifiées n'existent pas dans la liste des zones principales"
+      "unknown_zones": "La ou les zones spécifiées n'existent pas dans la liste des zones principales",
+      "zone_already_in_partition": "La zone attribuée à plusieurs partitions"
     }
   },
   "selector": {

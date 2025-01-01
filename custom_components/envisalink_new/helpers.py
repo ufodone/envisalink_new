@@ -139,7 +139,8 @@ def build_zone_to_partition_map(config_entry: ConfigEntry, max_zones: int) -> di
     if partition_assignments:
         for partition, zone_set in partition_assignments.items():
             zone_list = parse_range_string(zone_set, 1, max_zones)
-            for z in zone_list:
-                zone_map[z] = partition
+            if zone_list:
+                for z in zone_list:
+                    zone_map[z] = partition
 
     return zone_map
