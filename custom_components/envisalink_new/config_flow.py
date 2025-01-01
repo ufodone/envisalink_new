@@ -171,6 +171,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # Make sure all the options are here
             try:
+                if CONF_PARTITION_ASSIGNMENTS in self.config_entry.options:
+                    user_input[CONF_PARTITION_ASSIGNMENTS] = self.config_entry.options.get(
+                        CONF_PARTITION_ASSIGNMENTS
+                    )
                 # Validate that the new settings are okay
                 self._validate_advanced_options(user_input)
                 return self.async_create_entry(title="", data=user_input)
@@ -280,7 +284,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # Make sure all the options are here
             try:
                 new_options = dict(self.config_entry.options)
-                new_options["partition_assignments"] = user_input
+                new_options[CONF_PARTITION_ASSIGNMENTS] = user_input
                 # Validate that the new settings are okay
                 self._validate_advanced_options(new_options)
                 return self.async_create_entry(title="", data=new_options)
