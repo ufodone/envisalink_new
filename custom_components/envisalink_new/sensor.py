@@ -13,7 +13,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
+from .helpers import find_yaml_info, parse_range_string
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import STATE_CHANGE_PARTITION
 

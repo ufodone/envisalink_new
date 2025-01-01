@@ -27,7 +27,12 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
+from .helpers import (
+    build_zone_to_partition_map,
+    find_yaml_info,
+    generate_entity_setup_info,
+    parse_range_string,
+)
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
@@ -119,15 +124,21 @@ async def async_setup_entry(
         zone_spec, min_val=1, max_val=controller.controller.max_zones
     )
 
+    zone_to_partition_map = build_zone_to_partition_map(
+        entry, controller.controller.max_zones, controller.controller.max_partitions
+    )
+
     zone_info = entry.data.get(CONF_ZONES)
     if zone_set is not None:
         for zone_num in zone_set:
             zone_entry = find_yaml_info(zone_num, zone_info)
 
+            partition = zone_to_partition_map[zone_num]
             entity = EnvisalinkBinarySensor(
                 hass,
                 zone_num,
                 zone_entry,
+                partition,
                 controller,
             )
             entities.append(entity)
@@ -151,6 +162,7 @@ async def async_setup_entry(
                             zone_num,
                             zone_entry,
                             controller,
+                            partition,
                         )
                         entities.append(entity)
 
@@ -183,9 +195,10 @@ async def async_setup_entry(
 class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity):
     """Representation of an Envisalink binary sensor."""
 
-    def __init__(self, hass, zone_number, zone_conf, controller):
+    def __init__(self, hass, zone_number, zone_conf, partition, controller):
         """Initialize the binary_sensor."""
         self._zone_number = zone_number
+        self._partition = partition
 
         setup_info = generate_entity_setup_info(
             controller, "zone", zone_number, None, zone_conf
@@ -228,10 +241,11 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity
                 last_fault
             ).isoformat()
 
-        # Expose the zone number as an attribute to allow
+        # Expose the zone and partition numbers as attributes to allow
         # for easier entity to zone mapping (e.g. to bypass
         # the zone).
         attr["zone"] = self._zone_number
+        attr["partition"] = self._partition
 
         # Expose whether the zone is currently bypassed
         attr["bypassed"] = self._info["bypassed"]
@@ -255,7 +269,16 @@ class EnvisalinkBinarySensor(EnvisalinkDevice, BinarySensorEntity, RestoreEntity
 class EnvisalinkAttributeBinarySensor(EnvisalinkDevice, BinarySensorEntity):
     """Representation of an Envisalink binary sensor."""
 
-    def __init__(self, hass, attr_type, evl_attr_name, index, extra_yaml_conf, controller):
+    def __init__(
+        self,
+        hass,
+        attr_type,
+        evl_attr_name,
+        index,
+        extra_yaml_conf,
+        controller,
+        partition=None,
+    ):
         """Initialize the sensor."""
 
         sensor_info = _attribute_sensor_info[attr_type]
@@ -267,6 +290,8 @@ class EnvisalinkAttributeBinarySensor(EnvisalinkDevice, BinarySensorEntity):
         self._evl_attr_type = attr_type
         self._evl_attr_name = evl_attr_name
         self._index = index
+        if partition:
+            self._partition = partition
 
         setup_info = generate_entity_setup_info(
             controller,
@@ -300,3 +325,13 @@ class EnvisalinkAttributeBinarySensor(EnvisalinkDevice, BinarySensorEntity):
     def is_on(self):
         """Return true if sensor is on."""
         return self._info["status"].get(self._evl_attr_name)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attr = {}
+
+        if self._evl_attr_type == "zone":
+            attr["zone"] = self._index
+            attr["partition"] = self._partition
+        return attr

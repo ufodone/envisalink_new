@@ -19,7 +19,12 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
+from .helpers import (
+    build_zone_to_partition_map,
+    find_yaml_info,
+    generate_entity_setup_info,
+    parse_range_string,
+)
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
@@ -52,6 +57,9 @@ async def async_setup_entry(
             zone_spec, min_val=1, max_val=controller.controller.max_zones
         )
         zone_info = entry.data.get(CONF_ZONES)
+        zone_to_partition_map = build_zone_to_partition_map(
+            entry, controller.controller.max_zones, controller.controller.max_partitions
+        )
         if zone_set is not None:
             for zone_num in zone_set:
                 zone_entry = find_yaml_info(zone_num, zone_info)
@@ -61,6 +69,7 @@ async def async_setup_entry(
                     zone_num,
                     zone_entry,
                     controller,
+                    zone_to_partition_map[zone_num],
                 )
                 entities.append(entity)
 
@@ -70,9 +79,10 @@ async def async_setup_entry(
 class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink bypass switch."""
 
-    def __init__(self, hass, zone_number, zone_conf, controller):
+    def __init__(self, hass, zone_number, zone_conf, controller, partition):
         """Initialize the switch."""
         self._zone_number = zone_number
+        self._partition = partition
 
         setup_info = generate_entity_setup_info(
             controller, "zone", zone_number, "Bypass", zone_conf
@@ -97,11 +107,24 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        await self._controller.controller.toggle_zone_bypass(
+            self._zone_number, self._partition
+        )
 
     async def async_turn_off(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        await self._controller.controller.toggle_zone_bypass(
+            self._zone_number, self._partition
+        )
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attr = {}
+
+        attr["zone"] = self._zone_number
+        attr["partition"] = self._partition
+        return attr
 
 
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):

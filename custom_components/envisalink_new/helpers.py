@@ -1,6 +1,15 @@
 """Helper functions for the Envisalink integration."""
 
-from .const import CONF_PARTITIONNAME, CONF_ZONENAME, CONF_ZONETYPE, DEFAULT_ZONETYPE
+from homeassistant.config_entries import ConfigEntry
+
+from .const import (
+    CONF_PARTITION_ASSIGNMENTS,
+    CONF_PARTITION_SET,
+    CONF_PARTITIONNAME,
+    CONF_ZONENAME,
+    CONF_ZONETYPE,
+    DEFAULT_ZONETYPE,
+)
 
 
 def find_yaml_info(entry_number: int, info) -> map | None:
@@ -118,3 +127,34 @@ def generate_entity_setup_info(
         "has_entity_name": has_entity_name,
         "zone_type": zone_type,
     }
+
+
+def build_zone_to_partition_map(
+    config_entry: ConfigEntry, max_zones: int, max_partitions: int
+) -> dict:
+    zone_map = {}
+
+    partition_spec: str = config_entry.data.get(CONF_PARTITION_SET, "")
+    partition_set = parse_range_string(partition_spec, min_val=1, max_val=max_partitions)
+
+    # Default all zones to the first declared partition
+    # (or 1 if none exist)
+    if not partition_set:
+        partition_set.append(1)
+    default_partition = partition_set[0]
+
+    for zone in range(max_zones):
+        zone_map[zone + 1] = default_partition
+
+    partition_assignments: str = config_entry.options.get(CONF_PARTITION_ASSIGNMENTS)
+    if partition_assignments:
+        for partition, zone_set in partition_assignments.items():
+            if int(partition) not in partition_set:
+                continue
+
+            zone_list = parse_range_string(zone_set, 1, max_zones)
+            if zone_list:
+                for z in zone_list:
+                    zone_map[z] = partition
+
+    return zone_map

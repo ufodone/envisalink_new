@@ -94,12 +94,12 @@ class DSCClient(EnvisalinkClient):
         """Public method to raise a panic alarm."""
         await self.queue_command(evl_Commands["Panic"], evl_PanicTypes[panicType])
 
-    async def toggle_zone_bypass(self, zone):
+    async def toggle_zone_bypass(self, zone, partition):
         """Public method to toggle a zone's bypass state."""
-        await self.keypresses_to_partition(1, "*1%02d#" % zone)
+        await self.keypresses_to_partition(partition, "*1%02d#" % zone)
 
     async def toggle_chime(self, code):
-        """Public method to toggle a zone's bypass state."""
+        """Public method to toggle the door chime."""
         await self.keypresses_to_partition(1, '*4')
 
     async def command_output(self, code, partitionNumber, outputNumber):

@@ -283,7 +283,7 @@ class EnvisalinkClient:
         """Public method to trigger the panic alarm."""
         raise NotImplementedError()
 
-    async def toggle_zone_bypass(self, zone):
+    async def toggle_zone_bypass(self, zone, partition):
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 
