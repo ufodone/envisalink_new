@@ -24,6 +24,7 @@ from .const import (
     CONF_HONEYWELL_ARM_NIGHT_MODE,
     CONF_PANEL_TYPE,
     CONF_PANIC,
+    CONF_PARTITION_ASSIGNMENTS,
     CONF_PARTITION_SET,
     CONF_PASS,
     CONF_SHOW_KEYPAD,
@@ -120,7 +121,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_menu(
             step_id="init",
-            menu_options=["basic", "advanced"],
+            menu_options=["basic", "advanced", "partition_assignments"],
         )
 
     async def async_step_basic(
@@ -269,24 +270,76 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
+    async def async_step_partition_assignments(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the partition assignments."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Make sure all the options are here
+            try:
+                new_options = dict(self.config_entry.options)
+                new_options["partition_assignments"] = user_input
+                # Validate that the new settings are okay
+                self._validate_advanced_options(new_options)
+                return self.async_create_entry(title="", data=new_options)
+            except HomeAssistantError as err:
+                errors["base"] = str(err)
+
+        # Create schema for partition assignments
+        partition_assignments = self.config_entry.options.get(
+            CONF_PARTITION_ASSIGNMENTS, {}
+        )
+        partition_spec: str = self.config_entry.data.get(CONF_PARTITION_SET, "")
+        partition_set = parse_range_string(
+            partition_spec, 1, EnvisalinkAlarmPanel.get_max_partitions()
+        )
+        if not partition_set:
+            raise PanelError("invalid_partition_spec")
+
+        partition_mapping_schema = {}
+        for partition in partition_set:
+            LOGGER.error(f"# {partition}: {partition_assignments.get(str(partition), '-')}")
+            partition_mapping_schema[
+                vol.Optional(
+                    f"{partition}", default=partition_assignments.get(str(partition), "")
+                )
+            ] = cv.string
+        return self.async_show_form(
+            step_id="partition_assignments",
+            data_schema=vol.Schema(partition_mapping_schema),
+            errors=errors,
+        )
+
     def _validate_advanced_options(self, user_input):
         """Ensure that the wireless zones specified are present in the main zone list."""
         max_zones = EnvisalinkAlarmPanel.get_max_zones_by_version(
             self.config_entry.options.get(CONF_EVL_VERSION, DEFAULT_EVL_VERSION)
         )
-        wireless_zone_set: str = user_input.get(CONF_WIRELESS_ZONE_SET, "")
-        if not wireless_zone_set:
-            return
-
-        wireless_zones = parse_range_string(wireless_zone_set, 1, max_zones)
-        if not wireless_zones:
-            raise PanelError("invalid_zone_spec")
 
         zone_set: str = self.config_entry.data.get(CONF_ZONE_SET, "")
         zones = parse_range_string(zone_set, 1, max_zones)
-        for zone in wireless_zones:
-            if zone not in zones:
-                raise PanelError("bad_wireless_zone")
+
+        wireless_zone_set: str = user_input.get(CONF_WIRELESS_ZONE_SET, "")
+        if wireless_zone_set:
+            wireless_zones = parse_range_string(wireless_zone_set, 1, max_zones)
+            if not wireless_zones:
+                raise PanelError("invalid_zone_spec")
+
+            for zone in wireless_zones:
+                if zone not in zones:
+                    raise PanelError("bad_wireless_zone")
+
+        partition_assignments: str = user_input.get(CONF_PARTITION_ASSIGNMENTS, "")
+        if partition_assignments:
+            for partition, zone_set in partition_assignments.items():
+                zone_list = parse_range_string(zone_set, 1, max_zones)
+                if not zone_list:
+                    raise PanelError("invalid_zone_spec")
+                for z in zone_list:
+                    if z not in zones:
+                        raise PanelError("unknown_zones")
 
 
 class DiscoveryError(HomeAssistantError):

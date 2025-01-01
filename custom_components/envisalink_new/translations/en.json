@@ -9,7 +9,8 @@
       "invalid_partition_spec": "Invalid partition specification",
       "invalid_zone_spec": "Invalid zone specification",
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "unknown_zones": "Zone(s) specified do not exist in main zone list"
     },
     "step": {
       "user": {
@@ -34,7 +35,8 @@
       "invalid_partition_spec": "Invalid partition specification",
       "invalid_zone_spec": "Invalid zone specification",
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "unknown_zones": "Zone(s) specified do not exist in main zone list"
     },
     "step": {
       "advanced": {
@@ -62,10 +64,25 @@
           "zone_set": "Zone list"
         }
       },
+      "partition_assignments": {
+        "name": "Partition Assignments",
+        "description": "List of zones assigned to each partition",
+        "data": {
+          "1": "Partition 1",
+          "2": "Partition 2",
+          "3": "Partition 3",
+          "4": "Partition 4",
+          "5": "Partition 5",
+          "6": "Partition 6",
+          "7": "Partition 7",
+          "8": "Partition 8"
+        }
+      },
       "init": {
         "menu_options": {
           "advanced": "Advanced",
-          "basic": "Basic"
+          "basic": "Basic",
+          "partition_assignments": "Partition Assignments"
         }
       }
     }

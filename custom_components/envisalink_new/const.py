@@ -28,6 +28,7 @@ CONF_HONEYWELL_ARM_NIGHT_MODE = "honeywell_arm_night_mode"  # OPTION
 CONF_WIRELESS_ZONE_SET = "wireless_zone_set"
 CONF_SHOW_KEYPAD = "show_keypad"
 CONF_CODE_ARM_REQUIRED = "code_arm_required"
+CONF_PARTITION_ASSIGNMENTS = "partition_assignments"
 
 
 # Config items used only in the YAML config
