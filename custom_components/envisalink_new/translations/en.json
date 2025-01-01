@@ -1,67 +1,63 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Device is already configured"
-    },
-    "error": {
-      "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
-      "invalid_partition_spec": "Invalid partition specification",
-      "invalid_zone_spec": "Invalid zone specification",
-      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
-      "unknown": "Unexpected error",
-      "unknown_zones": "Zone(s) specified do not exist in main zone list"
-    },
     "step": {
       "user": {
         "data": {
           "alarm_name": "Alarm Name",
-          "code": "Alarm code",
-          "discovery_port": "Discovery Port",
-          "host": "Host",
+          "host": "[%key:common::config_flow::data::host%]",
+          "port": "[%key:common::config_flow::data::port%]",
+          "user_name": "[%key:common::config_flow::data::username%]",
+          "password": "[%key:common::config_flow::data::password%]",
           "partition_set": "Partition list",
-          "password": "Password",
-          "port": "Port",
-          "user_name": "Username",
-          "zone_set": "Zone list"
+          "zone_set": "Zone list",
+          "code": "Alarm code",
+          "discovery_port": "Discovery Port"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "invalid_zone_spec": "invalid zone specification",
+      "invalid_partition_spec": "Invalid partition specification",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
   "options": {
-    "error": {
-      "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
-      "invalid_partition_spec": "Invalid partition specification",
-      "invalid_zone_spec": "Invalid zone specification",
-      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
-      "unknown": "Unexpected error",
-      "unknown_zones": "Zone(s) specified do not exist in main zone list"
-    },
     "step": {
-      "advanced": {
-        "data": {
-          "create_zone_bypass_switches": "Create zone bypass switches",
-          "honeywell_arm_night_mode": "Arm Night Mode",
-          "keepalive_interval": "Keep-alive interval",
-          "panic_type": "Panic type",
-          "timeout": "Connection timeout",
-          "zonedump_interval": "Zone dump interval",
-          "wireless_zone_set": "Wireless Zones",
-          "show_keypad": "Show keypad",
-          "code_arm_required": "Code required to arm"
+      "init": {
+        "menu_options": {
+          "basic": "Basic",
+          "advanced": "Advanced",
+          "partition_assignments": "Partition Assignments"
         }
       },
       "basic": {
         "data": {
-          "code": "Alarm code",
-          "discovery_port": "Discovery Port",
-          "host": "Host",
-          "partition_set": "Partition list",
-          "password": "Password",
-          "port": "Port",
-          "user_name": "Username",
-          "zone_set": "Zone list"
+          "host": "[%key:common::config_flow::data::host%]",
+          "port": "[%key:common::config_flow::data::port%]",
+          "user_name": "[%key:common::config_flow::data::username%]",
+          "password": "[%key:common::config_flow::data::password%]",
+          "partition_set": "[%key:component::envisalink::config::step::user::data::partition_set%]",
+          "zone_set": "[%key:component::envisalink::config::step::user::data::zone_set%]",
+          "code": "[%key:component::envisalink::config::step::user::data::code%]",
+          "discovery_port": "[%key:component::envisalink::config::step::user::data::discovery_port%]"
+        }
+      },
+      "advanced": {
+        "data": {
+          "panic_type": "Panic type",
+          "keepalive_interval": "Keep-alive interval",
+          "zonedump_interval": "Zone dump interval",
+          "timeout": "Connection timeout",
+          "create_zone_bypass_switches": "Create zone bypass switches",
+          "honeywell_arm_night_mode": "Arm Night Mode",
+          "wireless_zone_set": "Wireless Zones",
+          "show_keypad": "Show keypad",
+          "code_arm_required": "Code required to arm"
         }
       },
       "partition_assignments": {
@@ -77,14 +73,16 @@
           "7": "Partition 7",
           "8": "Partition 8"
         }
-      },
-      "init": {
-        "menu_options": {
-          "advanced": "Advanced",
-          "basic": "Basic",
-          "partition_assignments": "Partition Assignments"
-        }
       }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "invalid_zone_spec": "Invalid zone specification",
+      "invalid_partition_spec": "Invalid partition specification",
+      "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
+      "unknown": "[%key:common::config_flow::error::unknown%]",
+      "unknown_zones": "Zone(s) specified do not exist in main zone list"
     }
   },
   "selector": {
