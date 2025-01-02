@@ -258,3 +258,11 @@ class EnvisalinkController:
         )
         self._process_state_change(STATE_CHANGE_ZONE_BYPASS, data)
         self._process_state_change(STATE_CHANGE_ZONE, data)
+
+    @property
+    def default_code(self) -> str | None:
+        return self._default_code
+
+    @default_code.setter
+    def default_code(self, value):
+        self._default_code = value

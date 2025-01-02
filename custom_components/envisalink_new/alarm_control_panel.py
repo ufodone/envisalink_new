@@ -172,22 +172,24 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     def _fixup_default_code(self):
         """Reconcile alarm control panel default code with the one configured in this integration"""
-        if not self._code:
-            return
+        if self._code:
+            if not self._alarm_control_panel_option_default_code:
+                LOGGER.warn(
+                    "No default code set for AlarmControlPanel so using %s one. Please remove the %s code and set it on the AlarmControlPanel entity instead.",
+                    DOMAIN,
+                    DOMAIN,
+                )
+                self._alarm_control_panel_option_default_code = self._code
+            elif self._code:
+                LOGGER.warn(
+                    "Both the AlarmControlPanel and %s have a default code set. The AlarmControlPanel one will be used. Please remove the 'code' value from your %s configuration to remove this warning.",
+                    DOMAIN,
+                    DOMAIN,
+                )  # noqa: E501
 
-        if not self._alarm_control_panel_option_default_code:
-            LOGGER.warn(
-                "No default code set for AlarmControlPanel so using %s one. Please remove the %s code and set it on the AlarmControlPanel entity instead.",
-                DOMAIN,
-                DOMAIN,
-            )
-            self._alarm_control_panel_option_default_code = self._code
-        elif self._code:
-            LOGGER.warn(
-                "Both the AlarmControlPanel and %s have a default code set. The AlarmControlPanel one will be used. Please remove the 'code' value from your %s configuration to remove this warning.",
-                DOMAIN,
-                DOMAIN,
-            )  # noqa: E501
+        # Store the code in the controller so other entities have easy access to it.
+        if self._partition_number == 1:
+            self._controller.default_code = self._alarm_control_panel_option_default_code
 
     @property
     def code_format(self) -> CodeFormat | None:
