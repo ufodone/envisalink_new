@@ -32,7 +32,7 @@ My original intent was to submit these changes back HA core to update the aging 
 
 You need to add this repository to the custom repository page in HACS before you can install this integration.
 To do so first go to the HACS Integrations page. From there click the menu in the top right with the 3 dots.
-Use this URL for the repository `https://github.com/ufodone/envisalink_new` and select `integration` for the category. After you add the custom repository, just search for `Envisalink Refactored` in HACS and install it. Installation will complete after you reboot Home Assistant.
+Use this URL for the repository `https://github.com/ufodone/envisalink_new` and select `integration` for the category. After you add the custom repository, just search for `EyezOn` in HACS and install it. Installation will complete after you reboot Home Assistant.
 
 ## Configuration
 
