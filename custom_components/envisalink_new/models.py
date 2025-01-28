@@ -22,11 +22,12 @@ class EnvisalinkDevice(Entity):
             LOGGER.debug("state_updated for '%s'", self._attr_name)
             self.async_write_ha_state()
 
-        self.async_on_remove(
-            self._controller.add_state_change_listener(
-                self._state_update_type, self._state_update_key, state_updated
+        if self._state_update_type and self._state_update_key:
+            self.async_on_remove(
+                self._controller.add_state_change_listener(
+                    self._state_update_type, self._state_update_key, state_updated
+                )
             )
-        )
 
     @property
     def device_info(self) -> DeviceInfo:

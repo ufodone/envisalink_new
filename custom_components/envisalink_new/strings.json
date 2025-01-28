@@ -29,9 +29,10 @@
   "options": {
     "step": {
       "init": {
-        "data": {
-          "Basic": "Basic",
-          "Advanced": "Advanced"
+        "menu_options": {
+          "basic": "Basic",
+          "advanced": "Advanced",
+          "partition_assignments": "Partition Assignments"
         }
       },
       "basic": {
@@ -54,7 +55,23 @@
           "timeout": "Connection timeout",
           "create_zone_bypass_switches": "Create zone bypass switches",
           "honeywell_arm_night_mode": "Arm Night Mode",
-          "wireless_zone_set": "Wireless Zones"
+          "wireless_zone_set": "Wireless Zones",
+          "show_keypad": "Show keypad",
+          "code_arm_required": "Code required to arm"
+        }
+      },
+      "partition_assignments": {
+        "name": "Partition Assignments",
+        "description": "List of zones assigned to each partition",
+        "data": {
+          "1": "Partition 1",
+          "2": "Partition 2",
+          "3": "Partition 3",
+          "4": "Partition 4",
+          "5": "Partition 5",
+          "6": "Partition 6",
+          "7": "Partition 7",
+          "8": "Partition 8"
         }
       }
     },
@@ -64,7 +81,31 @@
       "invalid_zone_spec": "Invalid zone specification",
       "invalid_partition_spec": "Invalid partition specification",
       "bad_wireless_zone": "Wireless zone(s) do not exist in main zone list",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "[%key:common::config_flow::error::unknown%]",
+      "unknown_zones": "Zone(s) specified do not exist in main zone list",
+      "zone_already_in_partition": "Zone assigned to multiple partitions"
+    }
+  },
+  "selector": {
+    "show_keypad": {
+      "options": {
+        "never": "Never",
+        "disarm": "Only to disarm",
+        "always": "Always"
+      }
+    },
+    "honeywell_arm_night_mode": {
+      "options": {
+        "7": "Instant",
+        "33": "Night Stay"
+      }
+    },
+    "panic_type": {
+      "options": {
+        "Fire": "Fire",
+        "Ambulance": "Ambulance",
+        "Police": "Police"
+      }
     }
   }
 }

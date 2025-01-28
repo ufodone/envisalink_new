@@ -283,7 +283,7 @@ class EnvisalinkClient:
         """Public method to trigger the panic alarm."""
         raise NotImplementedError()
 
-    async def toggle_zone_bypass(self, zone):
+    async def toggle_zone_bypass(self, zone, partition):
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 
@@ -317,7 +317,6 @@ class EnvisalinkClient:
 
         except (AttributeError, TypeError, KeyError) as err:
             _LOGGER.debug("No handler configured for evl command.")
-            _LOGGER.debug(str.format("KeyError: {0}", err))
 
         try:
             _LOGGER.debug("Invoking state change callbacks")

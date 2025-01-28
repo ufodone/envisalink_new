@@ -1,6 +1,6 @@
 {
   "domain": "envisalink_new",
-  "name": "Envisalink_new",
+  "name": "EyezOn",
   "config_flow": true,
   "documentation": "https://github.com/ufodone/envisalink_new",
   "issue_tracker": "https://github.com/ufodone/envisalink_new/issues",
@@ -11,5 +11,5 @@
   "dependencies": [],
   "codeowners": ["@ufodone"],
   "iot_class": "local_push",
-  "version": "0.1.0"
+  "version": "1.0.0"
 }

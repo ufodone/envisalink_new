@@ -1,8 +1,14 @@
-# Envisalink Refactored
+# EyezOn Integration for Home Assistant
 
 A modernized version of the Home Assistant `envisalink` integration.
 
 My original intent was to submit these changes back HA core to update the aging `envisalink` integration. However, the scope of the changes got large which meant that the effort to them back into HA core would to be very time consuming. I don't expect to be able to commit the time required to get these changes back into HA core so this integration will unfortunately remain only available through HACS for the foreseeable future.
+
+## Supported devices
+
+- **Envisalink 3/4 for DSC and Honeywell panels**
+- **Uno IP Hybrid panels**
+  - Work in progress: currently supports partition and zone updates and basic arm/disarm functionality. Additional features will be added when they are available in the firmware.
 
 ## Current changes include:
 
@@ -13,7 +19,7 @@ My original intent was to submit these changes back HA core to update the aging 
 - Auto-discovery of EVL version and panel type (DSC/HONEYWELL)
 - New algorithm on for Honeywell systems to better handle zone open/close status
 - Several panel and zone attributes have been promoted to entities
-- Support for low battery warnings for wireless sensors on DSC systems.  Requires a [specific](https://github.com/ufodone/envisalink_new/issues/63#issuecomment-1888344880) firmware version.
+- Support for low battery warnings for wireless sensors on DSC systems. Requires a [specific](https://github.com/ufodone/envisalink_new/issues/63#issuecomment-1888344880) firmware version.
 - Refactoring of the underlying pyenvisalink package including
   - Sequential queueing of commands to the EVL including retry on errors (which applicable) and timeouts
   - Ability to query EVL firmware version and MAC address
@@ -26,7 +32,7 @@ My original intent was to submit these changes back HA core to update the aging 
 
 You need to add this repository to the custom repository page in HACS before you can install this integration.
 To do so first go to the HACS Integrations page. From there click the menu in the top right with the 3 dots.
-Use this URL for the repository `https://github.com/ufodone/envisalink_new` and select `integration` for the category. After you add the custom repository, just search for `Envisalink Refactored` in HACS and install it. Installation will complete after you reboot Home Assistant.
+Use this URL for the repository `https://github.com/ufodone/envisalink_new` and select `integration` for the category. After you add the custom repository, just search for `EyezOn` in HACS and install it. Installation will complete after you reboot Home Assistant.
 
 ## Configuration
 

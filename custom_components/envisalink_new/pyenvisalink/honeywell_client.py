@@ -6,6 +6,7 @@ import time
 from .const import STATE_CHANGE_PARTITION, STATE_CHANGE_ZONE, STATE_CHANGE_ZONE_BYPASS
 from .envisalink_base_client import EnvisalinkClient
 from .honeywell_envisalinkdefs import (
+    Beep_Flags,
     IconLED_Flags,
     evl_ArmDisarm_CIDs,
     evl_CID_Events,
@@ -199,7 +200,10 @@ class HoneywellClient(EnvisalinkClient):
             user_zone_field = int(dataList[2])
         except ValueError:
             user_zone_field = None
-        beep = evl_Virtual_Keypad_How_To_Beep.get(dataList[3], "unknown")
+        beep_field = Beep_Flags()
+        beep_field.asByte = int(dataList[3], 16)
+        beep = evl_Virtual_Keypad_How_To_Beep.get(beep_field.beeps, "unknown")
+        armed_night = bool(beep_field.armed_night)
         alpha = dataList[4]
         partition_status = HoneywellClient.get_partition_state(flags, alpha)
         zone_code = HoneywellClient.get_zone_report_type(flags, alpha)
@@ -226,6 +230,7 @@ class HoneywellClient(EnvisalinkClient):
                 "armed_stay": bool(flags.armed_stay),
                 "alpha": alpha,
                 "beep": beep,
+                "armed_night": armed_night,
             }
         )
 
@@ -415,3 +420,8 @@ class HoneywellClient(EnvisalinkClient):
             return "notready"
         else:
             return "unknown"
+
+    def handle_debug_info(self, code, data):
+        """Handle when the envisalink sends a debug message indicating that it received
+        a malformed message from the panel."""
+        _LOGGER.debug(f'EVL received a malformed message from the panel; code={code} data={data}')

@@ -19,7 +19,12 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
+from .helpers import (
+    build_zone_to_partition_map,
+    find_yaml_info,
+    generate_entity_setup_info,
+    parse_range_string,
+)
 from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
@@ -36,14 +41,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up the switches based on a config entry."""
     controller = hass.data[DOMAIN][entry.entry_id]
-    code = entry.data.get(CONF_CODE)
     entities = []
 
-    # Only create the chime switch if the alarm code is provided for a Honeywell panel
-    # or it is a DSC panel (which does not require a code to toggle the chime).
-    panel_type = entry.data.get(CONF_PANEL_TYPE)
-    if (panel_type == PANEL_TYPE_DSC) or (panel_type == PANEL_TYPE_HONEYWELL and code):
-        entities.append(EnvisalinkChimeSwitch(hass, 1, code, controller))
+    panel_type = controller.controller.panel_type
+    if panel_type in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL]:
+        entities.append(EnvisalinkChimeSwitch(hass, 1, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
     if create_bypass_switches:
@@ -52,6 +54,9 @@ async def async_setup_entry(
             zone_spec, min_val=1, max_val=controller.controller.max_zones
         )
         zone_info = entry.data.get(CONF_ZONES)
+        zone_to_partition_map = build_zone_to_partition_map(
+            entry, controller.controller.max_zones, controller.controller.max_partitions
+        )
         if zone_set is not None:
             for zone_num in zone_set:
                 zone_entry = find_yaml_info(zone_num, zone_info)
@@ -61,6 +66,7 @@ async def async_setup_entry(
                     zone_num,
                     zone_entry,
                     controller,
+                    zone_to_partition_map[zone_num],
                 )
                 entities.append(entity)
 
@@ -70,9 +76,10 @@ async def async_setup_entry(
 class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
     """Representation of an Envisalink bypass switch."""
 
-    def __init__(self, hass, zone_number, zone_conf, controller):
+    def __init__(self, hass, zone_number, zone_conf, controller, partition):
         """Initialize the switch."""
         self._zone_number = zone_number
+        self._partition = partition
 
         setup_info = generate_entity_setup_info(
             controller, "zone", zone_number, "Bypass", zone_conf
@@ -97,23 +104,35 @@ class EnvisalinkBypassSwitch(EnvisalinkDevice, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        await self._controller.controller.toggle_zone_bypass(
+            self._zone_number, self._partition
+        )
 
     async def async_turn_off(self, **kwargs):
         """Send the bypass keypress sequence to toggle the zone bypass."""
-        await self._controller.controller.toggle_zone_bypass(self._zone_number)
+        await self._controller.controller.toggle_zone_bypass(
+            self._zone_number, self._partition
+        )
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attr = {}
+
+        attr["zone"] = self._zone_number
+        attr["partition"] = self._partition
+        return attr
 
 
 class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
     """Representation of an Envisalink chime switch."""
 
-    def __init__(self, hass, partition_number, code, controller):
+    def __init__(self, hass, partition_number, controller):
         """Initialize the switch."""
         name = "Panel Chime"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
         self._attr_has_entity_name = True
         self._partition_number = partition_number
-        self._code = code
 
         super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
 
@@ -135,8 +154,20 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
         return None
 
     @property
+    def _is_enabled(self) -> bool:
+        """Only enable the chime switch if the alarm code is provided for a Honeywell panel
+        or it is a DSC panel (which does not require a code to toggle the chime)."""
+        panel_type = self._controller.controller.panel_type
+        return (panel_type == PANEL_TYPE_DSC) or (
+            panel_type == PANEL_TYPE_HONEYWELL and self._controller.default_code
+        )
+
+    @property
     def is_on(self):
         """Return the boolean response if the chime is enabled."""
+        if not self._is_enabled:
+            return None
+
         chime_status = self._chime_status
         if chime_status is not None:
             return chime_status
@@ -145,10 +176,16 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
+        if not self._is_enabled:
+            return None
+
         if self._chime_status != True:
-            await self._controller.controller.toggle_chime(self._code)
+            await self._controller.controller.toggle_chime(self._controller.default_code)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
+        if not self._is_enabled:
+            return None
+
         if self._chime_status != False:
-            await self._controller.controller.toggle_chime(self._code)
+            await self._controller.controller.toggle_chime(self._controller.default_code)
