@@ -359,12 +359,12 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def toggle_zone_bypass(self, zone, partition):
+    async def bypass_zone(self, zone, partition, enable):
         """Public method to toggle a zone's bypass state."""
         if not self._zoneBypassEnabled:
             _LOGGER.error(COMMAND_ERR)
         elif self._client:
-            await self._client.toggle_zone_bypass(zone, partition)
+            await self._client.bypass_zone(zone, partition, enable)
         else:
             _LOGGER.error(COMMAND_ERR)
 

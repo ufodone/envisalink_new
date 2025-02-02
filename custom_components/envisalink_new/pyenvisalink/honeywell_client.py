@@ -27,6 +27,7 @@ class HoneywellClient(EnvisalinkClient):
     def __init__(self, panel):
         super().__init__(panel)
         self._zoneTimers = {}
+        self._evl_ResponseTypes = evl_ResponseTypes
 
     def detect(prompt):
         """Given the initial connection data, determine if this is a Honeywell panel."""
@@ -141,8 +142,8 @@ class HoneywellClient(EnvisalinkClient):
             _LOGGER.error("Unrecognized data recieved from the envisalink. Ignoring.")
             return None
         try:
-            cmd["handler"] = "handle_%s" % evl_ResponseTypes[code]["handler"]
-            cmd["state_change"] = evl_ResponseTypes[code].get("state_change", False)
+            cmd["handler"] = "handle_%s" % self._evl_ResponseTypes[code]["handler"]
+            cmd["state_change"] = self._evl_ResponseTypes[code].get("state_change", False)
         except KeyError:
             _LOGGER.warning(str.format("No handler defined in config for {0}, skipping...", code))
 
