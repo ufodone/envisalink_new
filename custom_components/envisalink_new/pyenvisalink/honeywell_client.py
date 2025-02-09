@@ -38,8 +38,10 @@ class HoneywellClient(EnvisalinkClient):
 
     async def send_command(self, code, data, logData=None):
         """Send a command in the proper honeywell format."""
-        to_send = "^" + code + "," + data + "$"
-        await self.send_data(to_send, logData)
+        output= f"^{code},{{data}}$"
+        to_send = output.format(data = data)
+        log = output.format(data = logData) if logData else to_send
+        await self.send_data(to_send, log)
 
     async def dump_zone_timers(self):
         """Send a command to dump out the zone timers."""
