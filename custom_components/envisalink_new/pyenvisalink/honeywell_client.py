@@ -28,7 +28,7 @@ class HoneywellClient(EnvisalinkClient):
         super().__init__(panel)
         self._zoneTimers = {}
         self._evl_ResponseTypes = evl_ResponseTypes
-        self._evl_TPI_Response_Codes = evl_TPI_Response_Codes,
+        self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
 
     def detect(prompt):
         """Given the initial connection data, determine if this is a Honeywell panel."""
