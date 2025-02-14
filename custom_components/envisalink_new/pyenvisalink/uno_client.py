@@ -4,15 +4,13 @@ import re
 import time
 
 from .const import STATE_CHANGE_PARTITION, STATE_CHANGE_ZONE, STATE_CHANGE_ZONE_BYPASS
-from .honeywell_envisalinkdefs import (
-    evl_ResponseTypes as honeywell_evl_ResponseTypes,
-    evl_Partition_Status_Codes,
-)
 from .honeywell_client import HoneywellClient
 from .uno_envisalinkdefs import (
     evl_Commands,
     evl_PanicTypes,
+    evl_Partition_Status_Codes,
     evl_ResponseTypes,
+    evl_TPI_Response_Codes,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,7 +20,8 @@ class UnoClient(HoneywellClient):
     """Represents an Uno alarm client."""
     def __init__(self, panel):
         super().__init__(panel)
-        self._evl_ResponseTypes = evl_ResponseTypes | honeywell_evl_ResponseTypes
+        self._evl_ResponseTypes = evl_ResponseTypes
+        self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
 
     def handle_login_success(self, code, data):
         """Handler for when the envisalink accepts our credentials."""

@@ -28,6 +28,7 @@ class HoneywellClient(EnvisalinkClient):
         super().__init__(panel)
         self._zoneTimers = {}
         self._evl_ResponseTypes = evl_ResponseTypes
+        self._evl_TPI_Response_Codes = evl_TPI_Response_Codes,
 
     def detect(prompt):
         """Given the initial connection data, determine if this is a Honeywell panel."""
@@ -160,8 +161,8 @@ class HoneywellClient(EnvisalinkClient):
 
     def handle_command_response(self, code, data):
         """Handle the envisalink's initial response to our commands."""
-        if data in evl_TPI_Response_Codes:
-            responseInfo = evl_TPI_Response_Codes[data]
+        if data in self._evl_TPI_Response_Codes:
+            responseInfo = self._evl_TPI_Response_Codes[data]
             _LOGGER.debug("Envisalink response: " + responseInfo["msg"])
             if data == "00":
                 self.command_succeeded(code[1:])
