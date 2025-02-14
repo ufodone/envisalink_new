@@ -162,7 +162,7 @@ class UnoClient(HoneywellClient):
 
     async def panic_alarm(self, panicType):
         """Public method to raise a panic alarm."""
-        await self.queue_command(evl_Commands["PanicAlarm"], "1,{evl_PanicTypes[panicType]}")
+        await self.queue_command(evl_Commands["PanicAlarm"], f"1,{evl_PanicTypes[panicType]}")
 
     async def bypass_zone(self, zone, partition, enable):
         command = evl_Commands["BypassZone" if enable else "UnbypassZone"]
