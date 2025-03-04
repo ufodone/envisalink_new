@@ -18,4 +18,4 @@ jobs:
           ref: master
           path: wiki-repo
       - name: Push to wiki
-        run: base-code/scripts/sync-wiki.sh base-code/wiki ../wiki-repo
+        run: base-code/scripts/sync-wiki.sh base-code/wiki wiki-repo
