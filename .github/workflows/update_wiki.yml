@@ -18,10 +18,4 @@ jobs:
           ref: master
           path: wiki-repo
       - name: Push to wiki
-        run: |
-          pwd
-          cp -R wiki/* ../wiki-repo
-          cd ../wiki-repo
-          git add .
-          git commit -m "Sync wiki changes"
-          git push
+        run: base-code/scripts/sync-wiki.sh base-code/wiki ../wiki-repo
