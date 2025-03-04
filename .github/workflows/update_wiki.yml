@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout base code
+      uses: actions/checkout@v2
+      with:
+        path: base-code
+    - name: Checkout wiki code
+      uses: actions/checkout@v2
+      with:
+        repository: ${{github.repository}}.wiki
+        path: wiki
+    - name: Push to wiki
+      run: |
+        cp -R base-code/wiki/* wiki
+        cd wiki
+        git add .
+        git commit -m "Sync wiki changes"
+        git push
