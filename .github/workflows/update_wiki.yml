@@ -16,11 +16,12 @@ jobs:
         with:
           repository: ${{github.repository}}.wiki
           ref: master
-          path: wiki
+          path: wiki-repo
       - name: Push to wiki
         run: |
-          cp -R base-code/wiki/* wiki
-          cd wiki
+          pwd
+          cp -R wiki/* ../wiki-repo
+          cd ../wiki-repo
           git add .
           git commit -m "Sync wiki changes"
           git push
