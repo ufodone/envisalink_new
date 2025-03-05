@@ -4,6 +4,7 @@ on:
       - "main"
     paths:
       - "wiki/**"
+  workflow_dispatch:
 
 jobs:
   sync-wiki:
