@@ -11,5 +11,5 @@
   "dependencies": [],
   "codeowners": ["@ufodone"],
   "iot_class": "local_push",
-  "version": "1.1.0-uno-beta2"
+  "version": "1.1.0"
 }
