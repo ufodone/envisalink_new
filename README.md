@@ -8,7 +8,6 @@ My original intent was to submit these changes back HA core to update the aging 
 
 - **Envisalink 3/4 for DSC and Honeywell panels**
 - **Uno IP Hybrid panels**
-  - Work in progress: currently supports partition and zone updates and basic arm/disarm functionality. Additional features will be added when they are available in the firmware.
 
 ## Current changes include:
 
