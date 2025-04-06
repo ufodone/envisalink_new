@@ -37,7 +37,11 @@ from .const import (
 )
 from .helpers import find_yaml_info, generate_entity_setup_info, parse_range_string
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import PANEL_TYPE_HONEYWELL, STATE_CHANGE_PARTITION
+from .pyenvisalink.const import (
+    PANEL_TYPE_HONEYWELL,
+    PANEL_TYPE_UNO,
+    STATE_CHANGE_PARTITION,
+)
 
 SERVICE_ALARM_KEYPRESS = "alarm_keypress"
 ATTR_KEYPRESS = "keypress"
@@ -124,7 +128,6 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
     _attr_supported_features = (
         AlarmControlPanelEntityFeature.ARM_HOME
         | AlarmControlPanelEntityFeature.ARM_AWAY
-        | AlarmControlPanelEntityFeature.ARM_NIGHT
         | AlarmControlPanelEntityFeature.TRIGGER
     )
 
@@ -158,6 +161,9 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
         LOGGER.debug("Setting up alarm: %s", name)
         super().__init__(name, controller, STATE_CHANGE_PARTITION, partition_number)
+
+        if self._controller.controller.panel_type is not PANEL_TYPE_UNO:
+            self._attr_supported_features |= AlarmControlPanelEntityFeature.ARM_NIGHT
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()

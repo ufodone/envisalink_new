@@ -222,7 +222,7 @@ class EnvisalinkClient:
         # Scrub the password and alarm code if necessary
         if not logData:
             logData = self.scrub_sensitive_data(data)
-        _LOGGER.debug("TX > %s", logData.encode("ascii"))
+        _LOGGER.debug("TX > %s", str(logData))
 
         if not self._writer:
             _LOGGER.debug("Unable to send data; not connected.")
@@ -283,7 +283,7 @@ class EnvisalinkClient:
         """Public method to trigger the panic alarm."""
         raise NotImplementedError()
 
-    async def toggle_zone_bypass(self, zone, partition):
+    async def bypass_zone(self, zone, partition, enable):
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 

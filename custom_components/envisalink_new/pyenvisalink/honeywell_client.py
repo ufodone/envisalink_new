@@ -27,6 +27,8 @@ class HoneywellClient(EnvisalinkClient):
     def __init__(self, panel):
         super().__init__(panel)
         self._zoneTimers = {}
+        self._evl_ResponseTypes = evl_ResponseTypes
+        self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
 
     def detect(prompt):
         """Given the initial connection data, determine if this is a Honeywell panel."""
@@ -37,8 +39,10 @@ class HoneywellClient(EnvisalinkClient):
 
     async def send_command(self, code, data, logData=None):
         """Send a command in the proper honeywell format."""
-        to_send = "^" + code + "," + data + "$"
-        await self.send_data(to_send, logData)
+        output= f"^{code},{{data}}$"
+        to_send = output.format(data = data)
+        log = output.format(data = logData) if logData else to_send
+        await self.send_data(to_send, log)
 
     async def dump_zone_timers(self):
         """Send a command to dump out the zone timers."""
@@ -138,11 +142,11 @@ class HoneywellClient(EnvisalinkClient):
             cmd["code"] = code
             cmd["data"] = ""
         else:
-            _LOGGER.error("Unrecognized data recieved from the envisalink. Ignoring.")
+            _LOGGER.error("Unrecognized data received from the envisalink. Ignoring.")
             return None
         try:
-            cmd["handler"] = "handle_%s" % evl_ResponseTypes[code]["handler"]
-            cmd["state_change"] = evl_ResponseTypes[code].get("state_change", False)
+            cmd["handler"] = "handle_%s" % self._evl_ResponseTypes[code]["handler"]
+            cmd["state_change"] = self._evl_ResponseTypes[code].get("state_change", False)
         except KeyError:
             _LOGGER.warning(str.format("No handler defined in config for {0}, skipping...", code))
 
@@ -157,8 +161,8 @@ class HoneywellClient(EnvisalinkClient):
 
     def handle_command_response(self, code, data):
         """Handle the envisalink's initial response to our commands."""
-        if data in evl_TPI_Response_Codes:
-            responseInfo = evl_TPI_Response_Codes[data]
+        if data in self._evl_TPI_Response_Codes:
+            responseInfo = self._evl_TPI_Response_Codes[data]
             _LOGGER.debug("Envisalink response: " + responseInfo["msg"])
             if data == "00":
                 self.command_succeeded(code[1:])
