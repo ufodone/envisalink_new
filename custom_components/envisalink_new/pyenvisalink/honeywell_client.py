@@ -142,7 +142,7 @@ class HoneywellClient(EnvisalinkClient):
             cmd["code"] = code
             cmd["data"] = ""
         else:
-            _LOGGER.error("Unrecognized data recieved from the envisalink. Ignoring.")
+            _LOGGER.error("Unrecognized data received from the envisalink. Ignoring.")
             return None
         try:
             cmd["handler"] = "handle_%s" % self._evl_ResponseTypes[code]["handler"]

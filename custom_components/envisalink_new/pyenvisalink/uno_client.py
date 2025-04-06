@@ -11,6 +11,7 @@ from .uno_envisalinkdefs import (
     evl_Partition_Status_Codes,
     evl_ResponseTypes,
     evl_TPI_Response_Codes,
+    MajorTrouble_Flags,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -137,8 +138,26 @@ class UnoClient(HoneywellClient):
 
     def handle_partition_trouble_state_change(self, code, data):
         """Process Partition Trouble State Change"""
-        # TODO
-        return
+        partition_updates = []
+        for currentIndex in range(0, 8):
+            partitionNumber = currentIndex + 1
+            troubleCode = data[currentIndex * 2:(currentIndex * 2) + 2]
+            flags = MajorTrouble_Flags()
+            flags.asByte = int(troubleCode, 16)
+
+            _LOGGER.debug(f'Partition {partitionNumber} has new trouble state {flags}')
+
+            status = self._alarmPanel.alarm_state['partition'][partitionNumber]['status']
+            status['trouble'] = bool(flags.service_required)
+            status['ac_present'] = not bool(flags.ac_failure)
+            status['bat_trouble'] = bool(flags.system_battery_overcurrent)
+            status['bell_trouble'] = bool(flags.system_bell_fault)
+
+            _LOGGER.debug(f'Partition {partitionNumber} status: {json.dumps(status)}')
+
+            partition_updates.append(partitionNumber)
+
+        return { STATE_CHANGE_PARTITION: partition_updates }
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""

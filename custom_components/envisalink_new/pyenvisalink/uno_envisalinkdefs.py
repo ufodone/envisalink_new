@@ -17,8 +17,8 @@ class MajorTrouble_Bitfield(ctypes.LittleEndianStructure):
         ("server_offline", c_uint8, 1),
         ("zone_trouble", c_uint8, 1),
         ("system_battery_overcurrent", c_uint8, 1),
-        ("system_Bell_fault", c_uint8, 1),
-        ("wireless_device_fauled", c_uint8, 1),
+        ("system_bell_fault", c_uint8, 1),
+        ("wireless_device_faulted", c_uint8, 1),
     ]
 
     def __str__(self) -> str:
@@ -30,6 +30,18 @@ class MajorTrouble_Flags(ctypes.Union):
     _fields_ = [("b", MajorTrouble_Bitfield), ("asByte", c_uint8)]
     _anonymous_ = "b"
 
+    def __str__(self) -> str:
+        return (
+            f"0x{int(self.asByte):02x}"
+            f" service_required={self.service_required}"
+            f" ac_failure={self.ac_failure}"
+            f" wireless_device_low_Battery={self.wireless_device_low_Battery}"
+            f" server_offline={self.server_offline}"
+            f" zone_trouble={self.zone_trouble}"
+            f" system_battery_overcurrent={self.system_battery_overcurrent}"
+            f" system_bell_fault={self.system_bell_fault}"
+            f" wireless_device_faulted={self.wireless_device_faulted}"
+        )
 
 evl_Commands = {
     "BypassZone": "04",
@@ -61,7 +73,7 @@ evl_ResponseTypes = honeywell_evl_ResponseTypes | {
         "name": "Partition Trouble State Change",
         "description": "The trouble state for a partition has changed",
         "handler": "partition_trouble_state_change",
-        "state_change": False,
+        "state_change": True,
     },
 
     "^04": {
