@@ -29,6 +29,7 @@ from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
     PANEL_TYPE_HONEYWELL,
+    PANEL_TYPE_SOLO,
     STATE_CHANGE_PARTITION,
     STATE_CHANGE_ZONE_BYPASS,
 )
@@ -44,7 +45,7 @@ async def async_setup_entry(
     entities = []
 
     panel_type = controller.controller.panel_type
-    if panel_type in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL]:
+    if panel_type in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_SOLO]:
         entities.append(EnvisalinkChimeSwitch(hass, 1, controller))
 
     create_bypass_switches = entry.options.get(CONF_CREATE_ZONE_BYPASS_SWITCHES)
@@ -148,17 +149,15 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
     @property
     def _chime_status(self):
         """Returns the chime status as pyenvisalink knows. May be out of sync on DSC panels"""
-        status = self._info["status"]
-        if status:
-            return status.get("chime", None)
-        return None
+        chime = (self._info["status"] or {}).get("chime", None)
+        return chime
 
     @property
     def _is_enabled(self) -> bool:
         """Only enable the chime switch if the alarm code is provided for a Honeywell panel
         or it is a DSC panel (which does not require a code to toggle the chime)."""
         panel_type = self._controller.controller.panel_type
-        return (panel_type == PANEL_TYPE_DSC) or (
+        return (panel_type == PANEL_TYPE_DSC or panel_type == PANEL_TYPE_SOLO) or (
             panel_type == PANEL_TYPE_HONEYWELL and self._controller.default_code
         )
 
@@ -180,7 +179,8 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
             return None
 
         if self._chime_status != True:
-            await self._controller.controller.toggle_chime(self._controller.default_code)
+            await self._controller.controller.toggle_chime(self._controller.default_code, self._partition_number, True)
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Send the keypress sequence to toggle the chime."""
@@ -188,4 +188,5 @@ class EnvisalinkChimeSwitch(EnvisalinkDevice, SwitchEntity, RestoreEntity):
             return None
 
         if self._chime_status != False:
-            await self._controller.controller.toggle_chime(self._controller.default_code)
+            await self._controller.controller.toggle_chime(self._controller.default_code, self._partition_number, False)
+            self.async_write_ha_state()
