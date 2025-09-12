@@ -16,7 +16,6 @@ from .uno_envisalinkdefs import (
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class UnoClient(HoneywellClient):
     """Represents an Uno alarm client."""
     def __init__(self, panel):
@@ -158,6 +157,17 @@ class UnoClient(HoneywellClient):
             partition_updates.append(partitionNumber)
 
         return { STATE_CHANGE_PARTITION: partition_updates }
+    
+    def handle_partition_chime(self, code, data):
+        """Process Partition Chime Events"""
+        partition_chimes = []
+        for currentIndex in range(0, 8):
+            partitionNumber = currentIndex + 1
+            chimeType = data[currentIndex]
+            if int(chimeType) != 0:
+                _LOGGER.debug(f'Partition {partitionNumber} received Chime event {chimeType}')
+                # TODO - emit an event here.
+        return
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""
@@ -187,7 +197,33 @@ class UnoClient(HoneywellClient):
         command = evl_Commands["BypassZone" if enable else "UnbypassZone"]
         await self.queue_command(command, f"{zone:03}")
 
-    async def toggle_chime(self, code):
-        """Public method to toggle a zone's bypass state."""
+    async def toggle_chime(self, code, partition, enable):
+        """Public method to toggle chime mode."""
         raise NotImplementedError()
 
+
+class SoloClient(UnoClient):
+    async def toggle_chime(self, code, partition, enable):
+        """Public method to toggle chime mode."""
+        setting = "1" if bool(enable) else "0"
+        self._alarmPanel.alarm_state["partition"][partition]["status"].update(
+            {
+                "optimistic_chime": bool(enable),
+            }
+        )
+        await self.queue_command(evl_Commands["ToggleChime"], f"{partition},{setting}")
+
+    def handle_chime_response(self, code, data):
+        updates = []
+        if int(data) == 0:
+            updates = []
+            for partition in range(1, 9):
+                partition_state = self._alarmPanel.alarm_state["partition"][partition]["status"] or {}
+                change = partition_state.pop("optimistic_chime", None)
+                _LOGGER.debug(f"Found optimistic_chime for {partition} to be {change}")
+                if change is not None:
+                    partition_state["chime"] = change
+                    updates.append(partition)
+        self.handle_command_response(code, data)
+        if updates:
+            return {STATE_CHANGE_PARTITION: updates}

@@ -4,7 +4,7 @@ import logging
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
-from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_SOLO, PANEL_TYPE_UNO
 
 DOMAIN = "envisalink_new"
 
@@ -69,5 +69,6 @@ DEFAULT_CODE_ARM_REQUIRED = {
     PANEL_TYPE_DSC: False,
     PANEL_TYPE_HONEYWELL: True,
     PANEL_TYPE_UNO: False,
+    PANEL_TYPE_SOLO: False,
     None: True,
 }

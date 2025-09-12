@@ -6,6 +6,7 @@ STATE_CHANGE_ZONE_BYPASS = "zone_bypass"
 PANEL_TYPE_DSC = "DSC"
 PANEL_TYPE_HONEYWELL = "HONEYWELL"
 PANEL_TYPE_UNO = "UNO"
+PANEL_TYPE_SOLO = "ENVISASOLO"
 
 # Maximum number of partitions supports by the EVL
 MAX_PARTITIONS = 8
