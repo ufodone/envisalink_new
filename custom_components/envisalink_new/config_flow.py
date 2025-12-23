@@ -198,7 +198,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=self.config_entry.options.get(
                     CONF_EVL_KEEPALIVE, DEFAULT_KEEPALIVE
                 ),
-            ): vol.All(vol.Coerce(int), vol.Range(min=15)),
+            ): vol.All(vol.Coerce(int), vol.Range(min=0)),
             vol.Optional(
                 CONF_TIMEOUT,
                 default=self.config_entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
