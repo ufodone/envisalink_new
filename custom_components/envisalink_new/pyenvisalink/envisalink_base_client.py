@@ -13,6 +13,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_RECONNECT_MIN_TIME = 2
+_RECONNECT_MAX_TIME = 128
 
 class EnvisalinkClient:
     """Abstract base class for the envisalink TPI client."""
@@ -50,6 +52,8 @@ class EnvisalinkClient:
         self._commandEvent = asyncio.Event()
         self._commandQueue = []
         self._activeTasks = set()
+        self._reconnect_time = _RECONNECT_MIN_TIME
+        self._connect_time = 0
 
     def create_internal_task(self, coro, name=None):
         task = self._eventLoop.create_task(coro, name=name)
@@ -117,6 +121,9 @@ class EnvisalinkClient:
                                 self._reader.readuntil(separator=b"\n"), 5
                             )
                         except asyncio.exceptions.TimeoutError:
+                            if not self._loggedin and ((time.time() - self._connect_time) > self._alarmPanel.connection_timeout):
+                                _LOGGER.error("Timed out waiting to complete login handshake; disconnecting.")
+                                await self.disconnect()
                             continue
                         except asyncio.IncompleteReadError:
                             data = None
@@ -140,9 +147,8 @@ class EnvisalinkClient:
 
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
-                reconnect_time = 30
-                _LOGGER.error("Reconnection attempt in %ds", reconnect_time)
-                await asyncio.sleep(reconnect_time)
+                _LOGGER.error("Reconnection attempt in %ds", self._reconnect_time)
+                await asyncio.sleep(self._reconnect_time)
 
         await self.disconnect()
 
@@ -175,6 +181,9 @@ class EnvisalinkClient:
             _LOGGER.info("Connection Successful!")
 
             self._alarmPanel.handle_connection_status(True)
+            self._reconnect_time = _RECONNECT_MIN_TIME
+            self._connect_time = time.time()
+            return
         except asyncio.exceptions.TimeoutError:
             _LOGGER.error("Timed out connecting to the envisalink at %s", self._alarmPanel.host)
             if not self._shutdown:
@@ -190,9 +199,22 @@ class EnvisalinkClient:
             _LOGGER.error("Unable to connect to envisalink at %s: %r", self._alarmPanel.host, ex)
             await self.disconnect()
 
+        # Increase time before reconnect attempt
+        self._reconnect_time *= 2
+        if self._reconnect_time > _RECONNECT_MAX_TIME:
+            self._reconnect_time = _RECONNECT_MIN_TIME
+
     async def disconnect(self):
         """Internal method for forcing connection closure if hung."""
         _LOGGER.debug("Cleaning up from disconnection with server.")
+
+        if not self._writer:
+            # Already disconnected so don't do anything
+            return
+
+        writer = self._writer
+        self._writer = None
+        self._reader = None
 
         self._loggedin = False
 
@@ -201,16 +223,12 @@ class EnvisalinkClient:
             op.state = self.Operation.State.FAILED
 
         # Tear down the connection
-        if self._writer:
-            try:
-                self._writer.close()
-                await self._writer.wait_closed()
-            except Exception as ex:
-                if not self._shutdown:
-                    _LOGGER.error("Exception while closing connection: %s", ex)
-
-        self._writer = None
-        self._reader = None
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception as ex:
+            if not self._shutdown:
+                _LOGGER.error("Exception while closing connection: %s", ex)
 
         # Clean out all the failed commands from the queue
         self._commandEvent.set()
