@@ -37,6 +37,7 @@ from .models import EnvisalinkDevice
 from .pyenvisalink.const import (
     PANEL_TYPE_DSC,
     PANEL_TYPE_HONEYWELL,
+    PANEL_TYPE_SOLO,
     PANEL_TYPE_UNO,
     STATE_CHANGE_PARTITION,
     STATE_CHANGE_ZONE,
@@ -46,47 +47,47 @@ _attribute_sensor_info = {
     "partition": {
         "ac_present": {
             "name": "AC Power",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO, PANEL_TYPE_SOLO],
             "icon": "mdi:power-plug",
             "device_class": BinarySensorDeviceClass.POWER,
             "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "ready": {
             "name": "Ready",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO, PANEL_TYPE_SOLO],
             "icon": "mdi:check",
             "device_class": None,
         },
         "bat_trouble": {
             "name": "Panel Battery",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO, PANEL_TYPE_SOLO],
             "icon": "mdi:battery-alert",
             "device_class": BinarySensorDeviceClass.PROBLEM,
             "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "trouble": {
             "name": "Panel Health",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO, PANEL_TYPE_SOLO],
             "icon": "mdi:alert",
             "device_class": BinarySensorDeviceClass.PROBLEM,
             "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "bell_trouble": {
             "name": "System Bell",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_UNO],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_UNO, PANEL_TYPE_SOLO],
             "icon": "mdi:battery-alert",
             "device_class": BinarySensorDeviceClass.PROBLEM,
             "entity_category": EntityCategory.DIAGNOSTIC,
         },
         "fire": {
             "name": "Fire",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_SOLO],
             "icon": "mdi:fire",
             "device_class": BinarySensorDeviceClass.SMOKE,
         },
         "alarm": {
             "name": "Alarm",
-            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO, PANEL_TYPE_SOLO],
             "icon": "mdi:alarm-light",
             "device_class": None,
         },
@@ -94,7 +95,7 @@ _attribute_sensor_info = {
     "zone": {
         "low_battery": {
             "name": "Wireless Sensor Battery",
-            "panels": [PANEL_TYPE_DSC],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_SOLO],
             "icon": "mdi:battery-alert",
             "device_class": BinarySensorDeviceClass.BATTERY,
             "zone_set": CONF_WIRELESS_ZONE_SET,
@@ -102,7 +103,7 @@ _attribute_sensor_info = {
         },
         "fault": {
             "name": "Fault",
-            "panels": [PANEL_TYPE_DSC],
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_SOLO],
             "icon": "mdi:alarm-light",
             "device_class": None,
         },

@@ -304,7 +304,7 @@ evl_Partition_Status_Codes = {
             "entry_delay": False,
             "alpha": "Armed Max",
         },
-    },
+    }
 }
 
 evl_Virtual_Keypad_How_To_Beep = {

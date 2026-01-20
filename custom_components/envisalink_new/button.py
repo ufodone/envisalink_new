@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .models import EnvisalinkDevice
-from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_SOLO, PANEL_TYPE_UNO
 
 _panel_buttons = [
     {
@@ -17,6 +17,7 @@ _panel_buttons = [
         "label": {
             PANEL_TYPE_DSC: "Fire",
             PANEL_TYPE_HONEYWELL: "A",
+            PANEL_TYPE_SOLO: "Fire",
             PANEL_TYPE_UNO: "Fire",
         },
     },
@@ -25,6 +26,7 @@ _panel_buttons = [
         "label": {
             PANEL_TYPE_DSC: "Ambulance",
             PANEL_TYPE_HONEYWELL: "B",
+            PANEL_TYPE_SOLO: "Medical Emergency",
             PANEL_TYPE_UNO: "Medical Emergency",
         },
     },
@@ -33,6 +35,7 @@ _panel_buttons = [
         "label": {
             PANEL_TYPE_DSC: "Police",
             PANEL_TYPE_HONEYWELL: "C",
+            PANEL_TYPE_SOLO: "Silent Police Panic",
             PANEL_TYPE_UNO: "Silent Police Panic",
         },
     },
