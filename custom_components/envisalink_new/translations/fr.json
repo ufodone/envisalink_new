@@ -107,5 +107,18 @@
         "Police": "Police"
       }
     }
+  },
+  "issues": {
+    "migrate_unique_id": {
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "description": "L'adresse MAC de l'appareil ({config_entry_title}) a changé.\n\nL'adresse actuelle est {old_unique_id} et la nouvelle adresse détectée est {new_unique_id}.\n\nSi vous êtes certain qu'il s'agit du même périphérique ou si vous l'avez remplacé par un nouveau, confirmez en appuyant sur Soumettre.",
+            "title": "A mismatched MAC address was detected."
+          }
+        }
+      },
+      "title": "A mismatched MAC address was detected."
+    }
   }
 }

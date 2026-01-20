@@ -20,6 +20,7 @@ repos:
     rev: 1.7.4
     hooks:
       - id: bandit
+        additional_dependencies: ["pbr"]
         args:
           - --quiet
           - --format=custom

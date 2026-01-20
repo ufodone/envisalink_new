@@ -6,6 +6,11 @@ from homeassistant.const import CONF_HOST, CONF_TIMEOUT
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import format_mac
+from homeassistant.helpers.issue_registry import (
+    IssueSeverity,
+    async_create_issue,
+    async_delete_issue,
+)
 
 from .const import (
     CONF_CREATE_ZONE_BYPASS_SWITCHES,
@@ -19,6 +24,7 @@ from .const import (
     DEFAULT_KEEPALIVE,
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
+    DOMAIN,
     LOGGER,
 )
 from .helpers import extract_discovery_endpoint, parse_range_string
@@ -40,6 +46,7 @@ class EnvisalinkController:
     ) -> None:
         """Initialize the controller for the Envisalink device."""
         self._unique_id = entry.unique_id
+        self._config_entry = entry
 
         # Config
         self.alarm_name = entry.title
@@ -145,7 +152,7 @@ class EnvisalinkController:
         if self.controller.mac_address:
             mac = format_mac(self.controller.mac_address)
             if mac != self._unique_id:
-                LOGGER.warning(
+                LOGGER.debug(
                     (
                         "MAC address (%s) of EVL device (%s) does not match "
                         "unique ID (%s)"
@@ -153,6 +160,24 @@ class EnvisalinkController:
                     mac,
                     self.alarm_name,
                     self._unique_id,
+                )
+                async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    f"migrate_unique_id.{self._unique_id}",
+                    data={
+                        "config_entry_id": self._config_entry.entry_id,
+                        "config_entry_title": self._config_entry.title,
+                        "new_unique_id": mac,
+                        "old_unique_id": self._unique_id,
+                    },
+                    is_fixable=True,
+                    severity=IssueSeverity.WARNING,
+                    translation_key="migrate_unique_id",
+                )
+            else:
+                async_delete_issue(
+                    self.hass, DOMAIN, f"migrate_unique_id.{self._unique_id}"
                 )
 
         result = await self.controller.start()
