@@ -31,7 +31,7 @@ class EnvisalinkDevice(Entity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device information about this WLED device."""
+        """Return device information about this EVL device."""
         return DeviceInfo(
             identifiers={(DOMAIN, self._controller.unique_id)},
             name=self._controller.alarm_name,

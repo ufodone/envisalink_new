@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from homeassistant import data_entry_flow
 from homeassistant.components.repairs import ConfirmRepairFlow, RepairsFlow
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN, LOGGER
@@ -41,6 +43,9 @@ class MigrateUniqueIDFlow(RepairsFlow):
                     config_entry,
                     unique_id=self.description_placeholders["new_unique_id"],
                 )
+
+                await self._async_update_entities()
+
                 self.hass.config_entries.async_schedule_reload(config_entry.entry_id)
             return self.async_create_entry(data={})
 
@@ -49,6 +54,32 @@ class MigrateUniqueIDFlow(RepairsFlow):
             step_id="confirm",
             description_placeholders=self.description_placeholders,
         )
+
+    async def _async_update_entities(self):
+        """Update the unique ID on all the entities attached to this config entry and remove
+        the subsequently orphaned device.
+        """
+
+        old_unique_id = self.description_placeholders["old_unique_id"]
+        new_unique_id = self.description_placeholders["new_unique_id"]
+
+        @callback
+        def _async_update_unique_id(
+            entity_entry: er.RegistryEntry,
+        ) -> dict[str, str] | None:
+            id_parts = entity_entry.unique_id.split("_")
+            if id_parts[0] == old_unique_id:
+                id_parts[0] = new_unique_id
+                return {"new_unique_id": "_".join(id_parts)}
+
+        await er.async_migrate_entries(
+            self.hass, self._config_entry_id, _async_update_unique_id
+        )
+
+        dev_reg = dr.async_get(self.hass)
+        old_device = dev_reg.async_get_device(identifiers={(DOMAIN, old_unique_id)})
+        if old_device:
+            dev_reg.async_remove_device(old_device.id)
 
 
 async def async_create_fix_flow(
