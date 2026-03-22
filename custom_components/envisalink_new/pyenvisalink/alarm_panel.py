@@ -152,7 +152,9 @@ class EnvisalinkAlarmPanel:
         return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
 
     def get_max_zones_by_version(version) -> int:
-        if version == "4" or version == "4MAX":
+        # UNO devices report a title of "UNO" from the web UI, and discovery stores
+        # that as version 0 rather than an EVL-style version string.
+        if version in ("4", "4MAX", 0, "0"):
             return EVL4_MAX_ZONES
         return EVL3_MAX_ZONES
 
