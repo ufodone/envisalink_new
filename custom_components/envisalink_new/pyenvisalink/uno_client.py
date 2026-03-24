@@ -152,6 +152,7 @@ class UnoClient(HoneywellClient):
             status['ac_present'] = not bool(flags.ac_failure)
             status['bat_trouble'] = bool(flags.system_battery_overcurrent)
             status['bell_trouble'] = bool(flags.system_bell_fault)
+            status['zone_low_battery'] = bool(flags.wireless_device_low_battery)
 
             _LOGGER.debug(f'Partition {partitionNumber} status: {json.dumps(status)}')
 
