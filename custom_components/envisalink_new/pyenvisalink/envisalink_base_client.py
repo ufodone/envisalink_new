@@ -13,8 +13,10 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_RECONNECT_MIN_TIME = 2
+_RECONNECT_MIN_TIME = 10
 _RECONNECT_MAX_TIME = 128
+_MAX_CONSECUTIVE_TIMEOUTS = 3
+_MAX_RETRY_DELAY = 10
 
 class EnvisalinkClient:
     """Abstract base class for the envisalink TPI client."""
@@ -54,6 +56,7 @@ class EnvisalinkClient:
         self._activeTasks = set()
         self._reconnect_time = _RECONNECT_MIN_TIME
         self._connect_time = 0
+        self._consecutive_timeouts = 0
 
     def create_internal_task(self, coro, name=None):
         task = self._eventLoop.create_task(coro, name=name)
@@ -127,6 +130,13 @@ class EnvisalinkClient:
                             continue
                         except asyncio.IncompleteReadError:
                             data = None
+                        except (ConnectionResetError, OSError, BrokenPipeError) as ex:
+                            _LOGGER.warning("Connection error while reading data: %s", ex)
+                            await self.disconnect()
+                            # Increase backoff so we don't hammer the EVL with
+                            # rapid reconnect attempts when it keeps resetting.
+                            self._reconnect_time = min(self._reconnect_time * 2, _RECONNECT_MAX_TIME)
+                            break
 
                         if not data:
                             if self._writer:
@@ -134,16 +144,35 @@ class EnvisalinkClient:
                                 await self.disconnect()
                             break
 
-                        data = data.decode("ascii")
-                        _LOGGER.debug("{---------------------------------------")
-                        _LOGGER.debug(str.format("RX < {0}", data))
+                        try:
+                            data = data.decode("ascii")
+                        except UnicodeDecodeError:
+                            _LOGGER.warning("Received non-ASCII data from EVL, replacing invalid bytes: %r", data)
+                            data = data.decode("ascii", errors="replace")
 
-                        self.process_data(data.strip())
-                        _LOGGER.debug("}---------------------------------------")
+                        # Handle EVL firmware quirk: multiple $-terminated TPI
+                        # messages sometimes arrive on a single line without
+                        # \r\n separators between them.  Split on '$' so each
+                        # message is processed individually; otherwise command
+                        # responses fused with keypad updates are silently lost,
+                        # causing keepalive timeouts.
+                        stripped = data.strip()
+                        if '$' in stripped:
+                            messages = [s.strip() + '$' for s in stripped.split('$') if s.strip()]
+                        else:
+                            messages = [stripped]
+
+                        for msg in messages:
+                            _LOGGER.debug("{---------------------------------------")
+                            _LOGGER.debug("RX < %s", msg)
+                            self.process_data(msg)
+                            _LOGGER.debug("}---------------------------------------")
 
             except Exception as ex:
                 _LOGGER.error("Caught unexpected exception: %r", ex)
                 await self.disconnect()
+                # Increase backoff for immediate post-connect failures
+                self._reconnect_time = min(self._reconnect_time * 2, _RECONNECT_MAX_TIME)
 
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
@@ -162,7 +191,7 @@ class EnvisalinkClient:
                 await action()
 
             now = time.time()
-            await asyncio.sleep(next_send - now)
+            await asyncio.sleep(max(0, next_send - now))
 
     async def connect(self):
         _LOGGER.info(
@@ -181,13 +210,12 @@ class EnvisalinkClient:
             _LOGGER.info("Connection Successful!")
 
             self._alarmPanel.handle_connection_status(True)
-            self._reconnect_time = _RECONNECT_MIN_TIME
             self._connect_time = time.time()
             return
         except asyncio.exceptions.TimeoutError:
             _LOGGER.error("Timed out connecting to the envisalink at %s", self._alarmPanel.host)
             if not self._shutdown:
-                self._alarmPanel._loginTimeoutCallback(False)
+                self._alarmPanel._loginTimeoutCallback()
             await self.disconnect()
         except ConnectionResetError:
             _LOGGER.error(
@@ -200,9 +228,7 @@ class EnvisalinkClient:
             await self.disconnect()
 
         # Increase time before reconnect attempt
-        self._reconnect_time *= 2
-        if self._reconnect_time > _RECONNECT_MAX_TIME:
-            self._reconnect_time = _RECONNECT_MIN_TIME
+        self._reconnect_time = min(self._reconnect_time * 2, _RECONNECT_MAX_TIME)
 
     async def disconnect(self):
         """Internal method for forcing connection closure if hung."""
@@ -225,7 +251,9 @@ class EnvisalinkClient:
         # Tear down the connection
         try:
             writer.close()
-            await writer.wait_closed()
+            await asyncio.wait_for(writer.wait_closed(), timeout=5)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Timed out waiting for connection to close.")
         except Exception as ex:
             if not self._shutdown:
                 _LOGGER.error("Exception while closing connection: %s", ex)
@@ -335,6 +363,12 @@ class EnvisalinkClient:
 
         except (AttributeError, TypeError, KeyError) as err:
             _LOGGER.debug("No handler configured for evl command.")
+        except Exception as err:
+            _LOGGER.warning(
+                "Error processing EVL data (code=%s): %s",
+                cmd.get("code", "?") if isinstance(cmd, dict) else "?",
+                err,
+            )
 
         try:
             _LOGGER.debug("Invoking state change callbacks")
@@ -397,6 +431,8 @@ class EnvisalinkClient:
     def handle_login_success(self, code, data):
         """Handler for when the envisalink accepts our credentials."""
         self._loggedin = True
+        self._reconnect_time = _RECONNECT_MIN_TIME
+        self._consecutive_timeouts = 0
         _LOGGER.debug("Password accepted, session created")
         self._alarmPanel.handle_login_success()
 
@@ -518,9 +554,7 @@ class EnvisalinkClient:
                         # Still waiting on a response from the EVL so break out of loop and wait
                         # for the response
                         if now >= op.expiryTime:
-                            # Timeout waiting for response from the EVL so fail the command,
-                            # This is likely due to the EVL becoming unresponsive so tear down the
-                            # connection to start a recovery.
+                            # Timeout waiting for response from the EVL so fail the command.
                             _LOGGER.error(
                                 (
                                     "Command '%s' failed due to timeout waiting for response "
@@ -529,7 +563,13 @@ class EnvisalinkClient:
                                 op.cmd,
                             )
                             op.state = self.Operation.State.FAILED
-                            await self.disconnect()
+                            self._consecutive_timeouts += 1
+                            if self._consecutive_timeouts >= _MAX_CONSECUTIVE_TIMEOUTS:
+                                _LOGGER.error(
+                                    "%d consecutive command timeouts; disconnecting to recover.",
+                                    self._consecutive_timeouts,
+                                )
+                                await self.disconnect()
                         break
                     elif op.state == self.Operation.State.QUEUED:
                         # Send command to the EVL
@@ -575,6 +615,7 @@ class EnvisalinkClient:
 
     def command_succeeded(self, cmd):
         """Indicate that a command has been successfully processed by the EVL."""
+        self._consecutive_timeouts = 0
 
         if self._commandQueue:
             op = self._commandQueue[0]
@@ -590,8 +631,9 @@ class EnvisalinkClient:
             else:
                 op.state = self.Operation.State.SUCCEEDED
         else:
-            _LOGGER.error(
-                f"Command acknowledgement received for '{cmd}' when no command was issued."
+            _LOGGER.warning(
+                "Late command acknowledgement received for '%s' (no pending command).",
+                cmd,
             )
 
         # Wake up the command processing task to process this result
@@ -611,8 +653,7 @@ class EnvisalinkClient:
                 # Update the retry delay based on an exponential backoff
                 op.retryDelay *= 2
 
-                if op.retryDelay >= self._alarmPanel.command_timeout:
-                    # Don't extend the retry delay beyond the overall command timeout
+                if op.retryDelay >= _MAX_RETRY_DELAY:
                     _LOGGER.error("Maximum command retries attempted; aborting command.")
                     op.state = self.Operation.State.FAILED
                 else:

@@ -46,7 +46,7 @@ class EnvisalinkAlarmPanel:
         keepAliveInterval=30,
         connectionTimeout=10,
         zoneBypassEnabled=False,
-        commandTimeout=5.0,
+        commandTimeout=30.0,
         httpPort=8080,
         httpHost=None,
     ):

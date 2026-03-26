@@ -188,10 +188,9 @@ class HoneywellClient(EnvisalinkClient):
         if len(dataList) > 5:
             dataList[4] = ",".join(dataList[4:])
             del dataList[5:]
-        # make sure data is in format we expect, current TPI seems to send bad data every so often
-        # TODO: Make this a regex...
-        if "%" in data:
-            _LOGGER.error("Data format invalid from Envisalink, ignoring...")
+
+        if len(dataList) < 5:
+            _LOGGER.warning("Keypad data from Envisalink has too few fields (%d), ignoring: %s", len(dataList), data)
             return
 
         partitionNumber = int(dataList[0])
