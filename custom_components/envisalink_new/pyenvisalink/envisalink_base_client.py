@@ -58,6 +58,7 @@ class EnvisalinkClient:
         self._connect_time = 0
         self._consecutive_timeouts = 0
         self._lastReceivedTime = 0
+        self._recv_buffer = b""
 
     def create_internal_task(self, coro, name=None):
         task = self._eventLoop.create_task(coro, name=name)
@@ -121,16 +122,14 @@ class EnvisalinkClient:
                     while not self._shutdown and self._reader:
                         _LOGGER.debug("Waiting for data from EVL")
                         try:
-                            data = await asyncio.wait_for(
-                                self._reader.readuntil(separator=b"\n"), 5
+                            chunk = await asyncio.wait_for(
+                                self._reader.read(4096), 5
                             )
                         except asyncio.exceptions.TimeoutError:
                             if not self._loggedin and ((time.time() - self._connect_time) > self._alarmPanel.connection_timeout):
                                 _LOGGER.error("Timed out waiting to complete login handshake; disconnecting.")
                                 await self.disconnect()
                             continue
-                        except asyncio.IncompleteReadError:
-                            data = None
                         except (ConnectionResetError, OSError, BrokenPipeError) as ex:
                             _LOGGER.warning("Connection error while reading data: %s", ex)
                             await self.disconnect()
@@ -139,37 +138,68 @@ class EnvisalinkClient:
                             self._reconnect_time = min(self._reconnect_time * 2, _RECONNECT_MAX_TIME)
                             break
 
-                        if not data:
+                        if not chunk:
                             if self._writer:
                                 _LOGGER.error("The server closed the connection.")
                                 await self.disconnect()
                             break
 
-                        try:
-                            data = data.decode("ascii")
-                        except UnicodeDecodeError:
-                            _LOGGER.warning("Received non-ASCII data from EVL, replacing invalid bytes: %r", data)
-                            data = data.decode("ascii", errors="replace")
-
+                        self._recv_buffer += chunk
                         self._lastReceivedTime = time.time()
+                        _LOGGER.debug("RAW << %r", chunk)
 
-                        # Handle EVL firmware quirk: multiple $-terminated TPI
-                        # messages sometimes arrive on a single line without
-                        # \r\n separators between them.  Split on '$' so each
-                        # message is processed individually; otherwise command
-                        # responses fused with keypad updates are silently lost,
-                        # causing keepalive timeouts.
-                        stripped = data.strip()
-                        if '$' in stripped:
-                            messages = [s.strip() + '$' for s in stripped.split('$') if s.strip()]
-                        else:
-                            messages = [stripped]
+                        # Extract and process all complete messages from the buffer.
+                        # TPI messages (Honeywell/Uno) are '$'-terminated and may arrive
+                        # without a trailing \r\n, so we process on '$' immediately rather
+                        # than waiting for a newline.  Login and DSC messages are always
+                        # '\n'-terminated without '$'.  Processing on '$' eliminates the
+                        # readuntil(\n) blocking delay that was the root cause of keepalive
+                        # timeouts (see Bug 14).
+                        while self._recv_buffer:
+                            dollar_pos = self._recv_buffer.find(b'$')
+                            newline_pos = self._recv_buffer.find(b'\n')
 
-                        for msg in messages:
-                            _LOGGER.debug("{---------------------------------------")
-                            _LOGGER.debug("RX < %s", msg)
-                            self.process_data(msg)
-                            _LOGGER.debug("}---------------------------------------")
+                            if dollar_pos == -1 and newline_pos == -1:
+                                # No complete message yet; wait for more data
+                                break
+
+                            if dollar_pos != -1 and (newline_pos == -1 or dollar_pos < newline_pos):
+                                # '$' arrives before '\n': extract TPI message up to and
+                                # including '$', without waiting for a trailing newline.
+                                raw = self._recv_buffer[:dollar_pos + 1]
+                                self._recv_buffer = self._recv_buffer[dollar_pos + 1:]
+                            else:
+                                # '\n' arrives first (or no '$'): newline-terminated message
+                                # (Honeywell login challenge, DSC panel messages).
+                                raw = self._recv_buffer[:newline_pos + 1]
+                                self._recv_buffer = self._recv_buffer[newline_pos + 1:]
+
+                            try:
+                                msg = raw.decode("ascii").strip()
+                            except UnicodeDecodeError:
+                                _LOGGER.warning("Received non-ASCII data from EVL, replacing invalid bytes: %r", raw)
+                                msg = raw.decode("ascii", errors="replace").strip()
+
+                            if not msg:
+                                continue
+
+                            # Split fused packets where a bare %XX notification code (no
+                            # data, no $ terminator) is directly concatenated with a ^YY
+                            # command response, e.g. "%02^00,00$" → "%02$" + "^00,00$".
+                            # Detected when ^ appears before the first comma — i.e. in
+                            # the code position, not a data field.
+                            first_comma = msg.find(',')
+                            caret = msg.find('^')
+                            if msg.startswith('%') and caret != -1 and (first_comma == -1 or caret < first_comma):
+                                to_process = [msg[:caret] + '$', msg[caret:]]
+                            else:
+                                to_process = [msg]
+
+                            for m in to_process:
+                                _LOGGER.debug("{---------------------------------------")
+                                _LOGGER.debug("RX < %s", m)
+                                self.process_data(m)
+                                _LOGGER.debug("}---------------------------------------")
 
             except Exception as ex:
                 _LOGGER.error("Caught unexpected exception: %r", ex)
@@ -179,7 +209,7 @@ class EnvisalinkClient:
 
             # Lost connection so reattempt connection in a bit
             if not self._shutdown:
-                _LOGGER.error("Reconnection attempt in %ds", self._reconnect_time)
+                _LOGGER.warning("Reconnection attempt in %ds", self._reconnect_time)
                 await asyncio.sleep(self._reconnect_time)
 
         await self.disconnect()
@@ -246,6 +276,7 @@ class EnvisalinkClient:
         self._reader = None
 
         self._loggedin = False
+        self._recv_buffer = b""
 
         # Fail all outstanding commands
         for op in self._commandQueue:
@@ -257,9 +288,13 @@ class EnvisalinkClient:
             await asyncio.wait_for(writer.wait_closed(), timeout=5)
         except asyncio.TimeoutError:
             _LOGGER.warning("Timed out waiting for connection to close.")
+        except (ConnectionResetError, BrokenPipeError, OSError) as ex:
+            # Socket was already closed by the remote end; not an error.
+            if not self._shutdown:
+                _LOGGER.debug("Connection already closed by remote end: %s", ex)
         except Exception as ex:
             if not self._shutdown:
-                _LOGGER.error("Exception while closing connection: %s", ex)
+                _LOGGER.warning("Exception while closing connection: %s", ex)
 
         # Clean out all the failed commands from the queue
         self._commandEvent.set()
@@ -558,15 +593,22 @@ class EnvisalinkClient:
                         # for the response
                         if now >= op.expiryTime:
                             # Timeout waiting for response from the EVL so fail the command.
-                            _LOGGER.error(
-                                (
-                                    "Command '%s' failed due to timeout waiting for response "
-                                    "from EVL"
-                                ),
-                                op.cmd,
-                            )
-                            op.state = self.Operation.State.FAILED
                             self._consecutive_timeouts += 1
+                            if self._consecutive_timeouts >= _MAX_CONSECUTIVE_TIMEOUTS:
+                                _LOGGER.error(
+                                    "Command '%s' failed due to timeout (%d/%d consecutive)",
+                                    op.cmd,
+                                    self._consecutive_timeouts,
+                                    _MAX_CONSECUTIVE_TIMEOUTS,
+                                )
+                            else:
+                                _LOGGER.warning(
+                                    "Command '%s' timed out (%d/%d); will disconnect if this continues",
+                                    op.cmd,
+                                    self._consecutive_timeouts,
+                                    _MAX_CONSECUTIVE_TIMEOUTS,
+                                )
+                            op.state = self.Operation.State.FAILED
                             if self._consecutive_timeouts >= _MAX_CONSECUTIVE_TIMEOUTS:
                                 # Only force a reconnect if the EVL has been completely silent.
                                 # If the EVL is still sending unsolicited updates (e.g. keypad
@@ -651,8 +693,12 @@ class EnvisalinkClient:
             else:
                 op.state = self.Operation.State.SUCCEEDED
         else:
-            _LOGGER.warning(
-                "Late command acknowledgement received for '%s' (no pending command).",
+            # The EVL responded after the command timed out and was removed from
+            # the queue. The connection is alive — _consecutive_timeouts was
+            # already reset above. Log at debug; it is not actionable.
+            _LOGGER.debug(
+                "Late command acknowledgement received for '%s' (no pending command); "
+                "EVL is alive but responded after timeout.",
                 cmd,
             )
 
