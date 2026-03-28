@@ -89,6 +89,12 @@ evl_ResponseTypes = {
         "handler": "keypad_update",
         "state_change": True,
     },
+    "%00%00": {
+        "name": "Virtual Keypad Zone-Trip Update",
+        "description": "Zone-trip keypad update sent by newer EVL-4 firmware; treated identically to %00.",
+        "handler": "keypad_update",
+        "state_change": True,
+    },
     "%01": {
         "type": "zone",
         "name": "Zone State Change",

@@ -57,6 +57,7 @@ class EnvisalinkClient:
         self._reconnect_time = _RECONNECT_MIN_TIME
         self._connect_time = 0
         self._consecutive_timeouts = 0
+        self._lastReceivedTime = 0
 
     def create_internal_task(self, coro, name=None):
         task = self._eventLoop.create_task(coro, name=name)
@@ -149,6 +150,8 @@ class EnvisalinkClient:
                         except UnicodeDecodeError:
                             _LOGGER.warning("Received non-ASCII data from EVL, replacing invalid bytes: %r", data)
                             data = data.decode("ascii", errors="replace")
+
+                        self._lastReceivedTime = time.time()
 
                         # Handle EVL firmware quirk: multiple $-terminated TPI
                         # messages sometimes arrive on a single line without
@@ -565,11 +568,28 @@ class EnvisalinkClient:
                             op.state = self.Operation.State.FAILED
                             self._consecutive_timeouts += 1
                             if self._consecutive_timeouts >= _MAX_CONSECUTIVE_TIMEOUTS:
-                                _LOGGER.error(
-                                    "%d consecutive command timeouts; disconnecting to recover.",
-                                    self._consecutive_timeouts,
-                                )
-                                await self.disconnect()
+                                # Only force a reconnect if the EVL has been completely silent.
+                                # If the EVL is still sending unsolicited updates (e.g. keypad
+                                # updates during zone trips with newer firmware), it is alive and
+                                # connected — it is just slow to acknowledge our command.
+                                # Disconnecting in that case makes things worse, not better.
+                                silent_duration = now - self._lastReceivedTime
+                                if silent_duration > self._alarmPanel.command_timeout:
+                                    _LOGGER.error(
+                                        "%d consecutive command timeouts and EVL has been silent "
+                                        "for %.1fs; disconnecting to recover.",
+                                        self._consecutive_timeouts,
+                                        silent_duration,
+                                    )
+                                    await self.disconnect()
+                                else:
+                                    _LOGGER.warning(
+                                        "%d consecutive command timeouts but EVL is still "
+                                        "sending data (last received %.1fs ago); not "
+                                        "disconnecting.",
+                                        self._consecutive_timeouts,
+                                        silent_duration,
+                                    )
                         break
                     elif op.state == self.Operation.State.QUEUED:
                         # Send command to the EVL

@@ -189,9 +189,16 @@ class HoneywellClient(EnvisalinkClient):
             dataList[4] = ",".join(dataList[4:])
             del dataList[5:]
 
-        if len(dataList) < 5:
+        if len(dataList) < 4:
             _LOGGER.warning("Keypad data from Envisalink has too few fields (%d), ignoring: %s", len(dataList), data)
             return
+
+        if len(dataList) == 4:
+            # Newer EVL-4 firmware omits the alpha display text field during zone trips.
+            # Treat it as an empty string and continue processing so zone/partition state
+            # updates are not silently dropped.
+            _LOGGER.debug("Keypad data from Envisalink has 4 fields (no alpha); treating alpha as empty: %s", data)
+            dataList.append("")
 
         partitionNumber = int(dataList[0])
         if not (partitionNumber in self._zoneTimers.keys()):
@@ -204,7 +211,12 @@ class HoneywellClient(EnvisalinkClient):
         except ValueError:
             user_zone_field = None
         beep_field = Beep_Flags()
-        beep_field.asByte = int(dataList[3], 16)
+        try:
+            # Mask to 8 bits — newer firmware may send a longer hex string in this field
+            beep_field.asByte = int(dataList[3], 16) & 0xFF
+        except (ValueError, OverflowError):
+            _LOGGER.debug("Unable to parse beep field '%s' for partition %s; defaulting to 0", dataList[3], dataList[0])
+            beep_field.asByte = 0
         beep = evl_Virtual_Keypad_How_To_Beep.get(beep_field.beeps, "unknown")
         armed_night = bool(beep_field.armed_night)
         alpha = dataList[4]
