@@ -32,6 +32,7 @@ class AlarmState:
                     "armed_zero_entry_delay": False,
                     "armed_night": False,
                     "bell_trouble": False,
+                    "zone_low_battery": False,
                 }
             }
         for j in range(1, maxZones + 1):

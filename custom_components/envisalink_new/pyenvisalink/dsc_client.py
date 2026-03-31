@@ -302,18 +302,17 @@ class DSCClient(EnvisalinkClient):
     def handle_keypad_update(self, code, data):
         """Handle general- non partition based info"""
         if code == "849":
-            bits = f"{int(data,16):016b}"
+            bits = int(data,16)
+            new_status = {}
             trouble_description = ""
-            ac_present = True
             for i in range(0, 7):
-                if bits[15 - i] == "1":
-                    trouble_description += evl_verboseTrouble[i] + ", "
-                    if i == 1:
-                        ac_present = False
-            new_status = {
-                "alpha": trouble_description.strip(", "),
-                "ac_present": ac_present,
-            }
+                is_set = (bits & (1 << i)) != 0
+                if is_set:
+                    trouble_description += evl_verboseTrouble[i]["alpha"] + ", "
+
+                if attr := evl_verboseTrouble[i].get("attr"):
+                    new_status[attr] = not is_set if evl_verboseTrouble[i].get("invert", False) else is_set
+            new_status["alpha"] = trouble_description.strip(", ")
         else:
             new_status = evl_ResponseTypes[code]["status"]
 

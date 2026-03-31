@@ -13,7 +13,7 @@ class MajorTrouble_Bitfield(ctypes.LittleEndianStructure):
     _fields_ = [
         ("service_required", c_uint8, 1),
         ("ac_failure", c_uint8, 1),
-        ("wireless_device_low_Battery", c_uint8, 1),
+        ("wireless_device_low_battery", c_uint8, 1),
         ("server_offline", c_uint8, 1),
         ("zone_trouble", c_uint8, 1),
         ("system_battery_overcurrent", c_uint8, 1),

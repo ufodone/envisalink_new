@@ -90,6 +90,13 @@ _attribute_sensor_info = {
             "icon": "mdi:alarm-light",
             "device_class": None,
         },
+        "zone_low_battery": {
+            "name": "Zone Batteries",
+            "panels": [PANEL_TYPE_DSC, PANEL_TYPE_UNO],
+            "icon": "mdi:power-plug",
+            "device_class": BinarySensorDeviceClass.BATTERY,
+            "entity_category": EntityCategory.DIAGNOSTIC,
+        },
     },
     "zone": {
         "low_battery": {

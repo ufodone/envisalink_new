@@ -498,14 +498,14 @@ evl_ResponseTypes = {
 }
 
 evl_verboseTrouble = {
-    0: "Service is Required",
-    1: "AC Power Lost",
-    2: "Telephone Line Fault",
-    3: "Failure to communicate",
-    4: "Zone/Sensor Fault",
-    5: "Zone/Sensor Tamper",
-    6: "Zone/Sensor Low Battery",
-    7: "Loss of time",
+    0: { "alpha": "Service is Required" },
+    1: { "alpha": "AC Power Lost", "attr": "ac_present", "invert": True },
+    2: { "alpha": "Telephone Line Fault" },
+    3: { "alpha": "Failure to communicate" },
+    4: { "alpha": "Zone/Sensor Fault" },
+    5: { "alpha": "Zone/Sensor Tamper" },
+    6: { "alpha": "Zone/Sensor Low Battery", "attr": "zone_low_battery" },
+    7: { "alpha": "Loss of time" },
 }
 
 evl_TPI_Response_Codes = {
