@@ -57,6 +57,7 @@ class EnvisalinkKeypadSensor(EnvisalinkDevice, SensorEntity):
         """Initialize the sensor."""
         self._icon = "mdi:alarm-panel"
         self._partition_number = partition_number
+        self._attr_force_update = True
         name = f"Partition {partition_number} Keypad"
         self._attr_unique_id = f"{controller.unique_id}_{name}"
 

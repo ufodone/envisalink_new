@@ -188,11 +188,17 @@ class HoneywellClient(EnvisalinkClient):
         if len(dataList) > 5:
             dataList[4] = ",".join(dataList[4:])
             del dataList[5:]
-        # make sure data is in format we expect, current TPI seems to send bad data every so often
-        # TODO: Make this a regex...
-        if "%" in data:
-            _LOGGER.error("Data format invalid from Envisalink, ignoring...")
+
+        if len(dataList) < 4:
+            _LOGGER.warning("Keypad data from Envisalink has too few fields (%d), ignoring: %s", len(dataList), data)
             return
+
+        if len(dataList) == 4:
+            # Newer EVL-4 firmware omits the alpha display text field during zone trips.
+            # Treat it as an empty string and continue processing so zone/partition state
+            # updates are not silently dropped.
+            _LOGGER.debug("Keypad data from Envisalink has 4 fields (no alpha); treating alpha as empty: %s", data)
+            dataList.append("")
 
         partitionNumber = int(dataList[0])
         if not (partitionNumber in self._zoneTimers.keys()):
@@ -205,10 +211,26 @@ class HoneywellClient(EnvisalinkClient):
         except ValueError:
             user_zone_field = None
         beep_field = Beep_Flags()
-        beep_field.asByte = int(dataList[3], 16)
+        try:
+            # Mask to 8 bits — newer firmware may send a longer hex string in this field
+            beep_field.asByte = int(dataList[3], 16) & 0xFF
+        except (ValueError, OverflowError):
+            _LOGGER.debug("Unable to parse beep field '%s' for partition %s; defaulting to 0", dataList[3], dataList[0])
+            beep_field.asByte = 0
         beep = evl_Virtual_Keypad_How_To_Beep.get(beep_field.beeps, "unknown")
         armed_night = bool(beep_field.armed_night)
         alpha = dataList[4]
+
+        # Safety net: Vista panels have a 32-char keypad display (16×2).
+        # Alpha text exceeding this length indicates fused TPI messages
+        # that were not caught by the buffer parser (Bug 15).
+        if len(alpha) > 32:
+            _LOGGER.debug(
+                "Keypad alpha text is %d chars (expected ≤32), truncating: %r",
+                len(alpha), alpha,
+            )
+            alpha = alpha[:32]
+
         partition_status = HoneywellClient.get_partition_state(flags, alpha)
         zone_code = HoneywellClient.get_zone_report_type(flags, alpha)
         prior_ready = self._alarmPanel.alarm_state["partition"][partitionNumber]["status"]["ready"]
@@ -244,9 +266,10 @@ class HoneywellClient(EnvisalinkClient):
             for z in list(self._zoneTimers[partitionNumber]):
                 _LOGGER.debug(f"Timer {z} :: {self._zoneTimers[partitionNumber][z]} Closing")
                 timer = str.split(z, "|")
-                zone_updates.append(int(timer[0]))
-                if timer[1] == "state":
-                    self._alarmPanel.alarm_state["zone"][int(timer[0])]["status"].update(
+                zone_num = int(timer[0])
+                zone_updates.append(zone_num)
+                if zone_num in self._alarmPanel.alarm_state["zone"] and timer[1] == "state":
+                    self._alarmPanel.alarm_state["zone"][zone_num]["status"].update(
                         {"open": False, "fault": False}
                     )
                 self._zoneTimers[partitionNumber].pop(z)
@@ -280,8 +303,22 @@ class HoneywellClient(EnvisalinkClient):
             for z in self._zoneTimers[partitionNumber]:
                 self._zoneTimers[partitionNumber][z] += 1
 
+            # Validate zone number before accessing zone state (Bug 23).
+            # During programming mode the user/zone field may contain
+            # values (e.g. 0 or >max_zones) that are not real zone
+            # numbers.  Accessing alarm_state["zone"] with such a value
+            # raises a KeyError that is silently caught by process_data(),
+            # suppressing the callback and preventing HA sensor updates.
+            valid_zone = user_zone_field in self._alarmPanel.alarm_state["zone"]
+
             # Add a zone timer (if needed) of the appropriate type and update zone status
-            if zone_code in ["battery", "tamper"]:
+            if not valid_zone:
+                _LOGGER.debug(
+                    "user_zone_field %d is not a valid zone number; "
+                    "skipping zone state update (programming mode?)",
+                    user_zone_field,
+                )
+            elif zone_code in ["battery", "tamper"]:
                 # Battery or tamper report for a wireless zone. These are added to the keypad
                 # update queue separate from state changes, so need their own zone timers.
                 self._zoneTimers[partitionNumber][f"{user_zone_field}|{zone_code}"] = 1
@@ -313,9 +350,13 @@ class HoneywellClient(EnvisalinkClient):
                 if self._zoneTimers[partitionNumber][z] > max_timer:
                     _LOGGER.debug(f"Timer {z} :: {self._zoneTimers[partitionNumber][z]} Closing")
                     timer = str.split(z, "|")
-                    zone_updates.append(int(timer[0]))
+                    zone_num = int(timer[0])
+                    if zone_num not in self._alarmPanel.alarm_state["zone"]:
+                        self._zoneTimers[partitionNumber].pop(z)
+                        continue
+                    zone_updates.append(zone_num)
                     if timer[1] == "state":
-                        self._alarmPanel.alarm_state["zone"][int(timer[0])]["status"].update(
+                        self._alarmPanel.alarm_state["zone"][zone_num]["status"].update(
                             {"open": False, "fault": False}
                         )
                     # else:
