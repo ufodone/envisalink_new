@@ -152,9 +152,9 @@ class EnvisalinkAlarmPanel:
         return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
 
     def get_max_zones_by_version(version) -> int:
-        if version == "4" or version == "4MAX":
-            return EVL4_MAX_ZONES
-        return EVL3_MAX_ZONES
+        if version in ("3", 3):
+            return EVL3_MAX_ZONES
+        return EVL4_MAX_ZONES
 
     def get_max_partitions() -> int:
         return MAX_PARTITIONS
