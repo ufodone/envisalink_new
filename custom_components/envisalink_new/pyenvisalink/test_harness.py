@@ -8,44 +8,44 @@ from pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
 # It will assist in testing the library against both Honeywell and DSC.
 
 
-async def shutdown_handler(testpanel):
+async def shutdown_handler(testpanel) -> None:
     await testpanel.stop()
     asyncio.get_running_loop().stop()
 
 
-def async_connection_status_callback(connected):
+def async_connection_status_callback(connected) -> None:
     print(f"Callback: connection status: {connected}")
 
 
-def async_login_fail_callback():
+def async_login_fail_callback() -> None:
     print("Callback: login failure")
 
 
-def async_login_timeout_callback():
+def async_login_timeout_callback() -> None:
     print("Callback: connection failure")
 
 
-def async_login_success_callback():
+def async_login_success_callback() -> None:
     print("Callback: login success")
 
 
-def async_keypad_update(data):
+def async_keypad_update(data: dict) -> None:
     print("Callback: keypad update")
 
 
-def async_zone_state_change(data):
+def async_zone_state_change(data: dict) -> None:
     print("Callback: zone state change")
 
 
-def async_zone_bypass_state_change(data):
+def async_zone_bypass_state_change(data: dict) -> None:
     print("Callback: zone bypass state change")
 
 
-def async_partition_state_change(data):
+def async_partition_state_change(data: dict) -> None:
     print("Callback: partition state change")
 
 
-async def main():
+async def main() -> None:
     global testpanel
 
     action = sys.argv[1]

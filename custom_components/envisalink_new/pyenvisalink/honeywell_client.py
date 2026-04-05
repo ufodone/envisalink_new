@@ -30,25 +30,25 @@ class HoneywellClient(EnvisalinkClient):
         self._evl_ResponseTypes = evl_ResponseTypes
         self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
 
-    def detect(prompt):
+    def detect(prompt) -> bool:
         """Given the initial connection data, determine if this is a Honeywell panel."""
         return prompt == "Login:"
 
-    async def keep_alive(self):
+    async def keep_alive(self) -> None:
         await self.queue_command(evl_Commands["KeepAlive"], "")
 
-    async def send_command(self, code, data, logData=None):
+    async def send_command(self, code, data: dict, logData=None) -> None:
         """Send a command in the proper honeywell format."""
         output= f"^{code},{{data}}$"
         to_send = output.format(data = data)
         log = output.format(data = logData) if logData else to_send
         await self.send_data(to_send, log)
 
-    async def dump_zone_timers(self):
+    async def dump_zone_timers(self) -> None:
         """Send a command to dump out the zone timers."""
         await self.queue_command(evl_Commands["DumpZoneTimers"], "")
 
-    async def queue_keypresses_to_partition(self, partitionNumber, keypresses, logData):
+    async def queue_keypresses_to_partition(self, partitionNumber, keypresses, logData) -> None:
         commands = []
         for idx, char in enumerate(keypresses):
             log = data = f"{partitionNumber},{char}"
@@ -67,11 +67,11 @@ class HoneywellClient(EnvisalinkClient):
         # be inserted in the middle.
         await self.queue_commands(commands)
 
-    async def keypresses_to_partition(self, partitionNumber, keypresses):
+    async def keypresses_to_partition(self, partitionNumber, keypresses) -> None:
         """Send keypresses to a particular partition."""
         await self.queue_keypresses_to_partition(partitionNumber, keypresses, None)
 
-    async def arm_stay_partition(self, code, partitionNumber):
+    async def arm_stay_partition(self, code, partitionNumber) -> None:
         """Public method to arm/stay a partition."""
         await self.queue_keypresses_to_partition(
             partitionNumber,
@@ -79,7 +79,7 @@ class HoneywellClient(EnvisalinkClient):
             ("*" * len(code)) + "3",
         )
 
-    async def arm_away_partition(self, code, partitionNumber):
+    async def arm_away_partition(self, code, partitionNumber) -> None:
         """Public method to arm/away a partition."""
         await self.queue_keypresses_to_partition(
             partitionNumber,
@@ -87,7 +87,7 @@ class HoneywellClient(EnvisalinkClient):
             ("*" * len(code)) + "2",
         )
 
-    async def arm_max_partition(self, code, partitionNumber):
+    async def arm_max_partition(self, code, partitionNumber) -> None:
         """Public method to arm/max a partition."""
         await self.queue_keypresses_to_partition(
             partitionNumber,
@@ -95,7 +95,7 @@ class HoneywellClient(EnvisalinkClient):
             ("*" * len(code)) + "4",
         )
 
-    async def arm_night_partition(self, code, partitionNumber, mode=None):
+    async def arm_night_partition(self, code, partitionNumber, mode: str=None) -> None:
         """Public method to arm/max a partition."""
         mode_keys = "33"
         if mode is not None:
@@ -106,7 +106,7 @@ class HoneywellClient(EnvisalinkClient):
             ("*" * len(code)) + mode_keys,
         )
 
-    async def disarm_partition(self, code, partitionNumber):
+    async def disarm_partition(self, code, partitionNumber) -> None:
         """Public method to disarm a partition."""
         await self.queue_keypresses_to_partition(
             partitionNumber,
@@ -114,15 +114,15 @@ class HoneywellClient(EnvisalinkClient):
             ("*" * len(code)) + "1",
         )
 
-    async def panic_alarm(self, panicType):
+    async def panic_alarm(self, panicType) -> None:
         """Public method to raise a panic alarm."""
         await self.keypresses_to_partition(1, evl_PanicTypes[panicType])
 
-    async def toggle_chime(self, code):
+    async def toggle_chime(self, code) -> None:
         """Public method to toggle a zone's bypass state."""
         await self.keypresses_to_partition(1, '%s9' % (code))
 
-    def parseHandler(self, rawInput):
+    def parseHandler(self, rawInput) -> None:
         """When the envisalink contacts us- parse out which command and data."""
         cmd = {}
         _LOGGER.debug(str.format("Data received:{0}", rawInput))
@@ -152,14 +152,14 @@ class HoneywellClient(EnvisalinkClient):
 
         return cmd
 
-    def handle_login(self, code, data):
+    def handle_login(self, code, data: dict) -> None:
         """When the envisalink asks us for our password- send it."""
         self.create_internal_task(self.queue_login_response(), name="queue_login_response")
 
-    async def queue_login_response(self):
+    async def queue_login_response(self) -> None:
         await self.send_data(self._alarmPanel.password)
 
-    def handle_command_response(self, code, data):
+    def handle_command_response(self, code, data: dict) -> None:
         """Handle the envisalink's initial response to our commands."""
         if data in self._evl_TPI_Response_Codes:
             responseInfo = self._evl_TPI_Response_Codes[data]
@@ -175,7 +175,7 @@ class HoneywellClient(EnvisalinkClient):
             _LOGGER.error(str.format("Unrecognized response code ({0}) received", data))
             self.command_failed(retry=False)
 
-    def handle_keypad_update(self, code, data):
+    def handle_keypad_update(self, code, data: dict) -> None:
         """Handle the response to when the envisalink sends keypad updates our way."""
         partition_updates = []
         zone_updates = []
@@ -337,15 +337,15 @@ class HoneywellClient(EnvisalinkClient):
             results[STATE_CHANGE_ZONE_BYPASS] = bypass_updates
         return results
 
-    def handle_zone_state_change(self, code, data):
+    def handle_zone_state_change(self, code, data: dict) -> None:
         """Handle when the envisalink sends us a zone change."""
         return None
 
-    def handle_partition_state_change(self, code, data):
+    def handle_partition_state_change(self, code, data: dict) -> None:
         """Handle when the envisalink sends us a partition change."""
         return None
 
-    def handle_realtime_cid_event(self, code, data):
+    def handle_realtime_cid_event(self, code, data: dict):
         """Handle when the envisalink sends us an alarm arm/disarm/trigger."""
         eventTypeInt = int(data[0])
         eventType = evl_CID_Qualifiers[eventTypeInt]
@@ -385,7 +385,7 @@ class HoneywellClient(EnvisalinkClient):
         # It always seems to be 1-3 ticks.  So 3 ticks or less will be considered open.
         return ticks <= 3
 
-    def get_partition_state(flags, alpha):
+    def get_partition_state(flags, alpha: float) -> str:
         if bool(flags.alarm) or bool(flags.alarm_fire_zone) or bool(flags.fire):
             return "alarm"
         elif bool(flags.alarm_in_memory):
@@ -409,7 +409,7 @@ class HoneywellClient(EnvisalinkClient):
         else:
             return "unknown"
 
-    def get_zone_report_type(flags, alpha):
+    def get_zone_report_type(flags, alpha: float) -> str:
         if bool(flags.alarm) or bool(flags.alarm_fire_zone) or bool(flags.fire):
             return "alarm"
         elif bool(flags.alarm_in_memory):
@@ -425,7 +425,7 @@ class HoneywellClient(EnvisalinkClient):
         else:
             return "unknown"
 
-    def handle_debug_info(self, code, data):
+    def handle_debug_info(self, code, data: dict) -> None:
         """Handle when the envisalink sends a debug message indicating that it received
         a malformed message from the panel."""
         _LOGGER.debug(f'EVL received a malformed message from the panel; code={code} data={data}')

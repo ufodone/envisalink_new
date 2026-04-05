@@ -7,7 +7,7 @@ from .const import DOMAIN, LOGGER
 class EnvisalinkDevice(Entity):
     """Representation of an Envisalink device."""
 
-    def __init__(self, name, controller, state_update_type, state_update_key):
+    def __init__(self, name: str, controller, state_update_type, state_update_key):
         """Initialize the device."""
         self._controller = controller
         self._attr_should_poll = False

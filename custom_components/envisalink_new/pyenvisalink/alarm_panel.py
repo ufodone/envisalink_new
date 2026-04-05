@@ -38,16 +38,16 @@ class EnvisalinkAlarmPanel:
 
     def __init__(
         self,
-        host,
-        port=4025,
-        userName="user",
-        password="user",
-        zoneTimerInterval=20,
-        keepAliveInterval=30,
-        connectionTimeout=10,
-        zoneBypassEnabled=False,
-        commandTimeout=5.0,
-        httpPort=8080,
+        host: str,
+        port: int=4025,
+        userName: str="user",
+        password: str="user",
+        zoneTimerInterval: int=20,
+        keepAliveInterval: int=30,
+        connectionTimeout: int=10,
+        zoneBypassEnabled: bool=False,
+        commandTimeout: float=5.0,
+        httpPort: int=8080,
         httpHost=None,
     ):
         self._macAddress = None
@@ -116,7 +116,7 @@ class EnvisalinkAlarmPanel:
         return self._panelType
 
     @panel_type.setter
-    def panel_type(self, panel_type):
+    def panel_type(self, panel_type) -> None:
         self._panelType = panel_type
 
     @property
@@ -124,7 +124,7 @@ class EnvisalinkAlarmPanel:
         return self._evlVersion
 
     @envisalink_version.setter
-    def envisalink_version(self, version):
+    def envisalink_version(self, version: int) -> None:
         self._evlVersion = version
 
     @property
@@ -151,7 +151,7 @@ class EnvisalinkAlarmPanel:
     def max_zones(self):
         return EnvisalinkAlarmPanel.get_max_zones_by_version(self._evlVersion)
 
-    def get_max_zones_by_version(version) -> int:
+    def get_max_zones_by_version(version: int) -> int:
         if version in ("3", 3):
             return EVL3_MAX_ZONES
         return EVL4_MAX_ZONES
@@ -168,7 +168,7 @@ class EnvisalinkAlarmPanel:
         return self._connectionStatusCallback
 
     @callback_connection_status.setter
-    def callback_connection_status(self, value):
+    def callback_connection_status(self, value) -> None:
         self._connectionStatusCallback = value
 
     @property
@@ -176,7 +176,7 @@ class EnvisalinkAlarmPanel:
         return self._loginSuccessCallback
 
     @callback_login_success.setter
-    def callback_login_success(self, value):
+    def callback_login_success(self, value) -> None:
         self._loginSuccessCallback = value
 
     @property
@@ -184,7 +184,7 @@ class EnvisalinkAlarmPanel:
         return self._loginFailureCallback
 
     @callback_login_failure.setter
-    def callback_login_failure(self, value):
+    def callback_login_failure(self, value) -> None:
         self._loginFailureCallback = value
 
     @property
@@ -192,7 +192,7 @@ class EnvisalinkAlarmPanel:
         return self._loginTimeoutCallback
 
     @callback_login_timeout.setter
-    def callback_login_timeout(self, value):
+    def callback_login_timeout(self, value) -> None:
         self._loginTimeoutCallback = value
 
     @property
@@ -200,7 +200,7 @@ class EnvisalinkAlarmPanel:
         return self._keypadUpdateCallback
 
     @callback_keypad_update.setter
-    def callback_keypad_update(self, value):
+    def callback_keypad_update(self, value) -> None:
         self._keypadUpdateCallback = value
 
     @property
@@ -208,7 +208,7 @@ class EnvisalinkAlarmPanel:
         return self._zoneStateChangeCallback
 
     @callback_zone_state_change.setter
-    def callback_zone_state_change(self, value):
+    def callback_zone_state_change(self, value) -> None:
         self._zoneStateChangeCallback = value
 
     @property
@@ -216,7 +216,7 @@ class EnvisalinkAlarmPanel:
         return self._zoneBypassStateChangeCallback
 
     @callback_zone_bypass_state_change.setter
-    def callback_zone_bypass_state_change(self, value):
+    def callback_zone_bypass_state_change(self, value) -> None:
         self._zoneBypassStateChangeCallback = value
 
     @property
@@ -224,7 +224,7 @@ class EnvisalinkAlarmPanel:
         return self._partitionStateChangeCallback
 
     @callback_partition_state_change.setter
-    def callback_partition_state_change(self, value):
+    def callback_partition_state_change(self, value) -> None:
         self._partitionStateChangeCallback = value
 
     @property
@@ -232,7 +232,7 @@ class EnvisalinkAlarmPanel:
         return self._cidEventCallback
 
     @callback_realtime_cid_event.setter
-    def callback_realtime_cid_event(self, value):
+    def callback_realtime_cid_event(self, value) -> None:
         self._cidEventCallback = value
 
     def _defaultCallback(self, data):
@@ -281,7 +281,7 @@ class EnvisalinkAlarmPanel:
             await self.stop()
         return result
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Shut down and close our connection to the envisalink."""
         if self._client:
             _LOGGER.info("Disconnecting from the envisalink...")
@@ -289,77 +289,77 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def dump_zone_timers(self):
+    async def dump_zone_timers(self) -> None:
         """Request a zone timer dump from the envisalink."""
         if self._client:
             await self._client.dump_zone_timers()
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def change_partition(self, partitionNumber):
+    async def change_partition(self, partitionNumber) -> None:
         """Request that the default partition be changed."""
         if self._client:
             await self._client.change_partition(partitionNumber)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def keypresses_to_default_partition(self, keypresses):
+    async def keypresses_to_default_partition(self, keypresses) -> None:
         """Send a key to the current partition."""
         if self._client:
             await self._client.keypresses_to_default_partition(keypresses)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def keypresses_to_partition(self, partitionNumber, keypresses):
+    async def keypresses_to_partition(self, partitionNumber, keypresses) -> None:
         """Send a key to a partition other than the current one."""
         if self._client:
             await self._client.keypresses_to_partition(partitionNumber, keypresses)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def arm_stay_partition(self, code, partitionNumber):
+    async def arm_stay_partition(self, code, partitionNumber) -> None:
         """Public method to arm/stay a partition."""
         if self._client:
             await self._client.arm_stay_partition(code, partitionNumber)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def arm_away_partition(self, code, partitionNumber):
+    async def arm_away_partition(self, code, partitionNumber) -> None:
         """Public method to arm/away a partition."""
         if self._client:
             await self._client.arm_away_partition(code, partitionNumber)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def arm_max_partition(self, code, partitionNumber):
+    async def arm_max_partition(self, code, partitionNumber) -> None:
         """Public method to arm/max a partition."""
         if self._client:
             await self._client.arm_max_partition(code, partitionNumber)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def arm_night_partition(self, code, partitionNumber, mode=None):
+    async def arm_night_partition(self, code, partitionNumber, mode: str=None) -> None:
         """Public method to arm/night a partition."""
         if self._client:
             await self._client.arm_night_partition(code, partitionNumber, mode)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def disarm_partition(self, code, partitionNumber):
+    async def disarm_partition(self, code, partitionNumber) -> None:
         """Public method to disarm a partition."""
         if self._client:
             await self._client.disarm_partition(code, partitionNumber)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def panic_alarm(self, panic_type):
+    async def panic_alarm(self, panic_type) -> None:
         """Public method to raise a panic alarm."""
         if self._client:
             await self._client.panic_alarm(panic_type)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def bypass_zone(self, zone, partition, enable):
+    async def bypass_zone(self, zone, partition, enable) -> None:
         """Public method to toggle a zone's bypass state."""
         if not self._zoneBypassEnabled:
             _LOGGER.error(COMMAND_ERR)
@@ -368,14 +368,14 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def toggle_chime(self, code):
+    async def toggle_chime(self, code) -> None:
         """Public method to toggle chime."""
         if self._client:
             await self._client.toggle_chime(code)
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def command_output(self, code, partitionNumber, outputNumber):
+    async def command_output(self, code, partitionNumber, outputNumber) -> None:
         """Public method to activate an output"""
         if self._client:
             await self._client.command_output(code, partitionNumber, outputNumber)
@@ -540,28 +540,28 @@ class EnvisalinkAlarmPanel:
 
         return self.ConnectionResult.INVALID_PANEL_TYPE
 
-    def is_online(self):
+    def is_online(self) -> bool:
         if not self._client:
             return False
         return self._client.is_online()
 
-    def handle_connection_status(self, status):
+    def handle_connection_status(self, status) -> None:
         if not status and not self._syncConnect.done():
             self._syncConnect.set_result(self.ConnectionResult.CONNECTION_FAILED)
 
         self.callback_connection_status(status)
 
-    def handle_login_success(self):
+    def handle_login_success(self) -> None:
         if not self._syncConnect.done():
             self._syncConnect.set_result(self.ConnectionResult.SUCCESS)
         self.callback_login_success()
 
-    def handle_login_failure(self):
+    def handle_login_failure(self) -> None:
         if not self._syncConnect.done():
             self._syncConnect.set_result(self.ConnectionResult.INVALID_AUTHORIZATION)
         self.callback_login_failure()
 
-    def handle_login_timeout(self):
+    def handle_login_timeout(self) -> None:
         if not self._syncConnect.done():
             self._syncConnect.set_result(self.ConnectionResult.INVALID_AUTHORIZATION)
         self.callback_login_timeout()
