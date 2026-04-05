@@ -15,7 +15,7 @@ logging.basicConfig(**loggingconfig)
 
 alarmState = AlarmState.get_initial_alarm_state(64, 8)
 
-def handle_partition_state_change(code, data):
+def handle_partition_state_change(code, data: dict):
         """Handle when the envisalink sends us a partition change."""
         """Event 650-674, 652 is an exception, because 2 bytes are passed for partition and zone type."""
         if code == '652':

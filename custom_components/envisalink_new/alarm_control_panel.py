@@ -139,7 +139,7 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
         code,
         panic_type,
         arm_night_mode,
-        show_keypad,
+        show_keypad: bool,
         code_arm_required,
         controller,
     ):
@@ -274,14 +274,14 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
             self._arm_night_mode,
         )
 
-    async def alarm_keypress(self, keypress=None):
+    async def alarm_keypress(self, keypress=None) -> None:
         """Send custom keypress."""
         if keypress:
             await self._controller.controller.keypresses_to_partition(
                 self._partition_number, keypress
             )
 
-    async def invoke_custom_function(self, pgm, code=None):
+    async def invoke_custom_function(self, pgm, code=None) -> None:
         """Send custom/PGM to EVL."""
         await self._controller.controller.command_output(
             self.code_or_default_code(code), self._partition_number, pgm

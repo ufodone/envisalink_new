@@ -28,7 +28,7 @@ _LOGGER = logging.getLogger(__name__)
 class DSCClient(EnvisalinkClient):
     """Represents a dsc alarm client."""
 
-    def detect(prompt):
+    def detect(prompt) -> bool:
         """Given the initial connection data, determine if this is a DSC panel."""
         code = "505"
         data = "3"
@@ -46,63 +46,63 @@ class DSCClient(EnvisalinkClient):
             chars.append(ord(char))
         return chars
 
-    def get_checksum(code, data):
+    def get_checksum(code, data: dict):
         """part of each command includes a checksum.  Calculate."""
         return ("%02X" % sum(DSCClient.to_chars(code) + DSCClient.to_chars(data)))[-2:]
 
-    async def send_command(self, code, data, logData=None):
+    async def send_command(self, code, data: dict, logData=None) -> None:
         """Send a command in the proper honeywell format."""
         to_send = code + data + DSCClient.get_checksum(code, data)
         await self.send_data(to_send)
 
-    async def dump_zone_timers(self):
+    async def dump_zone_timers(self) -> None:
         """Send a command to dump out the zone timers."""
         await self.queue_command(evl_Commands["DumpZoneTimers"], "")
 
-    async def keypresses_to_partition(self, partitionNumber, keypresses):
+    async def keypresses_to_partition(self, partitionNumber, keypresses) -> None:
         """Send keypresses (max of 6) to a particular partition."""
         await self.queue_command(
             evl_Commands["PartitionKeypress"],
             str.format("{0}{1}", partitionNumber, keypresses[:6]),
         )
 
-    async def keep_alive(self):
+    async def keep_alive(self) -> None:
         """Send a keepalive command to reset it's watchdog timer."""
         await self.queue_command(evl_Commands["KeepAlive"], "")
 
-    async def arm_stay_partition(self, code, partitionNumber):
+    async def arm_stay_partition(self, code, partitionNumber) -> None:
         """Public method to arm/stay a partition."""
         await self.queue_command(evl_Commands["ArmStay"], str(partitionNumber), code)
 
-    async def arm_away_partition(self, code, partitionNumber):
+    async def arm_away_partition(self, code, partitionNumber) -> None:
         """Public method to arm/away a partition."""
         await self.queue_command(evl_Commands["ArmAway"], str(partitionNumber), code)
 
-    async def arm_max_partition(self, code, partitionNumber):
+    async def arm_max_partition(self, code, partitionNumber) -> None:
         """Public method to arm/max a partition."""
         await self.queue_command(evl_Commands["ArmMax"], str(partitionNumber), code)
 
-    async def arm_night_partition(self, code, partitionNumber, mode=None):
+    async def arm_night_partition(self, code, partitionNumber, mode: str=None) -> None:
         """Public method to arm/max a partition."""
         await self.arm_max_partition(code, partitionNumber)
 
-    async def disarm_partition(self, code, partitionNumber):
+    async def disarm_partition(self, code, partitionNumber) -> None:
         """Public method to disarm a partition."""
         await self.queue_command(evl_Commands["Disarm"], str(partitionNumber) + str(code), code)
 
-    async def panic_alarm(self, panicType):
+    async def panic_alarm(self, panicType) -> None:
         """Public method to raise a panic alarm."""
         await self.queue_command(evl_Commands["Panic"], evl_PanicTypes[panicType])
 
-    async def bypass_zone(self, zone, partition, enable):
+    async def bypass_zone(self, zone, partition, enable) -> None:
         """Public method to toggle a zone's bypass state."""
         await self.keypresses_to_partition(partition, "*1%02d#" % zone)
 
-    async def toggle_chime(self, code):
+    async def toggle_chime(self, code) -> None:
         """Public method to toggle the door chime."""
         await self.keypresses_to_partition(1, '*4')
 
-    async def command_output(self, code, partitionNumber, outputNumber):
+    async def command_output(self, code, partitionNumber, outputNumber) -> None:
         """Used to activate the selected command output"""
         await self.queue_command(
             evl_Commands["CommandOutput"],
@@ -142,11 +142,11 @@ class DSCClient(EnvisalinkClient):
 
         return cmd
 
-    def handle_login(self, code, data):
+    def handle_login(self, code, data: dict) -> None:
         """When the envisalink asks us for our password- send it."""
         self.create_internal_task(self.queue_login_response(), name="queue_login_response")
 
-    async def queue_login_response(self):
+    async def queue_login_response(self) -> None:
         self._loginEvent.clear()
         await self.queue_command(evl_Commands["Login"], self._alarmPanel.password)
 
@@ -162,24 +162,24 @@ class DSCClient(EnvisalinkClient):
             # Timed out waiting for login
             await self.disconnect()
 
-    def handle_login_success(self, code, data):
+    def handle_login_success(self, code, data: dict) -> None:
         """Handler for when the envisalink accepts our credentials."""
         super().handle_login_success(code, data)
 
         self._loginEvent.set()
         self.create_internal_task(self.complete_login(), name="complete_login")
 
-    def handle_login_failure(self, code, data):
+    def handle_login_failure(self, code, data: dict) -> None:
         """Handler for when the envisalink rejects our credentials."""
         super().handle_login_failure(code, data)
         self._loginEvent.set()
 
-    async def complete_login(self):
+    async def complete_login(self) -> None:
         dt = datetime.datetime.now().strftime("%H%M%m%d%y")
         await self.queue_command(evl_Commands["SetTime"], dt)
         await self.queue_command(evl_Commands["StatusReport"], "")
 
-    def handle_command_response(self, code, data):
+    def handle_command_response(self, code, data: dict) -> None:
         """Handle the envisalink's initial response to our commands."""
         if code == "500":
             _LOGGER.debug("DSC ack recieved.")
@@ -202,7 +202,7 @@ class DSCClient(EnvisalinkClient):
                 _LOGGER.error(f"Unrecognized system error for issued command: '{data}'")
             self.command_failed(retry=retry)
 
-    def handle_zone_state_change(self, code, data):
+    def handle_zone_state_change(self, code, data: dict) -> dict:
         """Handle when the envisalink sends us a zone change."""
         """Event 601-610."""
         now = time.time()
@@ -228,7 +228,7 @@ class DSCClient(EnvisalinkClient):
         else:
             _LOGGER.error("Invalid data has been passed in the zone update.")
 
-    def handle_partition_state_change(self, code, data):
+    def handle_partition_state_change(self, code, data: dict) -> dict:
         """Handle when the envisalink sends us a partition change.
         Event 650-674, 652 is an exception, because 2 bytes are passed for partition
         and zone type."""
@@ -287,19 +287,19 @@ class DSCClient(EnvisalinkClient):
             else:
                 _LOGGER.error("Invalid data has been passed in the partition update.")
 
-    def handle_send_code(self, code, data):
+    def handle_send_code(self, code, data: dict) -> None:
         """The DSC will, depending upon settings, challenge us with the code.  If the user
         passed it in, we'll send it."""
         self.create_internal_task(self.send_code(), name="send_code")
 
-    async def send_code(self):
+    async def send_code(self) -> None:
         if self._cachedCode is None:
             _LOGGER.error("The envisalink asked for a code, but we have no code in our cache.")
         else:
             await self.queue_command(evl_Commands["SendCode"], self._cachedCode)
             self._cachedCode = None
 
-    def handle_keypad_update(self, code, data):
+    def handle_keypad_update(self, code, data: dict) -> dict:
         """Handle general- non partition based info"""
         if code == "849":
             bits = int(data,16)
@@ -323,7 +323,7 @@ class DSCClient(EnvisalinkClient):
         _LOGGER.debug(str.format("(All partitions) state has updated: {0}", json.dumps(new_status)))
         return {STATE_CHANGE_KEYPAD: updatedPartitions}
 
-    def handle_zone_bypass_update(self, code, data):
+    def handle_zone_bypass_update(self, code, data: dict) -> dict | None:
         """Handle zone bypass update triggered when *1 is used on the keypad"""
         if not self._alarmPanel._zoneBypassEnabled:
             return
@@ -357,7 +357,7 @@ class DSCClient(EnvisalinkClient):
                 )
             )
 
-    async def dump_zone_bypass_status(self):
+    async def dump_zone_bypass_status(self) -> None:
         """Trigger a 616 'Bypassed Zones Bitfield Dump' to initialize the bypass state.
         There is unfortunately not a specific command to request a zone bypass dump so
         the *1# keypresses are sent instead.  It appears that limitations in the envisalink
@@ -370,7 +370,7 @@ class DSCClient(EnvisalinkClient):
         # DSC seems to report accurately to 0 means open, anything else means closed
         return ticks == 0
 
-    def handle_keypad_led_state_update(self, code, data):
+    def handle_keypad_led_state_update(self, code, data: dict) -> dict | None:
         if len(data) != 2:
             return None
 
@@ -405,12 +405,12 @@ class DSCClient(EnvisalinkClient):
         self._bypassStateInitialized = True
         return {STATE_CHANGE_KEYPAD: updatedPartitions}
 
-    def handle_keypad_led_flash_state_update(self, code, data):
+    def handle_keypad_led_flash_state_update(self, code, data: dict) -> None:
         _LOGGER.debug("Keypad LED FLASH state update")
         self.handle_keypad_led_state_update(code, data)
 
 
-    def set_in_alarm_alpha(self, partition_number):
+    def set_in_alarm_alpha(self, partition_number) -> None:
         status = self._alarmPanel.alarm_state["partition"][partition_number]["status"]
         alpha = "Alarm"
         if status["fire"]:
@@ -420,7 +420,7 @@ class DSCClient(EnvisalinkClient):
 
         status["alpha"] = alpha
 
-    def handle_command_output_pressed(self, code, data):
+    def handle_command_output_pressed(self, code, data: dict) -> dict:
         """Handle PGM output triggered"""
         parse = re.match("^[0-9]{2}$", data)
         if parse:

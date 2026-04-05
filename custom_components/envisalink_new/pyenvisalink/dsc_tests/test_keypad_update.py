@@ -25,7 +25,7 @@ evl_verboseTrouble = {
 
 alarmState = AlarmState.get_initial_alarm_state(64, 8)
 
-def handle_keypad_update(code, data):
+def handle_keypad_update(code, data: dict) -> None:
     """Handle general- non partition based info"""
     if code == '849':
         bits = "{0:016b}".format(int(data,16))

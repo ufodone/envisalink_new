@@ -27,7 +27,7 @@ class EnvisalinkClient:
             RETRY = "retry"
             FAILED = "failed"
 
-        def __init__(self, cmd, data, code, logData):
+        def __init__(self, cmd, data: dict, code, logData):
             self.cmd = cmd
             self.data = data
             self.code = code
@@ -55,15 +55,15 @@ class EnvisalinkClient:
         self._reconnect_time = _RECONNECT_MIN_TIME
         self._connect_time = 0
 
-    def create_internal_task(self, coro, name=None):
+    def create_internal_task(self, coro, name: str=None) -> None:
         task = self._eventLoop.create_task(coro, name=name)
         task.add_done_callback(self.complete_internal_task)
         self._activeTasks.add(task)
 
-    def complete_internal_task(self, task):
+    def complete_internal_task(self, task) -> None:
         self._activeTasks.remove(task)
 
-    def start(self):
+    def start(self) -> None:
         """Public method for initiating connectivity with the envisalink."""
         self._shutdown = False
         self._commandTask = self.create_internal_task(
@@ -83,7 +83,7 @@ class EnvisalinkClient:
                 name="zone_timer_dump",
             )
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Public method for shutting down connectivity with the envisalink."""
         self._loggedin = False
         self._shutdown = True
@@ -101,7 +101,7 @@ class EnvisalinkClient:
             "An event loop was given to us- we will shutdown when that event loop shuts down."
         )
 
-    async def read_loop(self):
+    async def read_loop(self) -> None:
         """Internal method handling connecting to the EVL and consuming data from it."""
         while not self._shutdown:
             self._reader = None
@@ -152,7 +152,7 @@ class EnvisalinkClient:
 
         await self.disconnect()
 
-    async def periodic_command(self, action, interval):
+    async def periodic_command(self, action, interval) -> None:
         """Used to periodically send a keepalive command to reset the envisalink's
         watchdog timer."""
         while not self._shutdown:
@@ -164,7 +164,7 @@ class EnvisalinkClient:
             now = time.time()
             await asyncio.sleep(next_send - now)
 
-    async def connect(self):
+    async def connect(self) -> None:
         _LOGGER.info(
             str.format(
                 "Started to connect to Envisalink... at {0}:{1}",
@@ -204,7 +204,7 @@ class EnvisalinkClient:
         if self._reconnect_time > _RECONNECT_MAX_TIME:
             self._reconnect_time = _RECONNECT_MIN_TIME
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         """Internal method for forcing connection closure if hung."""
         _LOGGER.debug("Cleaning up from disconnection with server.")
 
@@ -235,7 +235,7 @@ class EnvisalinkClient:
 
         self._alarmPanel.handle_connection_status(False)
 
-    async def send_data(self, data, logData=None):
+    async def send_data(self, data: dict, logData=None) -> None:
         """Raw data send- just make sure it's encoded properly and logged."""
         # Scrub the password and alarm code if necessary
         if not logData:
@@ -253,71 +253,71 @@ class EnvisalinkClient:
             _LOGGER.error("Failed to write to the stream: %r", err)
             await self.disconnect()
 
-    async def send_command(self, code, data, logData=None):
+    async def send_command(self, code, data: dict, logData=None) -> None:
         """Used to send a properly formatted command to the envisalink"""
         raise NotImplementedError()
 
-    async def dump_zone_timers(self):
+    async def dump_zone_timers(self) -> None:
         """Public method for dumping zone timers."""
         raise NotImplementedError()
 
-    async def keep_alive(self):
+    async def keep_alive(self) -> None:
         """Send a keepalive command to reset it's watchdog timer."""
         raise NotImplementedError()
 
-    async def change_partition(self, partitionNumber):
+    async def change_partition(self, partitionNumber) -> None:
         """Public method for changing the default partition."""
         raise NotImplementedError()
 
-    async def keypresses_to_default_partition(self, keypresses):
+    async def keypresses_to_default_partition(self, keypresses) -> None:
         """Public method for sending a key to a particular partition."""
         self.send_data(keypresses)
 
-    async def keypresses_to_partition(self, partitionNumber, keypresses):
+    async def keypresses_to_partition(self, partitionNumber, keypresses) -> None:
         """Public method to send a key to the default partition."""
         raise NotImplementedError()
 
-    async def arm_stay_partition(self, code, partitionNumber):
+    async def arm_stay_partition(self, code, partitionNumber) -> None:
         """Public method to arm/stay a partition."""
         raise NotImplementedError()
 
-    async def arm_away_partition(self, code, partitionNumber):
+    async def arm_away_partition(self, code, partitionNumber) -> None:
         """Public method to arm/away a partition."""
         raise NotImplementedError()
 
-    async def arm_max_partition(self, code, partitionNumber):
+    async def arm_max_partition(self, code, partitionNumber) -> None:
         """Public method to arm/max a partition."""
         raise NotImplementedError()
 
-    async def arm_night_partition(self, code, partitionNumber, mode=None):
+    async def arm_night_partition(self, code, partitionNumber, mode: str=None) -> None:
         """Public method to arm/max a partition."""
         raise NotImplementedError()
 
-    async def disarm_partition(self, code, partitionNumber):
+    async def disarm_partition(self, code, partitionNumber) -> None:
         """Public method to disarm a partition."""
         raise NotImplementedError()
 
-    async def panic_alarm(self, panicType):
+    async def panic_alarm(self, panicType) -> None:
         """Public method to trigger the panic alarm."""
         raise NotImplementedError()
 
-    async def bypass_zone(self, zone, partition, enable):
+    async def bypass_zone(self, zone, partition, enable) -> None:
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 
-    async def toggle_chime(self, code):
+    async def toggle_chime(self, code) -> None:
          """Public method to toggle chime mode."""
          raise NotImplementedError()
 
-    async def command_output(self, code, partitionNumber, outputNumber):
+    async def command_output(self, code, partitionNumber, outputNumber) -> None:
         """Public method to activate the selected command output"""
         raise NotImplementedError()
 
-    def parseHandler(self, rawInput):
+    def parseHandler(self, rawInput) -> None:
         """When the envisalink contacts us- parse out which command and data."""
         raise NotImplementedError()
 
-    def process_data(self, data) -> str:
+    def process_data(self, data: dict) -> str:
         cmd = self.parseHandler(data)
 
         result = None
@@ -344,7 +344,7 @@ class EnvisalinkClient:
         except (AttributeError, TypeError, KeyError) as ex:
             _LOGGER.debug("No callback configured for evl command. %r", ex)
 
-    def handle_state_change_callbacks(self, updates):
+    def handle_state_change_callbacks(self, updates) -> None:
         for change_type, values in updates.items():
             if values:
                 _LOGGER.debug("Triggering state change callback for %s: %s", change_type, values)
@@ -390,23 +390,23 @@ class EnvisalinkClient:
             zoneNumber += 1
         return returnItems
 
-    def handle_login(self, code, data):
+    def handle_login(self, code, data: dict) -> None:
         """Handler for when the envisalink challenges for password."""
         raise NotImplementedError()
 
-    def handle_login_success(self, code, data):
+    def handle_login_success(self, code, data: dict) -> None:
         """Handler for when the envisalink accepts our credentials."""
         self._loggedin = True
         _LOGGER.debug("Password accepted, session created")
         self._alarmPanel.handle_login_success()
 
-    def handle_login_failure(self, code, data):
+    def handle_login_failure(self, code, data: dict) -> None:
         """Handler for when the envisalink rejects our credentials."""
         self._loggedin = False
         _LOGGER.error("Password is incorrect. Server is closing socket connection.")
         self._alarmPanel.handle_login_failure()
 
-    def handle_login_timeout(self, code, data):
+    def handle_login_timeout(self, code, data: dict) -> None:
         """Handler for when the envisalink times out waiting for our credentials."""
         self._loggedin = False
         _LOGGER.error(
@@ -414,23 +414,23 @@ class EnvisalinkClient:
         )
         self._alarmPanel.handle_login_timeout()
 
-    def handle_keypad_update(self, code, data):
+    def handle_keypad_update(self, code, data: dict) -> None:
         """Handler for when the envisalink wishes to send us a keypad update."""
         raise NotImplementedError()
 
-    def handle_command_response(self, code, data):
+    def handle_command_response(self, code, data: dict) -> None:
         """When we send any command- this will be called to parse the initial response."""
         raise NotImplementedError()
 
-    def handle_zone_state_change(self, code, data):
+    def handle_zone_state_change(self, code, data: dict) -> None:
         """Callback for whenever the envisalink reports a zone change."""
         raise NotImplementedError()
 
-    def handle_partition_state_change(self, code, data):
+    def handle_partition_state_change(self, code, data: dict) -> None:
         """Callback for whenever the envisalink reports a partition change."""
         raise NotImplementedError()
 
-    def handle_realtime_cid_event(self, code, data):
+    def handle_realtime_cid_event(self, code, data: dict) -> None:
         """Callback for whenever the envisalink triggers alarm arm/disarm/trigger."""
         raise NotImplementedError()
 
@@ -439,7 +439,7 @@ class EnvisalinkClient:
         ticks in a zone dump timer update"""
         raise NotImplementedError()
 
-    def handle_zone_timer_dump(self, code, data):
+    def handle_zone_timer_dump(self, code, data: dict) -> dict:
         """Handle the zone timer data."""
         results = []
         now = time.time()
@@ -461,10 +461,10 @@ class EnvisalinkClient:
             _LOGGER.debug("(zone %i) %s", zoneNumber, zoneInfo["status"])
         return {STATE_CHANGE_ZONE: results}
 
-    async def queue_command(self, cmd, data, code=None):
+    async def queue_command(self, cmd, data: dict, code=None):
         return await self.queue_commands([{"cmd": cmd, "data": data, "code": code}])
 
-    async def queue_commands(self, command_list: list):
+    async def queue_commands(self, command_list: list) -> bool:
         operations = []
         for command in command_list:
             cmd = command["cmd"]
@@ -492,7 +492,7 @@ class EnvisalinkClient:
             await op.responseEvent.wait()
         return op.state == op.State.SUCCEEDED
 
-    async def process_command_queue(self):
+    async def process_command_queue(self) -> None:
         """Manage processing of commands to be issued to the EVL.  Commands are serialized to
         the EVL to avoid overwhelming it and to make it easy to pair up responses (since there
         are no sequence numbers for requests).
@@ -573,7 +573,7 @@ class EnvisalinkClient:
 
         _LOGGER.info("Command processing task exited.")
 
-    def command_succeeded(self, cmd):
+    def command_succeeded(self, cmd) -> None:
         """Indicate that a command has been successfully processed by the EVL."""
 
         if self._commandQueue:
@@ -597,7 +597,7 @@ class EnvisalinkClient:
         # Wake up the command processing task to process this result
         self._commandEvent.set()
 
-    def command_failed(self, retry=False):
+    def command_failed(self, retry: bool=False) -> None:
         """Indicate that a command issued to the EVL has failed."""
 
         if self._commandQueue:
@@ -628,7 +628,7 @@ class EnvisalinkClient:
         # Wake up the command processing task to process this result
         self._commandEvent.set()
 
-    def scrub_sensitive_data(self, data, code=None):
+    def scrub_sensitive_data(self, data: dict, code=None):
         if not self._loggedin:
             # Remove the password from the log entry
             logData = data.replace(self._alarmPanel.password, "*" * len(self._alarmPanel.password))

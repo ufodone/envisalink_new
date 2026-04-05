@@ -190,7 +190,7 @@ class EnvisalinkController:
 
         return True
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the underlying Envisalink alarm panel."""
 
         if self.controller:
@@ -217,25 +217,25 @@ class EnvisalinkController:
         return self.controller.is_online()
 
     @callback
-    def async_login_fail_callback(self):
+    def async_login_fail_callback(self) -> None:
         """Handle when the evl rejects our login."""
         LOGGER.error("The Envisalink rejected your credentials")
         self._update_entity_states()
 
     @callback
-    def async_login_timeout_callback(self):
+    def async_login_timeout_callback(self) -> None:
         """Handle a login timeout."""
         LOGGER.error("Timed out trying to login to the Envisalink- retrying")
         self._update_entity_states()
 
     @callback
-    def async_login_success_callback(self):
+    def async_login_success_callback(self) -> None:
         """Handle a successful login."""
         LOGGER.info("Established a connection and logged into the Envisalink")
         self._update_entity_states()
 
     @callback
-    def async_connection_status_callback(self, connected):
+    def async_connection_status_callback(self, connected) -> None:
         """Handle when the evl rejects our login."""
         if not connected:
             # Trigger a state update for all the entities so they appear as unavailable
@@ -244,7 +244,7 @@ class EnvisalinkController:
             LOGGER.info("Connected to the envisalink device")
 
     @callback
-    def async_zones_updated_callback(self, data: list):
+    def async_zones_updated_callback(self, data: list) -> None:
         """Handle zone state updates."""
         LOGGER.debug(
             "Envisalink sent a '%s' zone update event. Updating zones: %r",
@@ -254,7 +254,7 @@ class EnvisalinkController:
         self._process_state_change(STATE_CHANGE_ZONE, data)
 
     @callback
-    def async_keypad_updated_callback(self, data: list):
+    def async_keypad_updated_callback(self, data: list) -> None:
         """Handle non-alarm based info updates."""
         LOGGER.debug(
             "Envisalink sent '%s' new alarm info. Updating alarms: %r",
@@ -264,7 +264,7 @@ class EnvisalinkController:
         self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
-    def async_partition_updated_callback(self, data: list):
+    def async_partition_updated_callback(self, data: list) -> None:
         """Handle partition changes thrown by evl (including alarms)."""
         LOGGER.debug(
             "The envisalink '%s' sent a partition update event: %r",
@@ -274,7 +274,7 @@ class EnvisalinkController:
         self._process_state_change(STATE_CHANGE_PARTITION, data)
 
     @callback
-    def async_zone_bypass_update(self, data: list):
+    def async_zone_bypass_update(self, data: list) -> None:
         """Handle zone bypass status updates."""
         LOGGER.debug(
             "Envisalink '%s' sent a zone bypass update event. Updating zones: %r",
@@ -289,5 +289,5 @@ class EnvisalinkController:
         return self._default_code
 
     @default_code.setter
-    def default_code(self, value):
+    def default_code(self, value) -> None:
         self._default_code = value

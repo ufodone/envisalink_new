@@ -15,7 +15,7 @@ logging.basicConfig(**loggingconfig)
 
 alarmState = AlarmState.get_initial_alarm_state(64, 8)
 
-def handle_zone_state_change(code, data):
+def handle_zone_state_change(code, data: dict):
         """Handle when the envisalink sends us a zone change."""
         """Event 601-610."""
         parse = re.match('^[0-9]{3,4}$', data)

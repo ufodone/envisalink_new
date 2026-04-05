@@ -24,20 +24,20 @@ class UnoClient(HoneywellClient):
         self._evl_ResponseTypes = evl_ResponseTypes
         self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
 
-    def handle_login_success(self, code, data):
+    def handle_login_success(self, code, data: dict) -> None:
         """Handler for when the envisalink accepts our credentials."""
         super().handle_login_success(code, data)
 
         self.create_internal_task(self.complete_login(), name="complete_login")
 
-    async def complete_login(self):
+    async def complete_login(self) -> None:
         await self.queue_command(evl_Commands["HostInfo"], "")
         await self.queue_command(evl_Commands["InitialStateDump"], "")
 
-    def handle_keypad_update(self, code, data):
+    def handle_keypad_update(self, code, data: dict) -> None:
         return None
 
-    def handle_zone_state_change(self, code, data):
+    def handle_zone_state_change(self, code, data: dict) -> dict:
         """Handle when the envisalink sends us a zone change."""
         zone_updates = []
         now = time.time()
@@ -61,7 +61,7 @@ class UnoClient(HoneywellClient):
 
         return { STATE_CHANGE_ZONE: zone_updates }
 
-    def handle_partition_state_change(self, code, data):
+    def handle_partition_state_change(self, code, data: dict) -> dict:
         """Handle when the envisalink sends us a partition change."""
         partition_updates = []
         for currentIndex in range(0, 8):
@@ -93,7 +93,7 @@ class UnoClient(HoneywellClient):
 
         return { STATE_CHANGE_PARTITION: partition_updates }
 
-    def handle_zone_bypass_update(self, code, data):
+    def handle_zone_bypass_update(self, code, data: dict) -> dict:
         updates= []
         zoneNumber = 0
         num_bytes = len(data)
@@ -121,7 +121,7 @@ class UnoClient(HoneywellClient):
 
         return { STATE_CHANGE_ZONE_BYPASS: updates}
 
-    def handle_host_information_report(self, code, data):
+    def handle_host_information_report(self, code, data: dict) -> None:
         """Process Host Information Report"""
 
         host_info = data.split(',')
@@ -136,7 +136,7 @@ class UnoClient(HoneywellClient):
         )
         return
 
-    def handle_partition_trouble_state_change(self, code, data):
+    def handle_partition_trouble_state_change(self, code, data: dict) -> dict:
         """Process Partition Trouble State Change"""
         partition_updates = []
         for currentIndex in range(0, 8):
@@ -160,35 +160,35 @@ class UnoClient(HoneywellClient):
 
         return { STATE_CHANGE_PARTITION: partition_updates }
 
-    async def arm_stay_partition(self, code, partitionNumber):
+    async def arm_stay_partition(self, code, partitionNumber) -> None:
         """Public method to arm/stay a partition."""
         await self.queue_command(evl_Commands["StayArm"], str(partitionNumber))
 
-    async def arm_away_partition(self, code, partitionNumber):
+    async def arm_away_partition(self, code, partitionNumber) -> None:
         """Public method to arm/away a partition."""
         await self.queue_command(evl_Commands["AwayArm"], str(partitionNumber))
 
-    async def arm_max_partition(self, code, partitionNumber):
+    async def arm_max_partition(self, code, partitionNumber) -> None:
         """Public method to arm/max a partition."""
         raise NotImplementedError()
 
-    async def arm_night_partition(self, code, partitionNumber, mode=None):
+    async def arm_night_partition(self, code, partitionNumber, mode: str=None) -> None:
         """Public method to arm/max a partition."""
         raise NotImplementedError()
 
-    async def disarm_partition(self, code, partitionNumber):
+    async def disarm_partition(self, code, partitionNumber) -> None:
         """Public method to disarm a partition."""
         await self.queue_command(evl_Commands["Disarm"], f"{partitionNumber},{code}", code)
 
-    async def panic_alarm(self, panicType):
+    async def panic_alarm(self, panicType) -> None:
         """Public method to raise a panic alarm."""
         await self.queue_command(evl_Commands["PanicAlarm"], f"1,{evl_PanicTypes[panicType]}")
 
-    async def bypass_zone(self, zone, partition, enable):
+    async def bypass_zone(self, zone, partition, enable) -> None:
         command = evl_Commands["BypassZone" if enable else "UnbypassZone"]
         await self.queue_command(command, f"{zone:03}")
 
-    async def toggle_chime(self, code):
+    async def toggle_chime(self, code) -> None:
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 
