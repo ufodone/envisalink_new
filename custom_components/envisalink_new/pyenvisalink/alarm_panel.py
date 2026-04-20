@@ -14,10 +14,11 @@ from .const import (
     PANEL_TYPE_DSC,
     PANEL_TYPE_HONEYWELL,
     PANEL_TYPE_UNO,
+    PANEL_TYPE_SOLO
 )
 from .dsc_client import DSCClient
 from .honeywell_client import HoneywellClient
-from .uno_client import UnoClient
+from .uno_client import UnoClient, SoloClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -260,16 +261,17 @@ class EnvisalinkAlarmPanel:
         self._syncConnect: asyncio.Future[self.ConnectionResult] = asyncio.Future()
         if self._panelType == PANEL_TYPE_UNO:
             self._client = UnoClient(self)
-            self._client.start()
+        elif self._panelType == PANEL_TYPE_SOLO:
+            self._client = SoloClient(self)
         elif self._panelType == PANEL_TYPE_HONEYWELL:
             self._client = HoneywellClient(self)
-            self._client.start()
         elif self._panelType == PANEL_TYPE_DSC:
             self._client = DSCClient(self)
-            self._client.start()
+
         else:
             _LOGGER.error("Unexpected panel type: '%s'", self._panelType)
             return self.ConnectionResult.INVALID_PANEL_TYPE
+        self._client.start()
 
         # Wait until we are successfully connected and authenticated
         try:
@@ -368,10 +370,10 @@ class EnvisalinkAlarmPanel:
         else:
             _LOGGER.error(COMMAND_ERR)
 
-    async def toggle_chime(self, code):
+    async def toggle_chime(self, code, partition, enable):
         """Public method to toggle chime."""
         if self._client:
-            await self._client.toggle_chime(code)
+            await self._client.toggle_chime(code, partition, enable)
         else:
             _LOGGER.error(COMMAND_ERR)
 
@@ -391,7 +393,7 @@ class EnvisalinkAlarmPanel:
                 auth=aiohttp.BasicAuth(self._username, self._password),
                 timeout=aiohttp.ClientTimeout(total=self.connection_timeout),
             ) as client:
-                url = f"http://{self._httpHost}:{self._httpPort}/2"
+                url = f"http://{self._httpHost}:{self._httpPort}/3"
                 resp = await client.get(url)
                 if resp.status != 200:
                     _LOGGER.warn(
@@ -410,7 +412,19 @@ class EnvisalinkAlarmPanel:
                 elif m.group(1).upper() == PANEL_TYPE_UNO:
                     self._evlVersion = 0
                     self._panelType = PANEL_TYPE_UNO
+                elif m.group(1).upper() == PANEL_TYPE_SOLO:
+                    self._evlVersion = 0
+                    self._panelType = PANEL_TYPE_SOLO
                 else:
+                    url = f"http://{self._httpHost}:{self._httpPort}/2"
+                    resp = await client.get(url)
+                    if resp.status != 200:
+                        _LOGGER.warn(
+                            "Unable to discover Envisalink version and panel type: '%s'",
+                            resp.status,
+                        )
+                        return False
+
                     m = re.search(r"Envisalink (.+)", m.group(1))
                     if m and m.lastindex == 1:
                         self._evlVersion = m.group(1)
@@ -428,7 +442,7 @@ class EnvisalinkAlarmPanel:
                         success = False
 
                 if success:
-                    if self._panelType not in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO]:
+                    if self._panelType not in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO, PANEL_TYPE_SOLO]:
                         _LOGGER.warn("Unrecognized panel type: %s", self._panelType)
                 else:
                     _LOGGER.warn("Unable to parse panel info: raw HTML: %s", html)

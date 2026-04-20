@@ -54,7 +54,7 @@ from .const import (
 )
 from .helpers import extract_discovery_endpoint, parse_range_string
 from .pyenvisalink.alarm_panel import EnvisalinkAlarmPanel
-from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_UNO
+from .pyenvisalink.const import PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL, PANEL_TYPE_SOLO, PANEL_TYPE_UNO
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -206,7 +206,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
 
         # Zone bypass switches are available only for DSC and Uno systems
-        if self.config_entry.data.get(CONF_PANEL_TYPE) in [PANEL_TYPE_DSC, PANEL_TYPE_UNO]:
+        if self.config_entry.data.get(CONF_PANEL_TYPE) in [PANEL_TYPE_DSC, PANEL_TYPE_UNO, PANEL_TYPE_SOLO]:
             # Zone bypass switches are only available on DSC panels
             options_schema[
                 vol.Optional(

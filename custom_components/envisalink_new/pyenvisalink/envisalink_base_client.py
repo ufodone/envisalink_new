@@ -305,9 +305,9 @@ class EnvisalinkClient:
         """Public method to toggle a zone's bypass state."""
         raise NotImplementedError()
 
-    async def toggle_chime(self, code):
-         """Public method to toggle chime mode."""
-         raise NotImplementedError()
+    async def toggle_chime(self, code, partition, enable):
+        """Public method to toggle chime mode."""
+        raise NotImplementedError()
 
     async def command_output(self, code, partitionNumber, outputNumber):
         """Public method to activate the selected command output"""
@@ -334,7 +334,7 @@ class EnvisalinkClient:
             result = handlerFunc(cmd["code"], cmd["data"])
 
         except (AttributeError, TypeError, KeyError) as err:
-            _LOGGER.debug("No handler configured for evl command.")
+            _LOGGER.debug("No handler configured for evl command.", exc_info=True)
 
         try:
             _LOGGER.debug("Invoking state change callbacks")

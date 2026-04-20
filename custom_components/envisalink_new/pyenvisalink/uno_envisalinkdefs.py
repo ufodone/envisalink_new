@@ -50,6 +50,7 @@ evl_Commands = {
     "AwayArm": "09",
     "InitialStateDump": "0C",
     "HostInfo": "0D",
+    "ToggleChime": "10",
     "PanicAlarm": "11",
     "Disarm": "12",
 }
@@ -75,7 +76,12 @@ evl_ResponseTypes = honeywell_evl_ResponseTypes | {
         "handler": "partition_trouble_state_change",
         "state_change": True,
     },
-
+    "%10": {
+        "name": "Partition Chime",
+        "description": "Chime in a given partition",
+        "handler": "partition_chime",
+        "state_change": True,
+    },
     "^04": {
         "type": "envisalink",
         "name": "BypassZone",
@@ -112,6 +118,12 @@ evl_ResponseTypes = honeywell_evl_ResponseTypes | {
         "description": "Host Info Dump",
         "handler": "command_response",
     },
+    "^10": {
+        "type": "envisalink",
+        "name": "Chime",
+        "description": "Enable chime for a partition",
+        "handler": "chime_response",
+    },
     "^11": {
         "type": "envisalink",
         "name": "PanicAlarm",
@@ -133,11 +145,13 @@ evl_TPI_Response_Codes = honeywell_evl_TPI_Response_Codes | {
     },
 }
 
-evl_Partition_Status_Codes = {
-    "00": {
+_NOT_USED = {
         "name": "NOT_USED",
         "description": "Partition is not used or doesn" "t exist",
-    },
+    }
+evl_Partition_Status_Codes = {
+    "00": _NOT_USED,
+    "C7": _NOT_USED,
     "01": {
         "name": "READY",
         "description": "Ready",
