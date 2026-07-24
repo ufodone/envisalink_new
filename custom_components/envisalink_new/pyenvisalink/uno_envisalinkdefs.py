@@ -35,7 +35,7 @@ class MajorTrouble_Flags(ctypes.Union):
             f"0x{int(self.asByte):02x}"
             f" service_required={self.service_required}"
             f" ac_failure={self.ac_failure}"
-            f" wireless_device_low_Battery={self.wireless_device_low_Battery}"
+            f" wireless_device_low_battery={self.wireless_device_low_battery}"
             f" server_offline={self.server_offline}"
             f" zone_trouble={self.zone_trouble}"
             f" system_battery_overcurrent={self.system_battery_overcurrent}"
