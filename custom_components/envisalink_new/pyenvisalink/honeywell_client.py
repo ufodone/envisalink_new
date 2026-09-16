@@ -246,13 +246,23 @@ class HoneywellClient(EnvisalinkClient):
             "armed_bypass"
         ]
 
+        # Honeywell keeps the armed_away/armed_stay LED flag asserted during the
+        # exit-delay countdown ("You may exit now"), which made HA jump straight to
+        # ARMED_AWAY/ARMED_HOME and skip the ARMING state entirely. get_partition_state()
+        # already detects the countdown as "arming"; surface that as the exit_delay
+        # flag and withhold armed_away/armed_stay until the countdown finishes -- the
+        # same status-dict contract the DSC handler uses (armed_* False + exit_delay
+        # True while arming). Disarm during the countdown is unaffected (separate
+        # command path) and correctly reports arming -> disarmed.
+        is_arming = partition_status == "arming"
+
         # TODO "armed_bypass" is included in the state below but just passes the bypass flag.
         # How is that used?
         self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
             {
                 "alarm": bool(flags.alarm),
                 "alarm_in_memory": bool(flags.alarm_in_memory),
-                "armed_away": bool(flags.armed_away),
+                "armed_away": bool(flags.armed_away) and not is_arming,
                 "ac_present": bool(flags.ac_present),
                 "armed_bypass": bool(flags.bypass),
                 "chime": bool(flags.chime),
@@ -261,7 +271,8 @@ class HoneywellClient(EnvisalinkClient):
                 "trouble": bool(flags.system_trouble),
                 "ready": bool(flags.ready),
                 "fire": bool(flags.fire),
-                "armed_stay": bool(flags.armed_stay),
+                "armed_stay": bool(flags.armed_stay) and not is_arming,
+                "exit_delay": is_arming,
                 "alpha": alpha,
                 "beep": beep,
                 "armed_night": armed_night,
