@@ -178,7 +178,7 @@ class HoneywellClient(EnvisalinkClient):
                 cmd["state_change"] = self._evl_ResponseTypes[code].get("state_change", False)
                 commands.append(cmd)
             except KeyError:
-                _LOGGER.warning(str.format("No handler defined in config for {0}, skipping...", code))
+                _LOGGER.debug(str.format("No handler defined in config for {0}, skipping...", code))
 
         return (commands, unprocessed_data)
 
