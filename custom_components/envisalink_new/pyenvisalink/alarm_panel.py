@@ -383,7 +383,7 @@ class EnvisalinkAlarmPanel:
             _LOGGER.error(COMMAND_ERR)
 
     async def discover_device_details(self) -> bool:
-        self._evlVersion = 0
+        self._evlVersion = "0"
         self._panelType = None
 
         try:
@@ -408,7 +408,7 @@ class EnvisalinkAlarmPanel:
                 if m is None or m.lastindex != 1:
                     success = False
                 elif m.group(1).upper() == PANEL_TYPE_UNO:
-                    self._evlVersion = 0
+                    self._evlVersion = "0"
                     self._panelType = PANEL_TYPE_UNO
                 else:
                     m = re.search(r"Envisalink (.+)", m.group(1))
