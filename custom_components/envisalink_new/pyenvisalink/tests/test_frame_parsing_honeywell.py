@@ -154,5 +154,43 @@ class TestFrameParsingHoneywell(unittest.TestCase):
         ])
         self.assertEqual(remainder, "\r\n")
 
+    def test_truncated_frame_glued_to_next_frame(self):
+        """The EVL drops the tail (and '$') of the last frame in a burst, so the next
+        frame arrives glued onto it. Captured on an EVL4 (fw 01.00.63A) / Vista 20P."""
+        frames, remainder = self.client._parse_frames(
+            "%01,48020000000000000000000000000000$\r\n"
+            "%01,08020000000000000000000000000000$\r\n"
+            "%00,01,0008,10,00,FAULT 10" + " " * 23
+        )
+        self.assertEqual(frames, [
+            "%01,48020000000000000000000000000000",
+            "%01,08020000000000000000000000000000",
+        ])
+        with self.assertLogs("pyenvisalink.honeywell_client", level="WARNING") as logs:
+            frames, remainder = self.client._parse_frames(
+                remainder + "%00,01,0008,04,00,FAULT 04" + " " * 24 + "$\r\n"
+            )
+        self.assertEqual(frames, ["%00,01,0008,04,00,FAULT 04" + " " * 24])
+        self.assertEqual(remainder, "\r\n")
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("FAULT 10", logs.output[0])
+
+    def test_truncated_frame_glued_to_command_ack(self):
+        """If the glued frame is the keepalive ack, the ack must still be delivered."""
+        frames, remainder = self.client._parse_frames("%00,01,000")
+        self.assertEqual(frames, [])
+        with self.assertLogs("pyenvisalink.honeywell_client", level="WARNING"):
+            frames, remainder = self.client._parse_frames(remainder + "^00,00$\r\n")
+        self.assertEqual(frames, ["^00,00"])
+        self.assertEqual(remainder, "\r\n")
+
+    def test_sentinel_in_alpha_is_not_a_frame_header(self):
+        """'%' or '^' in keypad text is only split when followed by two hex digits and a comma."""
+        frames, remainder = self.client._parse_frames(
+            "%00,01,1C08,08,00,50% ^UP  BATT %ZZ,$\r\n"
+        )
+        self.assertEqual(frames, ["%00,01,1C08,08,00,50% ^UP  BATT %ZZ,"])
+        self.assertEqual(remainder, "\r\n")
+
 if __name__ == "__main__":
     unittest.main()

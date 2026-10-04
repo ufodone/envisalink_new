@@ -20,6 +20,11 @@ from .honeywell_envisalinkdefs import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# A TPI frame header: the sentinel, a two-hex-digit code, then a comma. Used to resync
+# after the EVL drops the tail (and '$' terminator) of a frame. A bare '%' or '^' in
+# keypad alpha text does not match, so it is never split.
+_FRAME_HEADER = re.compile(r'[%^][0-9A-Fa-f]{2},')
+
 
 class HoneywellClient(EnvisalinkClient):
     """Represents a honeywell alarm client."""
@@ -124,6 +129,7 @@ class HoneywellClient(EnvisalinkClient):
 
     def _parse_frames(self, raw_input: str) -> (list, str):
         frames = []
+        login_frame = not self._loggedin
         if not self._loggedin:
             # Not logged in yet so treat the first part of the payload as a login handshake message.
             frame_end = raw_input.find('\r\n')
@@ -145,6 +151,24 @@ class HoneywellClient(EnvisalinkClient):
                 if frame[idx] in '%^':
                     frames[frame_idx] = frame[idx:]
                     break
+
+        # The EVL occasionally drops the tail of a frame, '$' included, at the end of a
+        # burst, so the next frame arrives glued onto the truncated one. Split each segment
+        # again at every frame header that is not at its start and keep only the last
+        # piece; the earlier pieces are truncated and their fields cannot be trusted. The
+        # login handshake line is left alone.
+        resynced = []
+        for frame_idx, frame in enumerate(frames):
+            if login_frame and frame_idx == 0:
+                resynced.append(frame)
+                continue
+            starts = [m.start() for m in _FRAME_HEADER.finditer(frame) if m.start() > 0]
+            for begin, end in zip([0] + starts, starts):
+                _LOGGER.warning(
+                    "Discarding truncated frame from the envisalink: %r", frame[begin:end]
+                )
+            resynced.append(frame[starts[-1]:] if starts else frame)
+        frames = resynced
 
         _LOGGER.log(PROTOCOL_DEBUG, "FR < %r / %r", frames, unprocessed_data)
         return (frames, unprocessed_data)
