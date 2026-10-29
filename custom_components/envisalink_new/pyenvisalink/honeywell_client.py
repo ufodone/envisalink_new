@@ -32,6 +32,7 @@ class HoneywellClient(EnvisalinkClient):
     def __init__(self, panel):
         super().__init__(panel)
         self._zoneTimers = {}
+        self._bypassedZonePartitions = {}
         self._evl_ResponseTypes = evl_ResponseTypes
         self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
 
@@ -266,9 +267,6 @@ class HoneywellClient(EnvisalinkClient):
         partition_status = HoneywellClient.get_partition_state(flags, alpha)
         zone_code = HoneywellClient.get_zone_report_type(flags, alpha)
         prior_ready = self._alarmPanel.alarm_state["partition"][partitionNumber]["status"]["ready"]
-        prior_bypass = self._alarmPanel.alarm_state["partition"][partitionNumber]["status"][
-            "armed_bypass"
-        ]
 
         # Honeywell keeps the armed_away/armed_stay LED flag asserted during the
         # exit-delay countdown ("You may exit now"), which made HA jump straight to
@@ -316,11 +314,17 @@ class HoneywellClient(EnvisalinkClient):
                     )
                 self._zoneTimers[partitionNumber].pop(z)
 
-        if prior_bypass and not bool(flags.bypass):
-            # Partition has switched from bypassed to not bypassed, so clear bypass flags
-            # TODO Need to know which bypassed zones are in which partition to handle this.
-            # No zone timers for these - either maintain a list or add partition to zone status
-            _LOGGER.debug("Clear bypassed zones")
+        if not bool(flags.bypass):
+            # Clear only bypasses reported by this partition. A different
+            # partition may still have active bypasses. Also reconcile repeated
+            # no-bypass reports rather than relying solely on an LED transition.
+            for zone, partition in list(self._bypassedZonePartitions.items()):
+                if partition == partitionNumber:
+                    zone_info = self._alarmPanel.alarm_state["zone"][zone]
+                    if zone_info["bypassed"]:
+                        zone_info["bypassed"] = False
+                        bypass_updates.append(zone)
+                    del self._bypassedZonePartitions[zone]
 
         if flags.not_used2 and flags.not_used3:
             # Keypad update is giving partition status. Battery report applies to system battery
@@ -351,8 +355,9 @@ class HoneywellClient(EnvisalinkClient):
                 # update queue separate from state changes, so need their own zone timers.
                 self._zoneTimers[partitionNumber][f"{user_zone_field}|{zone_code}"] = 1
             elif zone_code == "bypass":
-                # Bypassed zones only show once in keypad updates and only clear when the
-                # partition is disarmed. No zone timer needed.
+                # Remember the reporting partition so its no-bypass LED update
+                # can clear these flags without affecting other partitions.
+                self._bypassedZonePartitions[user_zone_field] = partitionNumber
                 self._alarmPanel.alarm_state["zone"][user_zone_field]["bypassed"] = True
                 bypass_updates.append(user_zone_field)
             elif zone_code in ["alarm", "alarmcleared", "notready"]:
