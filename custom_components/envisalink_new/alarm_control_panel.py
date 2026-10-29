@@ -246,20 +246,26 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send disarm command."""
+        # Make sure any code is a string, but leave None alone: it means no code was
+        # entered, and str(None) would become the text "None".
         await self._controller.controller.disarm_partition(
-            str(code), self._partition_number
+            None if code is None else str(code), self._partition_number
         )
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
+        # Make sure any code is a string, but leave None alone: it means no code was
+        # entered, and str(None) would become the text "None".
         await self._controller.controller.arm_stay_partition(
-            str(code), self._partition_number
+            None if code is None else str(code), self._partition_number
         )
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
+        # Make sure any code is a string, but leave None alone: it means no code was
+        # entered, and str(None) would become the text "None".
         await self._controller.controller.arm_away_partition(
-            str(code), self._partition_number
+            None if code is None else str(code), self._partition_number
         )
 
     async def async_alarm_trigger(self, code: str | None = None) -> None:
@@ -268,8 +274,10 @@ class EnvisalinkAlarm(EnvisalinkDevice, AlarmControlPanelEntity):
 
     async def async_alarm_arm_night(self, code: str | None = None) -> None:
         """Send arm night command."""
+        # Make sure any code is a string, but leave None alone: it means no code was
+        # entered, and str(None) would become the text "None".
         await self._controller.controller.arm_night_partition(
-            str(code),
+            None if code is None else str(code),
             self._partition_number,
             self._arm_night_mode,
         )

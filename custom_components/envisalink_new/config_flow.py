@@ -205,8 +205,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ): vol.Coerce(int),
         }
 
+        panel_type = self.config_entry.data.get(CONF_PANEL_TYPE)
+
         # Zone bypass switches are available only for DSC and Uno systems
-        if self.config_entry.data.get(CONF_PANEL_TYPE) in [PANEL_TYPE_DSC, PANEL_TYPE_UNO]:
+        if panel_type in [PANEL_TYPE_DSC, PANEL_TYPE_UNO]:
             # Zone bypass switches are only available on DSC panels
             options_schema[
                 vol.Optional(
@@ -218,17 +220,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 )
             ] = selector.BooleanSelector()
 
-        # Add DSC-only options
-        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_DSC:
+        # Code-required-to-arm option is available for DSC and Honeywell panels
+        if panel_type in [PANEL_TYPE_DSC, PANEL_TYPE_HONEYWELL]:
             options_schema[
                 vol.Optional(
                     CONF_CODE_ARM_REQUIRED,
                     default=self.config_entry.options.get(
                         CONF_CODE_ARM_REQUIRED,
-                        DEFAULT_CODE_ARM_REQUIRED[PANEL_TYPE_DSC],
+                        DEFAULT_CODE_ARM_REQUIRED[panel_type],
                     ),
                 )
             ] = selector.BooleanSelector()
+
+        # Add DSC-only options
+        if panel_type == PANEL_TYPE_DSC:
             options_schema[
                 vol.Optional(
                     CONF_WIRELESS_ZONE_SET,
@@ -238,7 +243,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ] = cv.string
 
         # Add Honeywell-only options
-        if self.config_entry.data.get(CONF_PANEL_TYPE) == PANEL_TYPE_HONEYWELL:
+        if panel_type == PANEL_TYPE_HONEYWELL:
             # Allow selection of which keypress to use for Arm Night mode
             options_schema[
                 vol.Optional(
