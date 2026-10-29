@@ -32,6 +32,7 @@ class HoneywellClient(EnvisalinkClient):
     def __init__(self, panel):
         super().__init__(panel)
         self._zoneTimers = {}
+        self._programmingPartitions = set()
         self._bypassedZonePartitions = {}
         self._evl_ResponseTypes = evl_ResponseTypes
         self._evl_TPI_Response_Codes = evl_TPI_Response_Codes
@@ -264,6 +265,28 @@ class HoneywellClient(EnvisalinkClient):
         beep = evl_Virtual_Keypad_How_To_Beep.get(beep_field.beeps, "unknown")
         armed_night = bool(beep_field.armed_night)
         alpha = dataList[4]
+
+        # On the captured Honeywell/EVL firmware, bit 6 is asserted throughout
+        # installer programming (0040/0840/0C40), including numeric-only prompts.
+        # The numeric field is programming data here, not a faulted zone. Do not
+        # infer alarm, battery, bypass or zone status from these display frames.
+        if flags.not_used1:
+            self._programmingPartitions.add(partitionNumber)
+            self._alarmPanel.alarm_state["partition"][partitionNumber]["status"].update(
+                {"alpha": alpha, "beep": beep, "programming": True}
+            )
+            return {STATE_CHANGE_PARTITION: partition_updates}
+
+        if partitionNumber in self._programmingPartitions:
+            self._programmingPartitions.remove(partitionNumber)
+            # Resume the normal fault-message cycle with a fresh timer budget.
+            # Preserve known openings until genuine normal reports reconcile them.
+            for timer in self._zoneTimers[partitionNumber]:
+                self._zoneTimers[partitionNumber][timer] = 1
+        self._alarmPanel.alarm_state["partition"][partitionNumber]["status"][
+            "programming"
+        ] = False
+
         partition_status = HoneywellClient.get_partition_state(flags, alpha)
         zone_code = HoneywellClient.get_zone_report_type(flags, alpha)
         prior_ready = self._alarmPanel.alarm_state["partition"][partitionNumber]["status"]["ready"]
@@ -440,6 +463,14 @@ class HoneywellClient(EnvisalinkClient):
         _LOGGER.debug(cidEvent["type"] + " value is " + str(zoneOrUser))
 
         return cidEvent
+
+    def handle_zone_timer_dump(self, code, data):
+        # Dumps contain no partition identifiers and the EVL's zone inference is
+        # unreliable during programming. Preserve both status and last-fault times
+        # until all observed programming sessions have ended.
+        if self._programmingPartitions:
+            return {}
+        return super().handle_zone_timer_dump(code, data)
 
     def is_zone_open_from_zonedump(self, zone, ticks) -> bool:
         now = time.time()
