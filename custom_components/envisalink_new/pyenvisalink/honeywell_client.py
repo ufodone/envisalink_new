@@ -151,8 +151,13 @@ class HoneywellClient(EnvisalinkClient):
         await self.keypresses_to_partition(1, evl_PanicTypes[panicType])
 
     async def toggle_chime(self, code):
-        """Public method to toggle a zone's bypass state."""
-        await self.keypresses_to_partition(1, '%s9' % (code))
+        """Public method to toggle the door chime."""
+        if not code:
+            # Honeywell needs <code> + 9 to toggle chime, so don't send anything.
+            _LOGGER.error("Unable to toggle chime: no code was given.")
+            return
+        # Hide the code in the log, like the arm and disarm commands do.
+        await self.queue_keypresses_to_partition(1, code + "9", ("*" * len(code)) + "9")
 
     def _parse_frames(self, raw_input: str) -> (list, str):
         frames = []
