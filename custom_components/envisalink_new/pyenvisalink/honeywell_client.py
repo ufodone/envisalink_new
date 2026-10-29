@@ -80,6 +80,13 @@ class HoneywellClient(EnvisalinkClient):
 
     async def arm_stay_partition(self, code, partitionNumber):
         """Public method to arm/stay a partition."""
+        if not code:
+            # No code given, so use Honeywell quick-arm. On the keypad, # stands in for
+            # the user code, so "#3" is the same as entering <code> + 3 (Stay).
+            # This only works if quick-arm is enabled in the panel's programming
+            # (field *21 on VISTA panels); otherwise the panel ignores it.
+            await self.queue_keypresses_to_partition(partitionNumber, "#3", "#3")
+            return
         await self.queue_keypresses_to_partition(
             partitionNumber,
             code + "3",
@@ -88,6 +95,13 @@ class HoneywellClient(EnvisalinkClient):
 
     async def arm_away_partition(self, code, partitionNumber):
         """Public method to arm/away a partition."""
+        if not code:
+            # No code given, so use Honeywell quick-arm. On the keypad, # stands in for
+            # the user code, so "#2" is the same as entering <code> + 2 (Away).
+            # This only works if quick-arm is enabled in the panel's programming
+            # (field *21 on VISTA panels); otherwise the panel ignores it.
+            await self.queue_keypresses_to_partition(partitionNumber, "#2", "#2")
+            return
         await self.queue_keypresses_to_partition(
             partitionNumber,
             code + "2",
@@ -107,6 +121,13 @@ class HoneywellClient(EnvisalinkClient):
         mode_keys = "33"
         if mode is not None:
             mode_keys = mode
+        if not code:
+            # No code given, so use Honeywell quick-arm: # stands in for the user code,
+            # so "#33" (Night) or "#7" (Instant) is the same as <code> + those keys.
+            # Like arm stay/away, this needs quick-arm enabled in the panel's programming.
+            quick_keys = "#" + mode_keys
+            await self.queue_keypresses_to_partition(partitionNumber, quick_keys, quick_keys)
+            return
         await self.queue_keypresses_to_partition(
             partitionNumber,
             code + mode_keys,
@@ -115,6 +136,10 @@ class HoneywellClient(EnvisalinkClient):
 
     async def disarm_partition(self, code, partitionNumber):
         """Public method to disarm a partition."""
+        if not code:
+            # The panel can't disarm without a code, so don't send anything.
+            _LOGGER.error("Unable to disarm partition %s: no code was given.", partitionNumber)
+            return
         await self.queue_keypresses_to_partition(
             partitionNumber,
             code + "1",
@@ -126,8 +151,13 @@ class HoneywellClient(EnvisalinkClient):
         await self.keypresses_to_partition(1, evl_PanicTypes[panicType])
 
     async def toggle_chime(self, code):
-        """Public method to toggle a zone's bypass state."""
-        await self.keypresses_to_partition(1, '%s9' % (code))
+        """Public method to toggle the door chime."""
+        if not code:
+            # Honeywell needs <code> + 9 to toggle chime, so don't send anything.
+            _LOGGER.error("Unable to toggle chime: no code was given.")
+            return
+        # Hide the code in the log, like the arm and disarm commands do.
+        await self.queue_keypresses_to_partition(1, code + "9", ("*" * len(code)) + "9")
 
     def _parse_frames(self, raw_input: str) -> (list, str):
         frames = []
