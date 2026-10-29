@@ -89,6 +89,10 @@ class DSCClient(EnvisalinkClient):
 
     async def disarm_partition(self, code, partitionNumber):
         """Public method to disarm a partition."""
+        if not code:
+            # The panel can't disarm without a code, so don't send anything.
+            _LOGGER.error("Unable to disarm partition %s: no code was given.", partitionNumber)
+            return
         await self.queue_command(evl_Commands["Disarm"], str(partitionNumber) + str(code), code)
 
     async def panic_alarm(self, panicType):
