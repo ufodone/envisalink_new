@@ -140,7 +140,7 @@ def build_zone_to_partition_map(
     # Default all zones to the first declared partition
     # (or 1 if none exist)
     if not partition_set:
-        partition_set.append(1)
+        partition_set = [1]
     default_partition = partition_set[0]
 
     for zone in range(max_zones):
